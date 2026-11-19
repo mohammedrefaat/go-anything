@@ -17,3 +17,10 @@
 # OS specific
 .DS_Store
 Thumbs.db
+
+.serena/
+
+.*
+!.gitignore
+!.github
+
