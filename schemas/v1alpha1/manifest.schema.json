@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v1alpha1/manifest.schema.json",
+  "title": "Manifest",
+  "description": "Migration workspace manifest indexing units, dependency waves, and schema version.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "units",
+    "waves"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "v1alpha1",
+      "description": "Mandatory schema version identifier."
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Name of the project undergoing migration."
+    },
+    "source_language": {
+      "type": "string",
+      "description": "Source language of the original codebase (e.g., 'go', 'python', 'typescript')."
+    },
+    "target_language": {
+      "type": "string",
+      "default": "go",
+      "description": "Target language for modernization/migration (default 'go')."
+    },
+    "units": {
+      "type": "array",
+      "description": "List of discovered migration unit identifiers.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "waves": {
+      "type": "array",
+      "description": "Topologically ordered dependency migration waves.",
+      "items": {
+        "type": "object",
+        "required": [
+          "wave",
+          "unit_ids"
+        ],
+        "properties": {
+          "wave": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Zero-indexed migration wave number."
+          },
+          "unit_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Unit identifiers assigned to this wave."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary project-level metadata."
+    }
+  },
+  "additionalProperties": false
+}

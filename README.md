@@ -22,7 +22,7 @@
 </div>
 
 > [!WARNING]
-> **Early development:** end-to-end migration workflows are not implemented yet. Today, the CLI provides `help` and `version`; the workflow below describes the project’s direction, not working commands. APIs and schemas may change.
+> **Early development:** workspace setup, status and health checks, and parts of the record/replay/verification workflow are available. Automatic source analysis and some later-stage workflow commands are not wired up yet. Check command help and the guide below before relying on a command; APIs and schemas may change.
 
 ---
 
@@ -32,6 +32,7 @@
 - [Why go-anything?](#why-go-anything)
 - [Project status](#project-status)
 - [Quickstart](#quickstart)
+- [How to use go-anything](#how-to-use-go-anything)
 - [Design principles](#design-principles)
 - [Repository map](#repository-map)
 - [Roadmap](#roadmap)
@@ -69,11 +70,11 @@ This is the **strangler pattern** with behavioral checks in the loop. The coding
 
 | Today | Direction |
 | --- | --- |
-| CLI `help` and `version` | Dependency analysis and migration planning |
-| Foundational Go packages and experimental contracts/schemas | Behavior capture, replay, and reviewable diffs |
-| `go test ./...` runs the repository tests | Human-controlled gates and gradual cutover |
+| CLI help, version, workspace setup, status, and doctor | Automatic dependency analysis and migration planning |
+| Early record, replay, and verification commands | Complete behavior capture and quality-gate workflow |
+| Human approval and promotion commands | Fully integrated shadowing and gradual cutover |
 
-**The direction column is a roadmap, not a feature list.** Migration commands are not yet wired into the CLI.
+**This is an early, incomplete workflow.** In particular, automatic source analysis is not wired up. For Go-to-Go migrations, `modernize` can prepare the workspace; for other source languages, `init` currently creates an empty workspace.
 
 ## Quickstart
 
@@ -93,7 +94,33 @@ go run ./cmd/go-anything version
 go test ./...
 ```
 
-The CLI currently reports `go-anything dev`. Installing it with `go install` does not enable migration commands yet.
+The CLI currently reports `go-anything dev`. To install the CLI from the repository, run `go install ./cmd/go-anything`; then use `go-anything help` to see the available commands.
+
+## How to use go-anything
+
+Start by preparing a workspace for the application you want to migrate. For a Go application:
+
+```sh
+go run ./cmd/go-anything modernize /path/to/your-go-app
+go run ./cmd/go-anything status /path/to/your-go-app
+go run ./cmd/go-anything doctor /path/to/your-go-app
+```
+
+`modernize` sets up the `legacy/` original and `modern/` working copy and registers the units it can identify. For a different source language, initialize an empty workspace instead:
+
+```sh
+go run ./cmd/go-anything init --source=python --name=my-app /path/to/your-app
+```
+
+Once a unit is registered, the available early workflow is to record examples from the original, implement the unit in Go, then replay and verify those examples against your Go program:
+
+```sh
+go run ./cmd/go-anything record --unit <unit-id> --cmd "<original command>" --dir /path/to/your-app
+go run ./cmd/go-anything replay --unit <unit-id> --target /path/to/ported-program --dir /path/to/your-app
+go run ./cmd/go-anything verify <unit-id> --target /path/to/ported-program --dir /path/to/your-app
+```
+
+Recording runs the original command, so only use it with code you trust. Verification checks the recorded cases; it does not prove parity for behavior that was not observed. Commands for automatic analysis and some later migration stages are not yet fully connected. Run `go run ./cmd/go-anything help` for current command help, and see the [security policy](SECURITY.md) before running project code.
 
 ## Design principles
 
