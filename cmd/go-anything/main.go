@@ -91,16 +91,10 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "lift":
 		return runLift(global, subArgs, stdout, stderr)
 
-	case "mcp":
-		return runMCP(global, subArgs, stdin, stdout, stderr)
-
 	case "template":
 		return runTemplate(global, subArgs, stdout, stderr)
 
-	case "setup":
-		return runSetup(global, subArgs, stdout, stderr)
-
-	case "analyze", "diff", "gate", "shadow", "cutover":
+	case "analyze", "diff", "gate", "shadow", "cutover", "setup", "mcp":
 		fmt.Fprintf(stdout, "go-anything: command '%s' is registered and will be wired in milestone M1-M4.\n", subcommand)
 		return nil
 
@@ -175,7 +169,6 @@ Available Commands:
   shadow      Run front door in shadow mode on real traffic
   cutover     Switch primary traffic to verified Go unit
   lift        Remove fallback wrappers and finalize modernization
-  mcp         Start Model Context Protocol stdio server for AI agents
   template    Render agent instruction files (CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md)
   setup       Render and install agent instruction files into target workspace (alias for template)
   version     Show go-anything version
