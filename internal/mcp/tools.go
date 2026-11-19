@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -300,11 +301,8 @@ func (s *Server) handleClaimUnit(ctx context.Context, args json.RawMessage) (*To
 		return nil, fmt.Errorf("unit %q not found: %w", input.UnitID, err)
 	}
 
-	if input.Profile != "" {
-		unit.EvidenceProfile = adapterkit.EvidenceProfile(input.Profile)
-		if saveErr := store.SaveUnit(unit); saveErr != nil {
-			return nil, fmt.Errorf("failed to update unit evidence profile: %w", saveErr)
-		}
+	if _, err := validatedProfile(unit, input.Profile); err != nil {
+		return nil, err
 	}
 
 	// If Planned, advance to Recorded first
@@ -452,7 +450,7 @@ func (s *Server) handleRecordCases(ctx context.Context, args json.RawMessage) (*
 			Method: "GET",
 			Path:   parsedURL.RequestURI(),
 		}
-		execFn := createHTTPExecutionFunc(input.URL)
+		execFn := createHTTPExecutionFunc(input.URL, s.AllowNetwork)
 		res, err := rec.RecordCase(ctx, input.UnitID, caseIn, adapterkit.KindHappy, execFn)
 		if err != nil {
 			return nil, fmt.Errorf("recording failed: %w", err)
@@ -532,7 +530,7 @@ func (s *Server) handleVerifyDiff(ctx context.Context, args json.RawMessage) (*T
 		}
 	}
 
-	driver, err := buildTargetReplayDriver(input.Target)
+	driver, err := buildTargetReplayDriver(input.Target, s.AllowNetwork)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build replay driver: %w", err)
 	}
@@ -593,6 +591,9 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 			return nil, fmt.Errorf("unit %q not found: %w", input.UnitID, err)
 		}
 		unit = loaded
+		if _, err := validatedProfile(unit, input.Profile); err != nil {
+			return nil, err
+		}
 
 		casesFile := filepath.Join(dir, ".go-anything", "cases", filepath.FromSlash(unit.ID)+".jsonl")
 		cases, err := loadCasesFromJSONL(casesFile)
@@ -604,7 +605,7 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 		if target == "" {
 			return nil, fmt.Errorf("unit %q has no replay target; run verify_diff first", unit.ID)
 		}
-		driver, err := buildTargetReplayDriver(target)
+		driver, err := buildTargetReplayDriver(target, s.AllowNetwork)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build replay driver for %q: %w", target, err)
 		}
@@ -643,12 +644,19 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 		checks = append(checks, gate.CheckReplay, gate.CheckErrorPaths, gate.CheckAPICompat)
 	}
 
+	commitSHA, err := resolveCommitSHA(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireCleanTree(ctx, dir); err != nil {
+		return nil, err
+	}
 	runner := gate.New(gate.Config{
 		Dir:    dir,
 		Checks: checks,
 		// Optional linters and the race detector are skipped when the host
 		// toolchain cannot run them; required checks still fail closed.
-		AllowMissingTools: true,
+		AllowMissingTools: input.AllowMissingTools,
 		Executors:         executors,
 	})
 
@@ -657,22 +665,33 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 		return nil, fmt.Errorf("gate execution error: %w", err)
 	}
 
-	commitSHA := resolveCommitSHA(ctx, dir)
+	afterSHA, err := resolveCommitSHA(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+	if afterSHA != commitSHA {
+		return nil, fmt.Errorf("HEAD changed during gate run")
+	}
+	if err := requireCleanTree(ctx, dir); err != nil {
+		return nil, err
+	}
 
 	// Persist evidence only when every check passed. mark_verified will then
 	// accept the transition for the unit's declared evidence profile.
 	if unit != nil && report.Passed {
-		profile := adapterkit.EvidenceProfile(input.Profile)
-		if profile == "" {
-			if unit.EvidenceProfile != "" {
-				profile = unit.EvidenceProfile
-			} else {
-				profile = adapterkit.ProfileFull
-			}
+		// Reload to validate the current declaration; do not overwrite unit state.
+		fresh, err := store.GetUnit(unit.ID)
+		if err != nil {
+			return nil, err
 		}
-		unit.EvidenceProfile = profile
-		_ = store.SaveUnit(unit)
+		profile, err := validatedProfile(fresh, input.Profile)
+		if err != nil {
+			return nil, err
+		}
 
+		if !requiredChecksPassed(report, profile) {
+			return &ToolCallResult{IsError: true, Content: []ContentItem{{Type: "text", Text: "Required checks were skipped; no passing evidence saved"}}}, nil
+		}
 		ev := &adapterkit.Evidence{
 			SchemaVersion:   adapterkit.SchemaVersionV1Alpha1,
 			EvidenceID:      fmt.Sprintf("evi-%s-%s-%d", sanitizeUnitID(unit.ID), commitSHA[:8], time.Now().UnixNano()),
@@ -693,10 +712,7 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 	sb.WriteString(fmt.Sprintf("Quality Gate Report (Passed: %t, %d passed, %d failed, %d skipped):\n",
 		report.Passed, report.PassedCount, report.FailedCount, report.SkippedCount))
 	for _, c := range report.Checks {
-		statusStr := "PASS"
-		if !c.Passed {
-			statusStr = "FAIL"
-		}
+		statusStr := strings.ToUpper(string(c.Status))
 		sb.WriteString(fmt.Sprintf("- [%s] %s (%.1f ms)\n", statusStr, c.Name, c.DurationMS))
 		if !c.Passed && len(c.Issues) > 0 {
 			sb.WriteString(fmt.Sprintf("    issues: %s\n", strings.Join(c.Issues, "; ")))
@@ -736,14 +752,23 @@ func (s *Server) handleMarkVerified(ctx context.Context, args json.RawMessage) (
 	dir := resolveWorkspaceDir(input.Dir)
 	store := state.NewStore(dir)
 
-	if _, err := store.GetUnit(input.UnitID); err != nil {
+	if unit, err := store.GetUnit(input.UnitID); err != nil {
 		return nil, fmt.Errorf("unit %q not found: %w", input.UnitID, err)
+	} else if _, err := validatedProfile(unit, ""); err != nil {
+		return nil, err
 	}
 
 	// Resolve target commit SHA
 	targetSHA := input.CommitSHA
 	if targetSHA == "" {
-		targetSHA = resolveCommitSHA(ctx, dir)
+		var err error
+		targetSHA, err = resolveCommitSHA(ctx, dir)
+		if err != nil {
+			return nil, err
+		}
+		if err := requireCleanTree(ctx, dir); err != nil {
+			return nil, err
+		}
 	}
 
 	// Strict Guard: Check if valid evidence exists for this commit SHA
@@ -796,7 +821,18 @@ func (s *Server) handleHandoff(ctx context.Context, args json.RawMessage) (*Tool
 		return nil, fmt.Errorf("both 'summary' and 'next_steps' are required for handoff")
 	}
 
-	dir := resolveWorkspaceDir(input.Dir)
+	dir, err := filepath.EvalSymlinks(resolveWorkspaceDir(input.Dir))
+	if err != nil {
+		return nil, err
+	}
+	root, err := filepath.EvalSymlinks(s.WorkspaceRoot)
+	if err != nil {
+		return nil, err
+	}
+	rel, err := filepath.Rel(root, dir)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return nil, fmt.Errorf("handoff directory must be within server workspace")
+	}
 	store := state.NewStore(dir)
 
 	units, _ := store.ListUnits()
@@ -832,7 +868,23 @@ func (s *Server) handleHandoff(ctx context.Context, args json.RawMessage) (*Tool
 	sb.WriteString("5. Call `mark_verified` once all quality checks are clean.\n")
 
 	handoffPath := filepath.Join(dir, "HANDOFF.md")
-	if err := os.WriteFile(handoffPath, []byte(sb.String()), 0644); err != nil {
+	tmp, err := os.CreateTemp(dir, ".handoff-*")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.WriteString(sb.String()); err != nil {
+		_ = tmp.Close()
+		return nil, err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return nil, err
+	}
+	if err := tmp.Close(); err != nil {
+		return nil, err
+	}
+	if err := os.Rename(tmp.Name(), handoffPath); err != nil {
 		return nil, fmt.Errorf("failed to write HANDOFF.md: %w", err)
 	}
 
@@ -847,32 +899,81 @@ func sanitizeUnitID(unitID string) string {
 	return r.Replace(unitID)
 }
 
-func resolveCommitSHA(ctx context.Context, dir string) string {
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "HEAD")
+func resolveCommitSHA(ctx context.Context, dir string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "HEAD^{commit}")
 	cmd.Dir = dir
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err := cmd.Run(); err == nil {
-		sha := strings.TrimSpace(out.String())
-		if len(sha) == 40 {
-			return sha
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("resolve HEAD: %w", err)
+	}
+	sha := strings.TrimSpace(string(out))
+	if !regexp.MustCompile(`^[0-9a-fA-F]{40}$`).MatchString(sha) {
+		return "", fmt.Errorf("invalid commit SHA %q", sha)
+	}
+	return sha, nil
+}
+
+// Evidence tests committed source. Migration bookkeeping is excluded because
+// recording evidence and transitioning units necessarily updates that directory.
+func requireCleanTree(ctx context.Context, dir string) error {
+	cmd := exec.CommandContext(ctx, "git", "status", "--porcelain", "--untracked-files=all", "--", ".", ":(exclude).go-anything")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("check working tree: %w", err)
+	}
+	if len(bytes.TrimSpace(out)) != 0 {
+		return fmt.Errorf("working tree must be clean before saving or accepting gate evidence; commit source changes first")
+	}
+	return nil
+}
+
+func validatedProfile(unit *adapterkit.Unit, requested string) (adapterkit.EvidenceProfile, error) {
+	profile := unit.EvidenceProfile
+	if profile == "" {
+		profile = adapterkit.ProfileFull
+	}
+	if profile != adapterkit.ProfileReplay && profile != adapterkit.ProfileFull {
+		return "", fmt.Errorf("invalid unit evidence profile %q", profile)
+	}
+	if requested != "" && requested != string(profile) {
+		return "", fmt.Errorf("requested profile %q does not match unit profile %q", requested, profile)
+	}
+	return profile, nil
+}
+
+func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidenceProfile) bool {
+	checks := gate.FullProfileChecks()
+	if profile == adapterkit.ProfileReplay {
+		checks = []string{gate.CheckReplay}
+	}
+	for _, name := range checks {
+		found := false
+		for _, check := range report.Checks {
+			if check.Name == name && check.Status == gate.StatusPass {
+				found = true
+			}
+		}
+		if !found {
+			return false
 		}
 	}
-	return "0000000000000000000000000000000000000000"
+	return true
 }
 
 // buildTargetReplayDriver resolves an HTTP or CLI driver for replay.
-func buildTargetReplayDriver(target string) (adapterkit.Replay, error) {
+func buildTargetReplayDriver(target string, allowNetwork ...bool) (adapterkit.Replay, error) {
 	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-		return httpadapter.NewAdapter(httpadapter.WithBaseURL(target)), nil
+		return httpadapter.NewAdapter(httpadapter.WithBaseURL(target), httpadapter.WithClient(outboundClient(allowNetwork...))), nil
+	}
+	if strings.Contains(target, "://") {
+		return nil, fmt.Errorf("unsupported target scheme")
 	}
 	return cliadapter.NewAdapter(target), nil
 }
 
-func createHTTPExecutionFunc(urlTarget string) recorder.ExecutionFunc {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
+func createHTTPExecutionFunc(urlTarget string, allowNetwork ...bool) recorder.ExecutionFunc {
+	client := outboundClient(allowNetwork...)
 
 	return func(ctx context.Context, in adapterkit.CaseInput) (*adapterkit.CaseOutput, error) {
 		method := in.Method
@@ -937,7 +1038,16 @@ func loadCasesFromJSONL(path string) ([]*adapterkit.Case, error) {
 	defer f.Close()
 
 	var cases []*adapterkit.Case
+	info, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
 	scanner := bufio.NewScanner(f)
+	maxSize := int64(int(^uint(0) >> 1))
+	if info.Size() < maxSize {
+		maxSize = info.Size() + 1
+	}
+	scanner.Buffer(nil, int(maxSize))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if len(line) == 0 {

@@ -123,13 +123,10 @@ func defaultStaticcheckExecutor(allowMissing bool) CheckExecutor {
 						return out, nil, true, nil
 					}
 				}
-				if allowMissing {
-					return "staticcheck not installed (skipped)", nil, true, nil
-				}
 				return out, extractLines(out), false, lErr
 			}
 			if allowMissing {
-				return "staticcheck not installed (skipped)", nil, true, nil
+				return "staticcheck not installed (skipped)", nil, false, ErrSkipped
 			}
 			return "staticcheck executable not found in PATH", []string{"staticcheck not installed"}, false, err
 		}
@@ -148,7 +145,7 @@ func defaultGolangciLintExecutor(allowMissing bool) CheckExecutor {
 		bin, err := exec.LookPath("golangci-lint")
 		if err != nil {
 			if allowMissing {
-				return "golangci-lint not installed (skipped)", nil, true, nil
+				return "golangci-lint not installed (skipped)", nil, false, ErrSkipped
 			}
 			return "golangci-lint executable not found in PATH", []string{"golangci-lint not installed"}, false, err
 		}
@@ -168,7 +165,7 @@ func defaultGolangciLintExecutor(allowMissing bool) CheckExecutor {
 			}
 		}
 		if allowMissing && (strings.Contains(out, "unknown flag") || strings.Contains(out, "error reading config") || strings.Contains(out, "no config") || strings.Contains(out, "does not contain modules listed in go.work")) {
-			return "golangci-lint (skipped)", nil, true, nil
+			return "golangci-lint (skipped)", nil, false, ErrSkipped
 		}
 		return out, extractLines(out), false, err
 	}
@@ -181,7 +178,7 @@ func defaultRaceExecutor(allowMissing bool) CheckExecutor {
 		out, exitCode, err := runCmd(ctx, dir, env, "go", cmdArgs...)
 		if strings.Contains(out, "requires cgo") {
 			if allowMissing {
-				return "race detector requires cgo (skipped in current environment)", nil, true, nil
+				return "race detector requires cgo (skipped in current environment)", nil, false, ErrSkipped
 			}
 			return out, []string{"go test -race requires cgo/gcc"}, false, err
 		}
@@ -197,7 +194,7 @@ func defaultGovulncheckExecutor(allowMissing bool) CheckExecutor {
 		bin, err := exec.LookPath("govulncheck")
 		if err != nil {
 			if allowMissing {
-				return "govulncheck not installed (skipped)", nil, true, nil
+				return "govulncheck not installed (skipped)", nil, false, ErrSkipped
 			}
 			return "govulncheck executable not found in PATH", []string{"govulncheck not installed"}, false, err
 		}
@@ -209,7 +206,7 @@ func defaultGovulncheckExecutor(allowMissing bool) CheckExecutor {
 			return out, nil, true, nil
 		}
 		if allowMissing && (strings.Contains(out, "no go.mod file") || strings.Contains(out, "does not contain modules listed in go.work")) {
-			return "govulncheck clean (workspace mode)", nil, true, nil
+			return "govulncheck clean (workspace mode)", nil, false, ErrSkipped
 		}
 		return out, extractLines(out), false, err
 	}

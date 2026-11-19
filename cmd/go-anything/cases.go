@@ -23,7 +23,16 @@ func loadCasesForUnit(workspaceRoot, unitID string) ([]*adapterkit.Case, error) 
 	defer file.Close()
 
 	var cases []*adapterkit.Case
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
 	scanner := bufio.NewScanner(file)
+	maxSize := int64(int(^uint(0) >> 1))
+	if info.Size() < maxSize {
+		maxSize = info.Size() + 1
+	}
+	scanner.Buffer(nil, int(maxSize))
 	lineNum := 0
 	for scanner.Scan() {
 		lineNum++

@@ -6,12 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
+	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -141,96 +140,29 @@ func (c *mcpTestClient) callTool(t *testing.T, name string, args any) (*mcp.Tool
 	return &toolRes, nil
 }
 
-func startTargetTestServer() *httptest.Server {
-	mux := http.NewServeMux()
-
-	// /fraud endpoint
-	mux.HandleFunc("/fraud", func(w http.ResponseWriter, r *http.Request) {
-		amountStr := r.URL.Query().Get("amount")
-		riskStr := r.URL.Query().Get("risk")
-
-		amount, err := strconv.ParseFloat(amountStr, 64)
+// Build and launch the actual service; each binary is independent of the fixture.
+func startAcceptanceService(t *testing.T, dir string) string {
+	t.Helper()
+	binary := filepath.Join(t.TempDir(), "service")
+	runCmd(t, dir, "go", "build", "-o", binary, "./cmd/server")
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := listener.Addr().(*net.TCPAddr).Port
+	require.NoError(t, listener.Close())
+	cmd := exec.Command(binary)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", port))
+	require.NoError(t, cmd.Start())
+	t.Cleanup(func() { _ = cmd.Process.Kill(); _ = cmd.Wait() })
+	target := fmt.Sprintf("http://127.0.0.1:%d", port)
+	require.Eventually(t, func() bool {
+		resp, err := http.Get(target + "/health")
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]any{"error": "invalid amount"})
-			return
+			return false
 		}
-
-		highRisk := riskStr == "true" || riskStr == "1"
-		flagged := (highRisk && amount > 500) || (amount > 10000)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"amount":   amount,
-			"highRisk": highRisk,
-			"flagged":  flagged,
-		})
-	})
-
-	// /convert endpoint
-	rates := map[string]float64{
-		"USD": 1.0,
-		"EUR": 0.92,
-		"GBP": 0.79,
-		"JPY": 155.0,
-	}
-
-	mux.HandleFunc("/convert", func(w http.ResponseWriter, r *http.Request) {
-		amountStr := r.URL.Query().Get("amount")
-		from := r.URL.Query().Get("from")
-		to := r.URL.Query().Get("to")
-
-		amount, err := strconv.ParseFloat(amountStr, 64)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]any{"error": "invalid amount"})
-			return
-		}
-		if amount < 0 {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]any{"error": "amount cannot be negative"})
-			return
-		}
-
-		rateFrom, okFrom := rates[from]
-		rateTo, okTo := rates[to]
-		if !okFrom || !okTo {
-			bad := from
-			if !okTo {
-				bad = to
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]any{"error": fmt.Sprintf("unsupported currency code: %s", bad)})
-			return
-		}
-
-		result := math.Round((amount/rateFrom*rateTo)*100) / 100
-		formatted := fmt.Sprintf("%.2f %s", result, to)
-		if to == "EUR" {
-			formatted = fmt.Sprintf("€%.2f", result)
-		} else if to == "GBP" {
-			formatted = fmt.Sprintf("£%.2f", result)
-		} else if to == "USD" {
-			formatted = fmt.Sprintf("$%.2f", result)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"amount":    amount,
-			"from":      from,
-			"to":        to,
-			"result":    result,
-			"formatted": formatted,
-		})
-	})
-
-	return httptest.NewServer(mux)
+		defer resp.Body.Close()
+		return resp.StatusCode == 200
+	}, 5*time.Second, 20*time.Millisecond)
+	return target
 }
 
 func TestM4_AgentAcceptanceRun(t *testing.T) {
@@ -249,29 +181,37 @@ func TestM4_AgentAcceptanceRun(t *testing.T) {
 	// Initialize git repository with initial commit
 	initGitRepo(t, tempDir)
 
+	originalURL := startAcceptanceService(t, tempDir)
+
 	// Modernize workspace: three-tier partitioning (legacy/, modern/, go.work)
 	var modStdout, modStderr bytes.Buffer
 	err = runCLI([]string{"modernize", tempDir}, &modStdout, &modStderr)
 	require.NoError(t, err, "modernize failed: %s", modStderr.String())
 
+	// Declare full profiles in the fixture before the agent claims units.
+	fixtureStore := state.NewStore(tempDir)
+	fixtureUnits, err := fixtureStore.ListUnits()
+	require.NoError(t, err)
+	for _, unit := range fixtureUnits {
+		unit.EvidenceProfile = adapterkit.ProfileFull
+		require.NoError(t, fixtureStore.SaveUnit(unit))
+	}
+
 	// Git add and commit modernize layout so HEAD commit SHA is clean
 	runCmd(t, tempDir, "git", "add", ".")
 	runCmd(t, tempDir, "git", "commit", "-m", "chore: setup three-tier modernize workspace")
-
-	// Start target HTTP server
-	targetServer := startTargetTestServer()
-	defer targetServer.Close()
 
 	// 2. Start MCP server over stdio pipes
 	serverInR, serverInW := io.Pipe()
 	serverOutR, serverOutW := io.Pipe()
 	defer serverInW.Close()
 	defer serverOutR.Close()
+	defer serverOutW.Close()
 
 	serverDone := make(chan error, 1)
 	go func() {
 		var stderr bytes.Buffer
-		err := runCLIWithIO(serverInR, serverOutW, &stderr, []string{"mcp"})
+		err := runMCP(nil, []string{"--allow-network", "--dir", tempDir}, serverInR, serverOutW, &stderr)
 		serverDone <- err
 	}()
 
@@ -344,11 +284,11 @@ func TestM4_AgentAcceptanceRun(t *testing.T) {
 	// -------------------------------------------------------------------------
 	t.Log("Step 4: Record behavioral cases for pkg/fraud via MCP")
 	fraudURLs := []string{
-		targetServer.URL + "/fraud?amount=100&risk=false",   // happy: amount 100, risk false -> flagged false
-		targetServer.URL + "/fraud?amount=600&risk=true",    // happy: amount 600, high risk -> flagged true (>500)
-		targetServer.URL + "/fraud?amount=500&risk=true",    // edge: boundary 500, high risk -> flagged false (not >500)
-		targetServer.URL + "/fraud?amount=12000&risk=false", // happy: amount 12000 -> flagged true (>10000)
-		targetServer.URL + "/fraud?amount=-10&risk=false",   // trap: negative amount -> flagged false
+		originalURL + "/fraud?amount=100&risk=false",   // happy: amount 100, risk false -> flagged false
+		originalURL + "/fraud?amount=600&risk=true",    // happy: amount 600, high risk -> flagged true (>500)
+		originalURL + "/fraud?amount=500&risk=true",    // edge: boundary 500, high risk -> flagged false (not >500)
+		originalURL + "/fraud?amount=12000&risk=false", // happy: amount 12000 -> flagged true (>10000)
+		originalURL + "/fraud?amount=-10&risk=false",   // trap: negative amount -> flagged false
 	}
 
 	for _, u := range fraudURLs {
@@ -395,10 +335,11 @@ func Evaluate(amountUSD float64, highRisk bool) bool {
 	// -------------------------------------------------------------------------
 	// Step 6: verify_diff confirming zero mismatches via MCP
 	// -------------------------------------------------------------------------
+	targetURL := startAcceptanceService(t, filepath.Join(tempDir, "modern"))
 	t.Log("Step 6: verify_diff against target implementation via MCP")
 	diffRes, err := client.callTool(t, "verify_diff", map[string]any{
 		"unit_id": "pkg/fraud",
-		"target":  targetServer.URL,
+		"target":  targetURL,
 		"dir":     tempDir,
 	})
 	require.NoError(t, err)
@@ -410,7 +351,7 @@ func Evaluate(amountUSD float64, highRisk bool) bool {
 	// Verify unit metadata stored target for run_gate replay
 	uFraudAfterDiff, err := store.GetUnit("pkg/fraud")
 	require.NoError(t, err)
-	assert.Equal(t, targetServer.URL, uFraudAfterDiff.Metadata["target"])
+	assert.Equal(t, targetURL, uFraudAfterDiff.Metadata["target"])
 
 	// -------------------------------------------------------------------------
 	// Step 7: run_gate under 'full' profile via MCP
@@ -500,11 +441,11 @@ func Evaluate(amountUSD float64, highRisk bool) bool {
 	// -------------------------------------------------------------------------
 	t.Log("Step 11: Re-verify dogfood units under full profile")
 	currURLs := []string{
-		targetServer.URL + "/convert?amount=100&from=USD&to=EUR",
-		targetServer.URL + "/convert?amount=50&from=USD&to=GBP",
-		targetServer.URL + "/convert?amount=10&from=EUR&to=USD",
-		targetServer.URL + "/convert?amount=-5&from=USD&to=EUR",
-		targetServer.URL + "/convert?amount=100&from=XYZ&to=USD",
+		originalURL + "/convert?amount=100&from=USD&to=EUR",
+		originalURL + "/convert?amount=50&from=USD&to=GBP",
+		originalURL + "/convert?amount=10&from=EUR&to=USD",
+		originalURL + "/convert?amount=-5&from=USD&to=EUR",
+		originalURL + "/convert?amount=100&from=XYZ&to=USD",
 	}
 
 	for _, u := range currURLs {
@@ -530,11 +471,14 @@ func Evaluate(amountUSD float64, highRisk bool) bool {
 	// Verify diff pkg/currency
 	diffCurrRes, err := client.callTool(t, "verify_diff", map[string]any{
 		"unit_id": "pkg/currency",
-		"target":  targetServer.URL,
+		"target":  targetURL,
 		"dir":     tempDir,
 	})
 	require.NoError(t, err)
 	require.False(t, diffCurrRes.IsError, "verify_diff currency: %v", diffCurrRes.Content)
+
+	runCmd(t, tempDir, "git", "add", ".")
+	runCmd(t, tempDir, "git", "commit", "-m", "record handoff and currency cases")
 
 	// Run full gate on pkg/currency
 	gateCurrRes, err := client.callTool(t, "run_gate", map[string]any{

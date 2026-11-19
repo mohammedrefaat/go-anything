@@ -85,9 +85,13 @@ type ToolCallResult struct {
 // Server executes the Model Context Protocol over stdio.
 // It speaks JSON-RPC 2.0 over stdin/stdout with zero network listeners and zero telemetry.
 type Server struct {
-	sanitizer *sanitize.Sanitizer
-	tools     map[string]ToolHandler
-	mu        sync.RWMutex
+	// WorkspaceRoot bounds handoff writes; defaults to the startup directory.
+	WorkspaceRoot string
+	// AllowNetwork permits private HTTP destinations when explicitly enabled by the host.
+	AllowNetwork bool
+	sanitizer    *sanitize.Sanitizer
+	tools        map[string]ToolHandler
+	mu           sync.RWMutex
 }
 
 // ToolHandler handles an individual MCP tool execution.
@@ -95,9 +99,11 @@ type ToolHandler func(ctx context.Context, args json.RawMessage) (*ToolCallResul
 
 // NewServer creates a new MCP Server instance.
 func NewServer(opts ...sanitize.Option) *Server {
+	root, _ := os.Getwd()
 	s := &Server{
-		sanitizer: sanitize.New(opts...),
-		tools:     make(map[string]ToolHandler),
+		WorkspaceRoot: root,
+		sanitizer:     sanitize.New(opts...),
+		tools:         make(map[string]ToolHandler),
 	}
 	s.registerStandardTools()
 	return s

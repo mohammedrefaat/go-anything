@@ -323,3 +323,40 @@ func TestCLI_VerifyProfilePrecedence(t *testing.T) {
 	err = runCLI([]string{"verify", "auth", "--dir", dir}, &stdout, &stderr)
 	require.ErrorContains(t, err, "failed to load cases for unit \"auth\"")
 }
+
+func TestVerifyRejectsProfilesBeforeStateChanges(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		required  adapterkit.EvidenceProfile
+		requested string
+		global    bool
+	}{
+		{"default full", "", "replay", false},
+		{"declared full", adapterkit.ProfileFull, "replay", false},
+		{"global override", adapterkit.ProfileFull, "replay", true},
+		{"unsupported", adapterkit.ProfileReplay, "custom", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			store, err := state.InitializeWorkspace(dir, "test", "go")
+			require.NoError(t, err)
+			require.NoError(t, store.SaveUnit(&adapterkit.Unit{ID: "unit", State: adapterkit.StateRecorded, EvidenceProfile: tc.required}))
+			global := &GlobalFlags{}
+			args := []string{"unit", "--dir", dir}
+			if tc.global {
+				global.Profile = tc.requested
+				global.ProfileExplicit = true
+			} else {
+				args = append(args, "--profile", tc.requested)
+			}
+			var stdout, stderr bytes.Buffer
+			require.Error(t, runVerify(global, args, &stdout, &stderr))
+			unit, err := store.GetUnit("unit")
+			require.NoError(t, err)
+			require.Equal(t, adapterkit.StateRecorded, unit.State)
+			lease, err := store.GetLease("unit")
+			require.NoError(t, err)
+			require.Nil(t, lease)
+		})
+	}
+}

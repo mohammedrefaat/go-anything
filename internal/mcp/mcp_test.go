@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -46,6 +48,12 @@ func setupTestMCPWorkspace(t *testing.T) (string, *state.Store) {
 	}
 	require.NoError(t, store.SaveUnit(unit))
 
+	for _, args := range [][]string{{"init"}, {"add", "."}, {"-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "fixture"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = tempDir
+		out, err := cmd.CombinedOutput()
+		require.NoError(t, err, "%s", out)
+	}
 	return tempDir, store
 }
 
@@ -250,6 +258,8 @@ func TestMCP_MarkVerified_RequiresCommitTiedEvidence(t *testing.T) {
 func TestMCP_All8Tools_EndToEnd(t *testing.T) {
 	tempDir, store := setupTestMCPWorkspace(t)
 	server := mcp.NewServer()
+	server.AllowNetwork = true
+	server.WorkspaceRoot = tempDir
 
 	// 1. status
 	t.Run("tool_1_status", func(t *testing.T) {
@@ -371,7 +381,11 @@ func TestMCP_All8Tools_EndToEnd(t *testing.T) {
 	// 7. mark_verified
 	t.Run("tool_7_mark_verified", func(t *testing.T) {
 		// Provide valid commit evidence first
-		validSHA := "0000000000000000000000000000000000000000"
+		cmd := exec.Command("git", "rev-parse", "HEAD")
+		cmd.Dir = tempDir
+		sha, err := cmd.Output()
+		require.NoError(t, err)
+		validSHA := strings.TrimSpace(string(sha))
 		ev := &adapterkit.Evidence{
 			EvidenceID: "evi-auth-test-verified",
 			UnitID:     "pkg/auth",

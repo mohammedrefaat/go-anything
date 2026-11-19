@@ -4,6 +4,7 @@ package gate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -80,11 +81,15 @@ func (r *Runner) RunCheck(ctx context.Context, checkName string) (*CheckReport, 
 	defer cancel()
 
 	start := time.Now()
-	out, issues, passed, _ := executor(checkCtx, r.cfg.Dir, r.cfg.Env)
+	out, issues, passed, execErr := executor(checkCtx, r.cfg.Dir, r.cfg.Env)
 	duration := time.Since(start)
 
 	status := StatusPass
-	if !passed {
+	if errors.Is(execErr, ErrSkipped) {
+		status = StatusSkipped
+		passed = false
+	} else if !passed || execErr != nil {
+		passed = false
 		status = StatusFail
 	}
 

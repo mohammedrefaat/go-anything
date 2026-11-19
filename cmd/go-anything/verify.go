@@ -81,6 +81,17 @@ func runVerify(global *GlobalFlags, args []string, stdout, stderr io.Writer) err
 		return fmt.Errorf("full-profile verification is unavailable until the M4 quality gate is implemented")
 	}
 
+	if profile != adapterkit.ProfileReplay {
+		return fmt.Errorf("unsupported verification profile %q", profile)
+	}
+	required := unit.EvidenceProfile
+	if required == "" {
+		required = adapterkit.ProfileFull
+	}
+	if profile != required {
+		return fmt.Errorf("profile %q does not match required profile %q", profile, required)
+	}
+
 	// 1. Load recorded test cases
 	cases, err := loadCasesForUnit(absPath, unitID)
 	if err != nil {

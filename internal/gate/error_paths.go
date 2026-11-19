@@ -8,6 +8,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -81,6 +82,18 @@ func ExtractErrorPathsFromSource(filename, src string) ([]ErrorPath, error) {
 
 func extractErrorPathsFromFile(fset *token.FileSet, f *ast.File, filename string) []ErrorPath {
 	var paths []ErrorPath
+	imports := make(map[string]string)
+	for _, imp := range f.Imports {
+		path, err := strconv.Unquote(imp.Path.Value)
+		if err != nil {
+			continue
+		}
+		name := filepath.Base(path)
+		if imp.Name != nil {
+			name = imp.Name.Name
+		}
+		imports[name] = path
+	}
 
 	ast.Inspect(f, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
@@ -91,7 +104,7 @@ func extractErrorPathsFromFile(fset *token.FileSet, f *ast.File, filename string
 		line := fset.Position(call.Pos()).Line
 
 		// 1. Check for errors.New(...)
-		if isPkgFuncCall(call, "errors", "New") && len(call.Args) > 0 {
+		if isPkgFuncCall(call, imports, "errors", "New") && len(call.Args) > 0 {
 			if strVal, ok := extractStringLit(call.Args[0]); ok && strVal != "" {
 				paths = append(paths, ErrorPath{
 					File:    filename,
@@ -103,7 +116,7 @@ func extractErrorPathsFromFile(fset *token.FileSet, f *ast.File, filename string
 		}
 
 		// 2. Check for fmt.Errorf(...)
-		if isPkgFuncCall(call, "fmt", "Errorf") && len(call.Args) > 0 {
+		if isPkgFuncCall(call, imports, "fmt", "Errorf") && len(call.Args) > 0 {
 			if strVal, ok := extractStringLit(call.Args[0]); ok && strVal != "" {
 				prefix := extractFormatPrefix(strVal)
 				if prefix != "" {
@@ -118,7 +131,7 @@ func extractErrorPathsFromFile(fset *token.FileSet, f *ast.File, filename string
 		}
 
 		// 3. Check for http.Error(w, errStr, statusCode)
-		if isPkgFuncCall(call, "http", "Error") && len(call.Args) >= 3 {
+		if isPkgFuncCall(call, imports, "net/http", "Error") && len(call.Args) >= 3 {
 			errStr, _ := extractStringLit(call.Args[1])
 			statusCode := extractStatusCode(call.Args[2])
 			paths = append(paths, ErrorPath{
@@ -171,7 +184,7 @@ func extractErrorPathsFromFile(fset *token.FileSet, f *ast.File, filename string
 	return paths
 }
 
-func isPkgFuncCall(call *ast.CallExpr, pkg, fn string) bool {
+func isPkgFuncCall(call *ast.CallExpr, imports map[string]string, pkg, fn string) bool {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return false
@@ -180,7 +193,7 @@ func isPkgFuncCall(call *ast.CallExpr, pkg, fn string) bool {
 	if !ok {
 		return false
 	}
-	return pkgIdent.Name == pkg && sel.Sel.Name == fn
+	return pkgIdent.Obj == nil && imports[pkgIdent.Name] == pkg && sel.Sel.Name == fn
 }
 
 func isMethodCall(call *ast.CallExpr, method string) bool {
@@ -210,26 +223,131 @@ func extractStatusCode(expr ast.Expr) int {
 			return v
 		}
 	case *ast.SelectorExpr:
-		// e.g. http.StatusBadRequest
 		switch e.Sel.Name {
+		case "StatusContinue":
+			return http.StatusContinue
+		case "StatusSwitchingProtocols":
+			return http.StatusSwitchingProtocols
+		case "StatusProcessing":
+			return http.StatusProcessing
+		case "StatusEarlyHints":
+			return http.StatusEarlyHints
+		case "StatusOK":
+			return http.StatusOK
+		case "StatusCreated":
+			return http.StatusCreated
+		case "StatusAccepted":
+			return http.StatusAccepted
+		case "StatusNonAuthoritativeInfo":
+			return http.StatusNonAuthoritativeInfo
+		case "StatusNoContent":
+			return http.StatusNoContent
+		case "StatusResetContent":
+			return http.StatusResetContent
+		case "StatusPartialContent":
+			return http.StatusPartialContent
+		case "StatusMultiStatus":
+			return http.StatusMultiStatus
+		case "StatusAlreadyReported":
+			return http.StatusAlreadyReported
+		case "StatusIMUsed":
+			return http.StatusIMUsed
+		case "StatusMultipleChoices":
+			return http.StatusMultipleChoices
+		case "StatusMovedPermanently":
+			return http.StatusMovedPermanently
+		case "StatusFound":
+			return http.StatusFound
+		case "StatusSeeOther":
+			return http.StatusSeeOther
+		case "StatusNotModified":
+			return http.StatusNotModified
+		case "StatusUseProxy":
+			return http.StatusUseProxy
+		case "StatusTemporaryRedirect":
+			return http.StatusTemporaryRedirect
+		case "StatusPermanentRedirect":
+			return http.StatusPermanentRedirect
 		case "StatusBadRequest":
-			return 400
+			return http.StatusBadRequest
 		case "StatusUnauthorized":
-			return 401
+			return http.StatusUnauthorized
+		case "StatusPaymentRequired":
+			return http.StatusPaymentRequired
 		case "StatusForbidden":
-			return 403
+			return http.StatusForbidden
 		case "StatusNotFound":
-			return 404
+			return http.StatusNotFound
 		case "StatusMethodNotAllowed":
-			return 405
+			return http.StatusMethodNotAllowed
+		case "StatusNotAcceptable":
+			return http.StatusNotAcceptable
+		case "StatusProxyAuthRequired":
+			return http.StatusProxyAuthRequired
+		case "StatusRequestTimeout":
+			return http.StatusRequestTimeout
 		case "StatusConflict":
-			return 409
+			return http.StatusConflict
+		case "StatusGone":
+			return http.StatusGone
+		case "StatusLengthRequired":
+			return http.StatusLengthRequired
+		case "StatusPreconditionFailed":
+			return http.StatusPreconditionFailed
+		case "StatusRequestEntityTooLarge":
+			return http.StatusRequestEntityTooLarge
+		case "StatusRequestURITooLong":
+			return http.StatusRequestURITooLong
+		case "StatusUnsupportedMediaType":
+			return http.StatusUnsupportedMediaType
+		case "StatusRequestedRangeNotSatisfiable":
+			return http.StatusRequestedRangeNotSatisfiable
+		case "StatusExpectationFailed":
+			return http.StatusExpectationFailed
+		case "StatusTeapot":
+			return http.StatusTeapot
+		case "StatusMisdirectedRequest":
+			return http.StatusMisdirectedRequest
+		case "StatusUnprocessableEntity":
+			return http.StatusUnprocessableEntity
+		case "StatusLocked":
+			return http.StatusLocked
+		case "StatusFailedDependency":
+			return http.StatusFailedDependency
+		case "StatusTooEarly":
+			return http.StatusTooEarly
+		case "StatusUpgradeRequired":
+			return http.StatusUpgradeRequired
+		case "StatusPreconditionRequired":
+			return http.StatusPreconditionRequired
+		case "StatusTooManyRequests":
+			return http.StatusTooManyRequests
+		case "StatusRequestHeaderFieldsTooLarge":
+			return http.StatusRequestHeaderFieldsTooLarge
+		case "StatusUnavailableForLegalReasons":
+			return http.StatusUnavailableForLegalReasons
 		case "StatusInternalServerError":
-			return 500
+			return http.StatusInternalServerError
+		case "StatusNotImplemented":
+			return http.StatusNotImplemented
 		case "StatusBadGateway":
-			return 502
+			return http.StatusBadGateway
 		case "StatusServiceUnavailable":
-			return 503
+			return http.StatusServiceUnavailable
+		case "StatusGatewayTimeout":
+			return http.StatusGatewayTimeout
+		case "StatusHTTPVersionNotSupported":
+			return http.StatusHTTPVersionNotSupported
+		case "StatusVariantAlsoNegotiates":
+			return http.StatusVariantAlsoNegotiates
+		case "StatusInsufficientStorage":
+			return http.StatusInsufficientStorage
+		case "StatusLoopDetected":
+			return http.StatusLoopDetected
+		case "StatusNotExtended":
+			return http.StatusNotExtended
+		case "StatusNetworkAuthenticationRequired":
+			return http.StatusNetworkAuthenticationRequired
 		}
 	}
 	return 0
@@ -366,7 +484,10 @@ func isErrorCase(tc *adapterkit.Case) bool {
 
 func caseMatchesErrorPath(tc *adapterkit.Case, ep ErrorPath) bool {
 	// Status code check if declared on error path
-	if ep.StatusCode > 0 && tc.ExpectedOutput.StatusCode == ep.StatusCode {
+	if ep.StatusCode > 0 {
+		if tc.ExpectedOutput.StatusCode != ep.StatusCode {
+			return false
+		}
 		if ep.Pattern == "" {
 			return true
 		}
@@ -415,7 +536,16 @@ func loadCasesFromJSONL(path string) ([]*adapterkit.Case, error) {
 	defer f.Close()
 
 	var cases []*adapterkit.Case
+	info, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
 	scanner := bufio.NewScanner(f)
+	maxSize := int64(int(^uint(0) >> 1))
+	if info.Size() < maxSize {
+		maxSize = info.Size() + 1
+	}
+	scanner.Buffer(nil, int(maxSize))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if len(line) == 0 {

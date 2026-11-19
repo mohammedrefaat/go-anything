@@ -2,6 +2,7 @@ package gate
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
@@ -108,6 +109,9 @@ func (gr *GateReport) ToGateChecks() []adapterkit.GateCheck {
 	}
 	return out
 }
+
+// ErrSkipped explicitly reports that an executor could not run its check.
+var ErrSkipped = errors.New("check skipped")
 
 // CheckExecutor defines the function signature for executing a single gate check.
 type CheckExecutor func(ctx context.Context, dir string, env []string) (output string, issues []string, passed bool, err error)
