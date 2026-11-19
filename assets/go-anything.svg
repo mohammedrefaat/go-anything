@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" width="640" height="240" role="img" aria-label="Gopher transforming chaotic multi-language pieces into clean modular Go blocks">
+  <defs>
+    <linearGradient id="bgGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0B2536" />
+    </linearGradient>
+    <linearGradient id="goCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#29D8FF" />
+      <stop offset="100%" stop-color="#00ADD8" />
+    </linearGradient>
+    <linearGradient id="gopherFur" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7EE8FA" />
+      <stop offset="100%" stop-color="#00ADD8" />
+    </linearGradient>
+    <linearGradient id="legacyWarm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#EF4444" />
+    </linearGradient>
+    <linearGradient id="legacyPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A855F7" />
+      <stop offset="100%" stop-color="#EC4899" />
+    </linearGradient>
+    <filter id="softShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#020617" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Canvas Backdrop -->
+  <rect x="8" y="8" width="624" height="224" rx="28" fill="url(#bgGlow)" stroke="#334155" stroke-width="2" />
+
+  <!-- Subtle Background Grid / Flow Dots -->
+  <g fill="#334155" opacity="0.45">
+    <circle cx="48" cy="44" r="2" /><circle cx="88" cy="44" r="2" /><circle cx="128" cy="44" r="2" />
+    <circle cx="512" cy="44" r="2" /><circle cx="552" cy="44" r="2" /><circle cx="592" cy="44" r="2" />
+    <circle cx="48" cy="196" r="2" /><circle cx="88" cy="196" r="2" /><circle cx="128" cy="196" r="2" />
+    <circle cx="512" cy="196" r="2" /><circle cx="552" cy="196" r="2" /><circle cx="592" cy="196" r="2" />
+  </g>
+
+  <!-- LEFT SIDE: Tangled, Diverse Legacy Pieces (Any Language) -->
+  <g filter="url(#softShadow)">
+    <!-- Tangled curly path representing spaghetti / dynamic legacy code -->
+    <path d="M 48 148 C 48 95, 115 165, 112 105 C 109 62, 62 72, 76 112 C 90 152, 152 135, 168 118"
+          fill="none" stroke="url(#legacyPurple)" stroke-width="9" stroke-linecap="round" />
+
+    <!-- Tilted Legacy Gear -->
+    <g transform="translate(82, 72) rotate(-18)">
+      <circle cx="0" cy="0" r="18" fill="url(#legacyWarm)" />
+      <circle cx="0" cy="0" r="7" fill="#0F172A" />
+      <rect x="-3" y="-24" width="6" height="8" rx="2" fill="#F59E0B" />
+      <rect x="-3" y="16" width="6" height="8" rx="2" fill="#EF4444" />
+      <rect x="-24" y="-3" width="8" height="6" rx="2" fill="#F59E0B" />
+      <rect x="16" y="-3" width="8" height="6" rx="2" fill="#EF4444" />
+    </g>
+
+    <!-- Jagged Polyglot Triangle / Shard -->
+    <polygon points="134,54 162,72 136,88" fill="#10B981" transform="rotate(14 146 72)" />
+
+    <!-- Loose Bracket / Puzzle Piece entering the stream -->
+    <rect x="52" y="142" width="28" height="28" rx="8" fill="#F43F5E" transform="rotate(-12 66 156)" />
+    <circle cx="124" cy="162" r="12" fill="#FBBF24" />
+  </g>
+
+  <!-- Motion Arrows Left -> Center -->
+  <g stroke="#94A3B8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.75">
+    <path d="M 176 96 L 204 106 L 176 116" />
+    <path d="M 186 134 L 210 126" stroke-dasharray="4 6" />
+  </g>
+
+  <!-- CENTER: Cheerful Gopher Builder + Strangler Transmutation Ring -->
+  <g transform="translate(310, 122)">
+    <!-- Rotating / Segmented Strangler Ring around Gopher -->
+    <circle cx="0" cy="0" r="84" fill="none" stroke="#334155" stroke-width="6" />
+    <path d="M -84 0 A 84 84 0 0 1 0 -84" fill="none" stroke="#F59E0B" stroke-width="6" stroke-linecap="round" />
+    <path d="M 0 -84 A 84 84 0 0 1 84 0" fill="none" stroke="#00ADD8" stroke-width="6" stroke-linecap="round" />
+    <path d="M 84 0 A 84 84 0 0 1 0 84" fill="none" stroke="#29D8FF" stroke-width="6" stroke-linecap="round" />
+    <path d="M 0 84 A 84 84 0 0 1 -84 0" fill="none" stroke="#A855F7" stroke-width="6" stroke-linecap="round" stroke-dasharray="14 10" />
+
+    <!-- Gopher Ears -->
+    <circle cx="-38" cy="-42" r="13" fill="url(#gopherFur)" />
+    <circle cx="-38" cy="-42" r="6" fill="#0E7490" />
+    <circle cx="38" cy="-42" r="13" fill="url(#gopherFur)" />
+    <circle cx="38" cy="-42" r="6" fill="#0E7490" />
+
+    <!-- Gopher Body -->
+    <path d="M -46 48 C -52 -12, -46 -58, 0 -58 C 46 -58, 52 -12, 46 48 C 44 64, -44 64, -46 48 Z"
+          fill="url(#gopherFur)" filter="url(#softShadow)" />
+
+    <!-- Belly Patch -->
+    <ellipse cx="0" cy="24" rx="28" ry="26" fill="#CFFAFE" opacity="0.85" />
+
+    <!-- Big Goofy Expressive Gopher Eyes -->
+    <circle cx="-17" cy="-22" r="15" fill="#FFFFFF" stroke="#0F172A" stroke-width="2" />
+    <circle cx="17" cy="-22" r="15" fill="#FFFFFF" stroke="#0F172A" stroke-width="2" />
+    <!-- Pupils looking playfully toward the Go blocks -->
+    <circle cx="-12" cy="-22" r="6.5" fill="#0F172A" />
+    <circle cx="-10" cy="-24" r="2.2" fill="#FFFFFF" />
+    <circle cx="22" cy="-22" r="6.5" fill="#0F172A" />
+    <circle cx="24" cy="-24" r="2.2" fill="#FFFFFF" />
+
+    <!-- Cute Snout & Buck Teeth -->
+    <ellipse cx="0" cy="-3" rx="13" ry="9" fill="#FDE68A" />
+    <ellipse cx="0" cy="-6" rx="6" ry="4" fill="#334155" />
+    <rect x="-6" y="4" width="5.5" height="9" rx="2" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1" />
+    <rect x="0.5" y="4" width="5.5" height="9" rx="2" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1" />
+
+    <!-- Little Hands Holding a Freshly Minted Go Block -->
+    <ellipse cx="-32" cy="14" rx="9" ry="7" fill="#FDE68A" transform="rotate(-20 -32 14)" />
+    <ellipse cx="32" cy="14" rx="9" ry="7" fill="#FDE68A" transform="rotate(20 32 14)" />
+
+    <!-- Steaming Tiny Coffee Mug Beside Gopher -->
+    <g transform="translate(-62, 46)">
+      <rect x="0" y="6" width="16" height="15" rx="3" fill="#F8FAFC" />
+      <path d="M 16 9 C 21 9, 21 17, 16 17" fill="none" stroke="#F8FAFC" stroke-width="2.5" />
+      <path d="M 5 2 C 4 -2, 7 -4, 6 -7" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round" />
+      <path d="M 11 2 C 10 -2, 13 -4, 12 -7" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round" />
+    </g>
+  </g>
+
+  <!-- Motion Arrows Center -> Right (Verified & Clean) -->
+  <g stroke="#29D8FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M 416 106 L 444 116 L 416 126" />
+    <line x1="406" y1="116" x2="442" y2="116" />
+  </g>
+
+  <!-- RIGHT SIDE: Clean, Interlocking, Modern Go Modules -->
+  <g filter="url(#softShadow)">
+    <!-- Solid Modular Go Blocks Snapping Together -->
+    <rect x="462" y="62" width="54" height="46" rx="10" fill="url(#goCyan)" />
+    <rect x="524" y="62" width="64" height="46" rx="10" fill="#0284C7" stroke="#38BDF8" stroke-width="2" />
+
+    <rect x="462" y="116" width="76" height="46" rx="10" fill="#0369A1" stroke="#38BDF8" stroke-width="2" />
+    <!-- Newest unit sliding into place with sparkle -->
+    <rect x="546" y="122" width="46" height="46" rx="10" fill="url(#goCyan)" />
+
+    <!-- Verification Checkmark Badge on Completed Unit -->
+    <circle cx="516" cy="62" r="12" fill="#10B981" stroke="#0F172A" stroke-width="2.5" />
+    <path d="M 511 62 L 514.5 65.5 L 521.5 58.5" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Sparkles around the fresh Go module -->
+    <path d="M 594 104 L 596 110 L 602 112 L 596 114 L 594 120 L 592 114 L 586 112 L 592 110 Z" fill="#FDE047" />
+    <circle cx="484" cy="178" r="3.5" fill="#38BDF8" />
+    <circle cx="568" cy="182" r="2.5" fill="#10B981" />
+  </g>
+</svg>
