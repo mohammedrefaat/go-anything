@@ -115,6 +115,7 @@ schemas/           Schema package and v1alpha1 JSON Schemas
 skills/            Agent workflow skill definitions
 templates/         Project templates
 Docs/              Architecture plans and decision records
+.githooks/         Git hooks (pre-commit, commit-msg, pre-push)
 ```
 
 For design details, see [DECISIONS.md](DECISIONS.md) and the [architecture and implementation plan](<Docs/go-anything Architecture & Implementation Plan (v3) (1).md>).
@@ -131,6 +132,12 @@ Roadmap items are goals; timelines and interfaces are subject to change.
 ## Contributing
 
 Contributions and thoughtful feedback are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), and check the status above before building on commands or APIs that are not implemented or stable.
+
+To enable the quality and security hooks after cloning, run:
+
+```sh
+git config core.hooksPath .githooks
+```
 
 ## License
 

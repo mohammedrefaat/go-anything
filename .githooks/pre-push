@@ -2,9 +2,14 @@
 #
 # go-anything pre-push hook
 # Runs the full verification gate before allowing a push (Rule 5).
-# Install: git config core.hooksPath .githooks
+# Compatible with both native Git (core.hooksPath .githooks) and rycus86/githooks.
 #
 set -e
+
+# Support standard Githooks disable flag
+if [ -n "$GITHOOKS_DISABLE" ]; then
+    exit 0
+fi
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -38,16 +43,28 @@ fi
 printf " ${GREEN}OK${NC}\n"
 
 # ---------------------------------------------------------------------------
-# 3. Tests with race detector
+# 3. Tests (with -race if CGO is supported)
 # ---------------------------------------------------------------------------
-printf "  Testing (with -race)..."
-if ! go test -race -count=1 ./... > /dev/null 2>&1; then
-    printf " ${RED}FAIL${NC}\n"
-    printf "${RED}[pre-push] BLOCKED:${NC} go test -race ./... failed:\n"
-    go test -race -count=1 ./... 2>&1 | tail -30
-    exit 1
+CGO_STATUS=$(go env CGO_ENABLED 2>/dev/null || echo "0")
+if [ "$CGO_STATUS" = "1" ]; then
+    printf "  Testing (with -race)..."
+    if ! go test -race -count=1 ./... > /dev/null 2>&1; then
+        printf " ${RED}FAIL${NC}\n"
+        printf "${RED}[pre-push] BLOCKED:${NC} go test -race ./... failed:\n"
+        go test -race -count=1 ./... 2>&1 | tail -30
+        exit 1
+    fi
+    printf " ${GREEN}OK${NC}\n"
+else
+    printf "  Testing (cgo disabled; skipping -race locally)..."
+    if ! go test -count=1 ./... > /dev/null 2>&1; then
+        printf " ${RED}FAIL${NC}\n"
+        printf "${RED}[pre-push] BLOCKED:${NC} go test ./... failed:\n"
+        go test -count=1 ./... 2>&1 | tail -30
+        exit 1
+    fi
+    printf " ${GREEN}OK${NC} ${YELLOW}(CI enforces -race)${NC}\n"
 fi
-printf " ${GREEN}OK${NC}\n"
 
 # ---------------------------------------------------------------------------
 # 4. govulncheck (if installed)

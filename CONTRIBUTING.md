@@ -28,7 +28,7 @@ This enables three hooks that enforce quality standards automatically:
 | **commit-msg** | After writing message | Rejects empty messages, enforces 72-char subject, suggests conventional prefixes |
 | **pre-push** | Before pushing | Full Rule 5 gate: `go build`, `go vet`, `go test -race`, `govulncheck` |
 
-Bypass for one-off situations: `git commit --no-verify` / `git push --no-verify`
+Bypass for one-off situations: `git commit --no-verify` / `git push --no-verify` (or `GITHOOKS_DISABLE=1`). See [.githooks/README.md](.githooks/README.md) for details.
 
 ---
 

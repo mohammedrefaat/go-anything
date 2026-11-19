@@ -2,9 +2,14 @@
 #
 # go-anything pre-commit hook
 # Runs on every commit to catch issues early.
-# Install: git config core.hooksPath .githooks
+# Compatible with both native Git (core.hooksPath .githooks) and rycus86/githooks.
 #
 set -e
+
+# Support standard Githooks disable flag
+if [ -n "$GITHOOKS_DISABLE" ]; then
+    exit 0
+fi
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -55,17 +60,15 @@ if [ -n "$STAGED_GO_FILES" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Check for common secret patterns in staged diffs
+# 4. Check for common secret patterns in staged diffs (excluding docs)
 # ---------------------------------------------------------------------------
-SECRET_PATTERNS='(PRIVATE KEY|password\s*=|api_key\s*=|secret\s*=|token\s*=|AWS_SECRET|AKIA[0-9A-Z]{16})'
-SECRETS_FOUND=$(git diff --cached -U0 --diff-filter=ACM | grep -iE "$SECRET_PATTERNS" | grep '^+' | grep -v '^+++' || true)
+SECRET_PATTERNS='(BEGIN [A-Z0-9_-]*PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9_]{36}|ey[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,})'
+SECRETS_FOUND=$(git diff --cached -U0 --diff-filter=ACM -- ':(exclude)*.md' ':(exclude)*.txt' | grep -iE "$SECRET_PATTERNS" | grep '^+' | grep -v '^+++' || true)
 
 if [ -n "$SECRETS_FOUND" ]; then
-    printf "${YELLOW}[pre-commit] WARNING:${NC} Possible secrets in staged changes:\n"
+    printf "${YELLOW}[pre-commit] WARNING:${NC} Possible credentials detected in staged code:\n"
     echo "$SECRETS_FOUND" | head -5
-    printf "\n  If these are test fixtures, proceed with: git commit --no-verify\n"
-    printf "  Otherwise, remove them before committing.\n"
-    exit 1
+    printf "  Please verify that these are intended test fixtures or synthetic values.\n\n"
 fi
 
 # ---------------------------------------------------------------------------

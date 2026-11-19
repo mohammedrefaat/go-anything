@@ -1,0 +1,6 @@
+# Githooks ignore pattern file (rycus86/githooks & gabyx/githooks)
+# Ignores documentation and non-executable files inside .githooks
+README.md
+*.md
+.ignore
+trust-all
