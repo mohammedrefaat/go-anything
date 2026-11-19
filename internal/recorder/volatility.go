@@ -15,6 +15,9 @@ var (
 
 	regexISO8601 = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$`)
 
+	// RFC 1123 date format: "Thu, 19 Nov 2026 15:00:00 GMT"
+	regexRFC1123Date = regexp.MustCompile(`^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$`)
+
 	regexRequestID = regexp.MustCompile(`(?i)^(?:req|request|trace|span|corr|tx)[-_][0-9a-zA-Z-_]+$`)
 )
 
@@ -174,6 +177,16 @@ func classifyVolatileField(path string, val1, val2 any) adapterkit.WildcardRule 
 			Type:        "timestamp",
 			Pattern:     "epoch",
 			Description: "auto-detected epoch timestamp from dual-run diff",
+		}
+	}
+
+	// Check RFC 1123 Date (e.g., "Thu, 19 Nov 2026 15:00:00 GMT")
+	if regexRFC1123Date.MatchString(s1) || regexRFC1123Date.MatchString(s2) {
+		return adapterkit.WildcardRule{
+			Path:        path,
+			Type:        "timestamp",
+			Pattern:     "rfc1123",
+			Description: "auto-detected RFC 1123 date from dual-run diff",
 		}
 	}
 
