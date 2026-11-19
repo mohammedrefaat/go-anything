@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# go-anything commit-msg hook
+# Validates commit message format.
+# Install: git config core.hooksPath .githooks
+#
+set -e
+
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+MSG_FILE="$1"
+MSG=$(head -1 "$MSG_FILE")
+
+# ---------------------------------------------------------------------------
+# 1. Reject empty messages
+# ---------------------------------------------------------------------------
+if [ -z "$(echo "$MSG" | tr -d '[:space:]')" ]; then
+    printf "${RED}[commit-msg] BLOCKED:${NC} Commit message cannot be empty.\n"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Subject line length (max 72 chars)
+# ---------------------------------------------------------------------------
+SUBJECT_LEN=$(echo "$MSG" | wc -c | tr -d ' ')
+if [ "$SUBJECT_LEN" -gt 73 ]; then
+    printf "${RED}[commit-msg] BLOCKED:${NC} Subject line is %d chars (max 72).\n" "$((SUBJECT_LEN - 1))"
+    printf "  Subject: %s\n" "$MSG"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Conventional commit prefix (recommended, not blocking)
+# ---------------------------------------------------------------------------
+VALID_PREFIX=$(echo "$MSG" | grep -cE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|wip|adr)(\(.+\))?!?:' || true)
+if [ "$VALID_PREFIX" -eq 0 ]; then
+    printf "${YELLOW}[commit-msg] TIP:${NC} Consider using a conventional prefix:\n"
+    printf "  feat: fix: docs: test: refactor: chore: ci: build: perf: adr:\n"
+    printf "  Example: feat(state): add atomic write with file lock\n"
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Check for task references in body (optional helpful reminder)
+# ---------------------------------------------------------------------------
+BODY=$(tail -n +3 "$MSG_FILE" 2>/dev/null || true)
+TASK_REF=$(echo "$BODY" | grep -cE '(T[0-7]\.[0-9]|M[0-7]|ADR-[0-9]+)' || true)
+# Just informational — not enforced

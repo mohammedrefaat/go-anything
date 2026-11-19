@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# go-anything pre-push hook
+# Runs the full verification gate before allowing a push (Rule 5).
+# Install: git config core.hooksPath .githooks
+#
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+printf "${YELLOW}[pre-push]${NC} Running verification gate (Rule 5)...\n"
+
+# ---------------------------------------------------------------------------
+# 1. Build check
+# ---------------------------------------------------------------------------
+printf "  Building..."
+if ! go build ./... > /dev/null 2>&1; then
+    printf " ${RED}FAIL${NC}\n"
+    printf "${RED}[pre-push] BLOCKED:${NC} go build ./... failed:\n"
+    go build ./... 2>&1 | head -20
+    exit 1
+fi
+printf " ${GREEN}OK${NC}\n"
+
+# ---------------------------------------------------------------------------
+# 2. go vet
+# ---------------------------------------------------------------------------
+printf "  Vetting..."
+if ! go vet ./... > /dev/null 2>&1; then
+    printf " ${RED}FAIL${NC}\n"
+    printf "${RED}[pre-push] BLOCKED:${NC} go vet ./... found issues:\n"
+    go vet ./... 2>&1 | head -20
+    exit 1
+fi
+printf " ${GREEN}OK${NC}\n"
+
+# ---------------------------------------------------------------------------
+# 3. Tests with race detector
+# ---------------------------------------------------------------------------
+printf "  Testing (with -race)..."
+if ! go test -race -count=1 ./... > /dev/null 2>&1; then
+    printf " ${RED}FAIL${NC}\n"
+    printf "${RED}[pre-push] BLOCKED:${NC} go test -race ./... failed:\n"
+    go test -race -count=1 ./... 2>&1 | tail -30
+    exit 1
+fi
+printf " ${GREEN}OK${NC}\n"
+
+# ---------------------------------------------------------------------------
+# 4. govulncheck (if installed)
+# ---------------------------------------------------------------------------
+if command -v govulncheck > /dev/null 2>&1; then
+    printf "  Vuln check..."
+    if ! govulncheck ./... > /dev/null 2>&1; then
+        printf " ${YELLOW}WARN${NC}\n"
+        printf "${YELLOW}[pre-push] WARNING:${NC} govulncheck found issues:\n"
+        govulncheck ./... 2>&1 | head -20
+        # Warning only — not blocking pushes
+    else
+        printf " ${GREEN}OK${NC}\n"
+    fi
+else
+    printf "  ${YELLOW}Skipping govulncheck (not installed)${NC}\n"
+fi
+
+printf "${GREEN}[pre-push]${NC} All checks passed. Pushing...\n"

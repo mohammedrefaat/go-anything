@@ -12,6 +12,26 @@ Thank you for your interest in contributing to `go-anything`! We welcome contrib
 
 ---
 
+## Setup
+
+After cloning, activate the git hooks:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This enables three hooks that enforce quality standards automatically:
+
+| Hook | When | What It Checks |
+| :--- | :--- | :--- |
+| **pre-commit** | Before each commit | `gofmt`, `go vet`, blocks `.go-anything/local/` commits, scans for secrets |
+| **commit-msg** | After writing message | Rejects empty messages, enforces 72-char subject, suggests conventional prefixes |
+| **pre-push** | Before pushing | Full Rule 5 gate: `go build`, `go vet`, `go test -race`, `govulncheck` |
+
+Bypass for one-off situations: `git commit --no-verify` / `git push --no-verify`
+
+---
+
 ## Architecture & Code Standards
 
 Every contributor must adhere to the core architectural principles:

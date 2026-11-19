@@ -21,4 +21,5 @@ Thumbs.db
 .*
 !.gitignore
 !.github
+!.githooks
 
