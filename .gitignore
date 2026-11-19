@@ -1,0 +1,19 @@
+# go-anything local agent leases and locks (Rule 1 & ADR-002)
+.go-anything/local/
+
+# Binaries and build outputs
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+
+# OS specific
+.DS_Store
+Thumbs.db
