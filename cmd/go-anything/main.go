@@ -16,8 +16,9 @@ var (
 
 // GlobalFlags holds global CLI configurations.
 type GlobalFlags struct {
-	Jobs    int
-	Profile string
+	Jobs            int
+	Profile         string
+	ProfileExplicit bool
 }
 
 func main() {
@@ -131,9 +132,15 @@ func parseGlobalFlags(args []string, global *GlobalFlags) ([]string, error) {
 				return nil, fmt.Errorf("flag %s requires an argument", arg)
 			}
 			global.Profile = args[i+1]
+			global.ProfileExplicit = true
 			i += 2
 		case len(arg) > 10 && arg[:10] == "--profile=":
 			global.Profile = arg[10:]
+			global.ProfileExplicit = true
+			i++
+		case len(arg) > 3 && arg[:3] == "-p=":
+			global.Profile = arg[3:]
+			global.ProfileExplicit = true
 			i++
 		default:
 			remaining = append(remaining, arg)

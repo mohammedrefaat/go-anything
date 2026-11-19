@@ -65,9 +65,11 @@ func runVerify(global *GlobalFlags, args []string, stdout, stderr io.Writer) err
 	var profile adapterkit.EvidenceProfile
 	if *profileFlag != "" {
 		profile = adapterkit.EvidenceProfile(*profileFlag)
+	} else if global != nil && global.ProfileExplicit && global.Profile != "" {
+		profile = adapterkit.EvidenceProfile(global.Profile)
 	} else if unit.EvidenceProfile != "" {
 		profile = unit.EvidenceProfile
-	} else if global.Profile != "" {
+	} else if global != nil && global.Profile != "" {
 		profile = adapterkit.EvidenceProfile(global.Profile)
 	} else {
 		profile = adapterkit.ProfileFull

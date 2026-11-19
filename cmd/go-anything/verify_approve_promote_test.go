@@ -296,3 +296,30 @@ func TestCLI_VerifyFullProfileUnavailable(t *testing.T) {
 		})
 	}
 }
+
+func TestCLI_VerifyProfilePrecedence(t *testing.T) {
+	dir := t.TempDir()
+	var stdout, stderr bytes.Buffer
+	require.NoError(t, runCLI([]string{"init", dir}, &stdout, &stderr))
+	store := state.NewStore(dir)
+	require.NoError(t, store.SaveUnit(&adapterkit.Unit{
+		ID: "auth", Name: "Auth", State: adapterkit.StateRecorded,
+		EvidenceProfile: adapterkit.ProfileReplay,
+	}))
+
+	// 1. Explicit global --profile full takes priority over unit.EvidenceProfile (replay),
+	// failing at the full-profile gate.
+	err := runCLI([]string{"--profile=full", "verify", "auth", "--dir", dir}, &stdout, &stderr)
+	require.ErrorContains(t, err, "full-profile verification is unavailable")
+
+	// 2. Explicit subcommand flag -p full also takes priority over unit.EvidenceProfile (replay).
+	stderr.Reset()
+	err = runCLI([]string{"verify", "auth", "-p", "full", "--dir", dir}, &stdout, &stderr)
+	require.ErrorContains(t, err, "full-profile verification is unavailable")
+
+	// 3. Without explicit profile flag, unit.EvidenceProfile (replay) takes precedence over
+	// default global profile (full), so it proceeds past the full-profile gate.
+	stderr.Reset()
+	err = runCLI([]string{"verify", "auth", "--dir", dir}, &stdout, &stderr)
+	require.ErrorContains(t, err, "failed to load cases for unit \"auth\"")
+}
