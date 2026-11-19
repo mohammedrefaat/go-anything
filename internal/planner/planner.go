@@ -196,7 +196,7 @@ func (p *Planner) PlanWaves(graph map[string][]string) *PlanResult {
 				Wave:            waveNum,
 				Dependencies:    filteredDeps,
 				State:           adapterkit.StatePlanned,
-				EvidenceProfile: adapterkit.ProfileReplay,
+				EvidenceProfile: adapterkit.ProfileFull,
 				Metadata:        meta,
 			}
 
