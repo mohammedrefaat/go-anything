@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v1alpha1/evidence.schema.json",
+  "title": "Evidence",
+  "description": "Cryptographically tied verification record for a unit at a specific git commit.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "unit_id",
+    "commit_sha",
+    "profile",
+    "verified_at",
+    "verified_by",
+    "checks",
+    "mismatches_count"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "v1alpha1",
+      "description": "Mandatory schema version identifier."
+    },
+    "evidence_id": {
+      "type": "string",
+      "description": "Unique evidence record identifier."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Target migration unit identifier."
+    },
+    "commit_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{40}$",
+      "description": "Git commit SHA to which this verification evidence is cryptographically bound."
+    },
+    "profile": {
+      "type": "string",
+      "enum": [
+        "replay",
+        "full"
+      ],
+      "description": "Verification profile used ('replay' or 'full')."
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when gate verification was finalized."
+    },
+    "verified_by": {
+      "type": "string",
+      "description": "Identifier of the agent or user that executed verification."
+    },
+    "checks": {
+      "type": "array",
+      "description": "Individual gate checks executed.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Check identifier (e.g., 'build', 'format', 'vet', 'staticcheck', 'race', 'govulncheck', 'replay', 'apidiff')."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "skipped"
+            ],
+            "description": "Status of the individual check."
+          },
+          "output": {
+            "type": "string",
+            "description": "Check command log or summary output."
+          },
+          "duration_ms": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Execution duration in milliseconds."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "mismatches_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of behavioral replay mismatches; must be 0 for verification entry."
+    },
+    "unreplayable_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of unreplayable fields excluded from verification."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary evidence metadata."
+    }
+  },
+  "additionalProperties": false
+}
