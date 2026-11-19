@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/gate"
 	"github.com/mohammedrefat/go-anything/internal/state"
 	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
@@ -14,14 +13,14 @@ import (
 
 func createFullProfileChecks() []adapterkit.GateCheck {
 	return []adapterkit.GateCheck{
-		{Name: gate.CheckBuild, Status: adapterkit.StatusPass, Output: "build clean"},
-		{Name: gate.CheckFormat, Status: adapterkit.StatusPass, Output: "format clean"},
-		{Name: gate.CheckVet, Status: adapterkit.StatusPass, Output: "vet clean"},
-		{Name: gate.CheckRace, Status: adapterkit.StatusPass, Output: "race clean"},
-		{Name: gate.CheckGovulncheck, Status: adapterkit.StatusPass, Output: "no vulnerabilities"},
-		{Name: gate.CheckReplay, Status: adapterkit.StatusPass, Output: "100% replay matched"},
-		{Name: gate.CheckErrorPaths, Status: adapterkit.StatusPass, Output: "error paths clean"},
-		{Name: gate.CheckAPICompat, Status: adapterkit.StatusPass, Output: "api compat clean"},
+		{Name: "build", Status: adapterkit.StatusPass, Output: "build clean"},
+		{Name: "format", Status: adapterkit.StatusPass, Output: "format clean"},
+		{Name: "vet", Status: adapterkit.StatusPass, Output: "vet clean"},
+		{Name: "race", Status: adapterkit.StatusPass, Output: "race clean"},
+		{Name: "govulncheck", Status: adapterkit.StatusPass, Output: "no vulnerabilities"},
+		{Name: "replay", Status: adapterkit.StatusPass, Output: "100% replay matched"},
+		{Name: "error_paths", Status: adapterkit.StatusPass, Output: "error paths clean"},
+		{Name: "api_compat", Status: adapterkit.StatusPass, Output: "api compat clean"},
 	}
 }
 
@@ -93,7 +92,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 		// Remove api_compat check
 		var filtered []adapterkit.GateCheck
 		for _, c := range checks {
-			if c.Name != gate.CheckAPICompat {
+			if c.Name != "api_compat" {
 				filtered = append(filtered, c)
 			}
 		}
@@ -117,7 +116,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 	t.Run("rejects transition when API compatibility check has failed status", func(t *testing.T) {
 		checks := createFullProfileChecks()
 		for i := range checks {
-			if checks[i].Name == gate.CheckAPICompat {
+			if checks[i].Name == "api_compat" {
 				checks[i].Status = adapterkit.StatusFail
 				checks[i].Output = "removed exported func Convert"
 			}
@@ -143,7 +142,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 		checks := createFullProfileChecks()
 		var filtered []adapterkit.GateCheck
 		for _, c := range checks {
-			if c.Name != gate.CheckErrorPaths {
+			if c.Name != "error_paths" {
 				filtered = append(filtered, c)
 			}
 		}
@@ -167,7 +166,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 	t.Run("rejects transition when error paths check failed", func(t *testing.T) {
 		checks := createFullProfileChecks()
 		for i := range checks {
-			if checks[i].Name == gate.CheckErrorPaths {
+			if checks[i].Name == "error_paths" {
 				checks[i].Status = adapterkit.StatusFail
 				checks[i].Output = "missing error-path case for: invalid amount"
 			}
@@ -191,7 +190,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 	t.Run("rejects transition when toolchain check failed", func(t *testing.T) {
 		checks := createFullProfileChecks()
 		for i := range checks {
-			if checks[i].Name == gate.CheckRace {
+			if checks[i].Name == "race" {
 				checks[i].Status = adapterkit.StatusFail
 				checks[i].Output = "DATA RACE detected"
 			}

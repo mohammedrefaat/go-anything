@@ -272,3 +272,27 @@ func TestCLI_Promote_RefusesIfNotApproved(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), `cannot promote unit "order": must be in 'Approved' state (currently "Verified")`)
 }
+
+func TestCLI_VerifyFullProfileUnavailable(t *testing.T) {
+	for _, profile := range []adapterkit.EvidenceProfile{"", adapterkit.ProfileFull} {
+		t.Run(string(profile), func(t *testing.T) {
+			dir := t.TempDir()
+			var stdout, stderr bytes.Buffer
+			require.NoError(t, runCLI([]string{"init", dir}, &stdout, &stderr))
+			store := state.NewStore(dir)
+			require.NoError(t, store.SaveUnit(&adapterkit.Unit{
+				ID: "auth", Name: "Auth", State: adapterkit.StateRecorded,
+				EvidenceProfile: profile,
+			}))
+
+			err := runCLI([]string{"verify", "auth", "--dir", dir}, &stdout, &stderr)
+			require.ErrorContains(t, err, "full-profile verification is unavailable")
+			unit, err := store.GetUnit("auth")
+			require.NoError(t, err)
+			assert.Equal(t, adapterkit.StateRecorded, unit.State)
+			evidence, err := store.GetLatestEvidenceForUnit("auth")
+			assert.Error(t, err)
+			assert.Nil(t, evidence)
+		})
+	}
+}

@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/gate"
 	"github.com/mohammedrefat/go-anything/internal/replay"
 	"github.com/mohammedrefat/go-anything/internal/state"
 	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
@@ -72,6 +71,12 @@ func runVerify(global *GlobalFlags, args []string, stdout, stderr io.Writer) err
 		profile = adapterkit.EvidenceProfile(global.Profile)
 	} else {
 		profile = adapterkit.ProfileFull
+	}
+
+	// The full quality gate is scheduled for M4. Refuse verification before
+	// executing the target or writing evidence until those checks exist.
+	if profile == adapterkit.ProfileFull {
+		return fmt.Errorf("full-profile verification is unavailable until the M4 quality gate is implemented")
 	}
 
 	// 1. Load recorded test cases
@@ -144,15 +149,6 @@ func runVerify(global *GlobalFlags, args []string, stdout, stderr io.Writer) err
 		},
 	}
 
-	// If full profile, execute full gate checks
-	if profile == adapterkit.ProfileFull {
-		gateChecks, gateErr := executeFullGateChecks(ctx, absPath, unitID, cases)
-		if gateErr != nil {
-			return fmt.Errorf("full gate check failed: %w", gateErr)
-		}
-		checks = append(checks, gateChecks...)
-	}
-
 	ev := &adapterkit.Evidence{
 		SchemaVersion:   adapterkit.SchemaVersionV1Alpha1,
 		EvidenceID:      fmt.Sprintf("evi-%s-%d", unitID, time.Now().UnixNano()),
@@ -213,75 +209,4 @@ func resolveCommitSHA(ctx context.Context, dir string) string {
 	}
 	// Fallback to valid 40-character zero SHA if not in a git repository
 	return "0000000000000000000000000000000000000000"
-}
-
-func executeFullGateChecks(ctx context.Context, dir, unitID string, cases []*adapterkit.Case) ([]adapterkit.GateCheck, error) {
-	runner := gate.New(gate.Config{
-		Dir:               dir,
-		AllowMissingTools: true,
-	})
-
-	report, err := runner.Run(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("gate runner error: %w", err)
-	}
-
-	checks := report.ToGateChecks()
-
-	// Error paths check
-	legacyUnitDir := filepath.Join(dir, "legacy", filepath.FromSlash(unitID))
-	modernUnitDir := filepath.Join(dir, "modern", filepath.FromSlash(unitID))
-	sourceDir := legacyUnitDir
-	if fi, err := os.Stat(sourceDir); err != nil || !fi.IsDir() {
-		sourceDir = filepath.Join(dir, filepath.FromSlash(unitID))
-	}
-
-	if fi, err := os.Stat(sourceDir); err == nil && fi.IsDir() {
-		errChecker := &gate.ErrorPathsChecker{
-			SourceDir: sourceDir,
-			Cases:     cases,
-		}
-		out, issues, passed, _ := errChecker.Check(ctx)
-		if !passed {
-			return nil, fmt.Errorf("error-path completeness check failed: %s", strings.Join(issues, "; "))
-		}
-		checks = append(checks, adapterkit.GateCheck{
-			Name:   gate.CheckErrorPaths,
-			Status: adapterkit.StatusPass,
-			Output: out,
-		})
-	} else {
-		checks = append(checks, adapterkit.GateCheck{
-			Name:   gate.CheckErrorPaths,
-			Status: adapterkit.StatusPass,
-			Output: "no source files located; error paths check clean",
-		})
-	}
-
-	// Public API compatibility check (if both legacy and modern directories exist)
-	legacyFi, lErr := os.Stat(legacyUnitDir)
-	modernFi, mErr := os.Stat(modernUnitDir)
-	if lErr == nil && legacyFi.IsDir() && mErr == nil && modernFi.IsDir() {
-		apiChecker := &gate.APICompatChecker{
-			LegacyDir: legacyUnitDir,
-			ModernDir: modernUnitDir,
-		}
-		apiOut, apiIssues, apiPassed, _ := apiChecker.Check(ctx)
-		if !apiPassed {
-			return nil, fmt.Errorf("public API compatibility check failed: %s", strings.Join(apiIssues, "; "))
-		}
-		checks = append(checks, adapterkit.GateCheck{
-			Name:   gate.CheckAPICompat,
-			Status: adapterkit.StatusPass,
-			Output: apiOut,
-		})
-	} else {
-		checks = append(checks, adapterkit.GateCheck{
-			Name:   gate.CheckAPICompat,
-			Status: adapterkit.StatusPass,
-			Output: "api compatibility clean (no separate legacy/modern split)",
-		})
-	}
-
-	return checks, nil
 }
