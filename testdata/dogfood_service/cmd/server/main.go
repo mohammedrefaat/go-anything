@@ -9,6 +9,7 @@ import (
 
 	"example.com/payments/pkg/billing"
 	"example.com/payments/pkg/currency"
+	"example.com/payments/pkg/fraud"
 )
 
 type ConvertResponse struct {
@@ -90,6 +91,30 @@ func handleCharge(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"receipt": receipt})
 }
 
+func handleFraud(w http.ResponseWriter, r *http.Request) {
+	amountStr := r.URL.Query().Get("amount")
+	riskStr := r.URL.Query().Get("risk")
+
+	amount, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(ErrorResponse{Error: "invalid amount"})
+		return
+	}
+
+	highRisk := riskStr == "true" || riskStr == "1"
+	flagged := fraud.Evaluate(amount, highRisk)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"amount":   amount,
+		"highRisk": highRisk,
+		"flagged":  flagged,
+	})
+}
+
 func main() {
 	port := "8080"
 	if envPort := os.Getenv("PORT"); envPort != "" {
@@ -99,6 +124,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/convert", handleConvert)
 	mux.HandleFunc("/charge", handleCharge)
+	mux.HandleFunc("/fraud", handleFraud)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

@@ -242,6 +242,42 @@ These are CLI-only and must never be automated or approximated:
 
 If a task needs one of these, stop and ask a human.
 
+## Unit lifecycle (10 states)
+
+` + "```text" + `
+Planned → Recorded → Ready → In Progress → Verified → Shadow → Approved → Cutover → Completed
+                                   ↓
+                               Blocked (needs human decision)
+` + "```" + `
+
+## Workspace layout
+
+` + "```text" + `
+.go-anything/
+  manifest.json        Index of units, schema_version
+  units/               One durable state file per unit (JSON)
+  local/               Leases and locks (GITIGNORED)
+  rules.json           Auto-detected wildcards and normalizers
+  cases/               Redacted cases, one JSONL per unit
+  reports/             Diffs, benchmarks, shadow mismatches, scorecard
+  evidence/            Gate reports tied to a git commit
+` + "```" + `
+
+## Key semantic traps (Go target)
+
+When porting to Go, generate or watch for cases covering:
+
+| Category | Issue |
+| :--- | :--- |
+| Empty collections | nil slice → null vs empty slice → [] |
+| HTML escaping | encoding/json escapes <, >, & |
+| Map key order | Go sorts keys; originals may keep insertion order |
+| Numbers | float64 default for JSON; int64 overflow, -0, NaN |
+| Strings | UTF-16 vs UTF-8 offsets; rune vs byte slicing; \r\n vs \n |
+| Time | Timezone handling, format strings, sub-second precision |
+| Error paths | Malformed input, missing fields, non-zero exit codes |
+| go.mod directive | Loop var semantics, GODEBUG, ServeMux |
+
 ## Security rules
 
 - Redaction is fail-closed and core-owned. Never disable it.

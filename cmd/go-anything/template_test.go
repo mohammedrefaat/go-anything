@@ -103,3 +103,28 @@ func TestTemplateCommand_UnknownAgent(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `unknown agent template "vim"`)
 }
+
+func TestSetupCommand_AliasAndInstall(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "go.mod"),
+		[]byte("module example.com/setup-demo\n\ngo 1.27.0\n"), 0644))
+
+	var stdout, stderr bytes.Buffer
+	err := runCLI([]string{"setup", dir, "--skills"}, &stdout, &stderr)
+	require.NoError(t, err, "stderr: %s", stderr.String())
+
+	for _, fileName := range []string{"CLAUDE.md", ".cursorrules", "AGENTS.md", "GEMINI.md"} {
+		path := filepath.Join(dir, fileName)
+		data, readErr := os.ReadFile(path)
+		require.NoError(t, readErr, "expected %s to be written by setup", fileName)
+		content := string(data)
+		assert.Contains(t, content, "go-anything")
+		assert.Contains(t, content, "Standard agent loop")
+		assert.Contains(t, content, "Human-only controls")
+		assert.Contains(t, content, "Key semantic traps")
+		assert.Contains(t, content, "Workspace layout")
+	}
+
+	skillsPath := filepath.Join(dir, ".go-anything", "skills.md")
+	assert.FileExists(t, skillsPath)
+}

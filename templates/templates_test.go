@@ -37,12 +37,18 @@ func TestDefaultAgentTemplates_RegisterAndRender(t *testing.T) {
 			body := string(file.Content)
 			assert.Contains(t, body, "payments")
 			assert.Contains(t, body, "full")
-			// Every agent file must enforce the agent loop and the human-only controls.
+			// Every agent file must enforce the agent loop, human-only controls,
+			// lifecycle/layout, and semantic traps checklist.
 			for _, marker := range []string{
 				"status", "claim_unit", "inspect_unit", "verify_diff",
 				"run_gate", "mark_verified", "handoff",
 				"approve", "promote", "lift",
 				"DECISIONS.md",
+				"Unit lifecycle",
+				"Workspace layout",
+				"Key semantic traps",
+				"Empty collections",
+				"HTML escaping",
 			} {
 				assert.Contains(t, body, marker, "agent file should mention %q", marker)
 			}

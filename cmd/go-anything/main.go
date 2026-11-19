@@ -97,7 +97,10 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "template":
 		return runTemplate(global, subArgs, stdout, stderr)
 
-	case "analyze", "diff", "gate", "shadow", "cutover", "setup":
+	case "setup":
+		return runSetup(global, subArgs, stdout, stderr)
+
+	case "analyze", "diff", "gate", "shadow", "cutover":
 		fmt.Fprintf(stdout, "go-anything: command '%s' is registered and will be wired in milestone M1-M4.\n", subcommand)
 		return nil
 
@@ -174,6 +177,7 @@ Available Commands:
   lift        Remove fallback wrappers and finalize modernization
   mcp         Start Model Context Protocol stdio server for AI agents
   template    Render agent instruction files (CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md)
+  setup       Render and install agent instruction files into target workspace (alias for template)
   version     Show go-anything version
   help        Show command usage`)
 }

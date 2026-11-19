@@ -12,8 +12,16 @@ import (
 	"github.com/mohammedrefat/go-anything/templates"
 )
 
+func runSetup(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
+	return runTemplateNamed("setup", global, args, stdout, stderr)
+}
+
 func runTemplate(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
-	fs := flag.NewFlagSet("template", flag.ContinueOnError)
+	return runTemplateNamed("template", global, args, stdout, stderr)
+}
+
+func runTemplateNamed(cmdName string, global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet(cmdName, flag.ContinueOnError)
 	fs.SetOutput(stderr)
 
 	agentFlag := fs.String("agent", "all", "Agent template to render: all, claude, cursor, codex, or gemini (comma-separated)")

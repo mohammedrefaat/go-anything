@@ -48,7 +48,7 @@ if [ -n "$STAGED_GO_FILES" ]; then
     # -----------------------------------------------------------------------
     # 3. go vet on changed packages
     # -----------------------------------------------------------------------
-    PACKAGES=$(echo "$STAGED_GO_FILES" | xargs -I{} dirname {} | sort -u | sed 's|^|./|')
+    PACKAGES=$(echo "$STAGED_GO_FILES" | grep -v '^testdata/' | xargs -I{} dirname {} | sort -u | sed 's|^|./|')
     if [ -n "$PACKAGES" ]; then
         if ! go vet $PACKAGES > /dev/null 2>&1; then
             printf "${RED}[pre-commit] BLOCKED:${NC} go vet found issues:\n"
