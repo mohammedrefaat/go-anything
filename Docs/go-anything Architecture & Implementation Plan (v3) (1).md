@@ -49,7 +49,60 @@ v2 added security, governance and decisions. v3 fixes eight design problems foun
 
 ## Architecture
 
-&#91;embedded content: architecture · 6 core modules, 2 stores, 1 front door\]
+```mermaid
+flowchart TD
+    subgraph Clients["Entry Points"]
+        Dev["Developer (CLI)"]
+        Agent["AI Coding Agent (IDE / stdio)"]
+    end
+
+    subgraph FrontDoor["Live Traffic Front Door"]
+        Proxy["Go Front Door (CLI passthrough / HTTP ReverseProxy)"]
+        KillSwitch["Kill Switch (GO_ANYTHING_UNIT_<id>=original)"]
+        FallbackCounter["Atomic Fallback Counter"]
+        Proxy --> KillSwitch
+        KillSwitch --> FallbackCounter
+    end
+
+    subgraph CoreEngine["go-anything Core Engine"]
+        Host["internal/adapterhost"]
+        Redactor["internal/redactor (In-memory fail-closed)"]
+        Sandbox["internal/sandbox (Linux ns / Best-effort)"]
+        Recorder["internal/recorder (Dual-run volatility)"]
+        Traps["internal/recorder/traps (7 Go traps)"]
+        Comparator["internal/comparator (Multi-mode diff)"]
+        Replay["internal/replay (Concurrent deterministic)"]
+        Gate["internal/gate (Vet, lint, race, analyzers)"]
+        Shadow["internal/shadow (Idempotent bounded pool)"]
+        MCP["internal/mcp (stdio, 8 tools, sanitizer)"]
+        LiftEngine["internal/lift (Safe copy-based lift)"]
+        MigrateEngine["internal/migrate (Schema v1alpha1->v1)"]
+    end
+
+    subgraph Adapters["Adapters (pkg/adapterkit contract)"]
+        GoAdapter["Go Adapter (source & modernize)"]
+        PyAdapter["Python Adapter (subprocess / HTTP)"]
+        TSAdapter["TypeScript Adapter (subprocess / HTTP)"]
+        AppAdapters["Application Adapters (CLI, HTTP, Library, Worker)"]
+    end
+
+    subgraph Stores["Durable Local Stores (.go-anything/)"]
+        ManifestStore[".go-anything/manifest.json"]
+        UnitStore[".go-anything/units/<unit>.json"]
+        CaseStore[".go-anything/cases/<unit>.jsonl"]
+        EvidenceStore[".go-anything/evidence/ (Commit-tied)"]
+        LocalStore[".go-anything/local/ (Gitignored leases & locks)"]
+    end
+
+    Dev --> Proxy
+    Dev -->|human commands: approve, promote, lift| CoreEngine
+    Agent <-->|stdio JSON-RPC| MCP
+    MCP --> CoreEngine
+    CoreEngine --> Stores
+    CoreEngine --> Adapters
+    Proxy -->|Unported / Fallback| LegacyApp["Original Application"]
+    Proxy -->|Ported Units| GoPort["Migrated Go Units"]
+```
 
 People use the CLI and agents use the MCP server; both call the same core, so rules are enforced in one place. State and evidence stay in stores outside any agent session, and only the Go front door sits in front of live traffic.
 
@@ -69,12 +122,17 @@ People use the CLI and agents use the MCP server; both call the same core, so ru
 **Repository layout of `go-anything` itself:**
 
 - `cmd/go-anything/` for the CLI and `go-anything mcp`
-- `pkg/adapterkit/` for the public adapter contract and schema Go types
-- `internal/` with `analyzer`, `planner`, `recorder`, `replay`, `comparator`, `gate`, `shadow`, `bench`, `mcp`, `state`, `redactor`, `sandbox`
+- `pkg/adapterkit/` for the public adapter contract, schema Go types, and `pkg/adapterkit/conformance/`
+- `internal/`:
+  - Core lifecycle & stores: `state`, `frontdoor`, `lift`, `migrate`
+  - Engine & security: `redactor`, `sandbox`, `adapterhost`
+  - Analysis & planning: `analyzer`, `planner`
+  - Behavioral verification: `recorder` (with `traps` and `capture`), `comparator`, `replay`
+  - Quality & telemetry-free ops: `gate` (with `analyzers` and `scorecard`), `bench`, `shadow`, `mcp` (with `sanitize`)
 - `adapters/source/` with `golang` first, then `python`, `typescript` and others
 - `adapters/application/` with `cli`, `http`, `library`, `worker`
-- `schemas/` with versioned JSON Schemas (`v1alpha1`) for manifest, units, rules, cases, reports and evidence
-- `skills/`, `templates/`, `docs/decisions/`
+- `schemas/` with versioned JSON Schemas (`v1alpha1` and frozen `v1`) for manifest, units, rules, cases, reports and evidence
+- `skills/`, `templates/`, `Docs/decisions/`, `Docs/case-studies/`
 
 ## Extensibility: `pkg/adapterkit`
 
@@ -97,7 +155,23 @@ The split matters for safety: an adapter describes the data and the core decides
 
 ## Unit lifecycle
 
-&#91;embedded content: unit lifecycle · 10 states, 1 loop, 1 human gate\]
+```mermaid
+stateDiagram-v2
+    [*] --> Planned: Unit assigned to wave
+    Planned --> Recorded: Redacted cases, wildcards & traps saved
+    Recorded --> Ready: All dependencies Verified or fronted
+    Ready --> InProgress: Agent takes time-bounded lease in local/
+    InProgress --> Blocked: Human decision / ADR required
+    Blocked --> InProgress: Human resolves blocker
+    InProgress --> InProgress: verify_diff failures (Iterate)
+    InProgress --> Verified: All checks pass (Commit-tied evidence)
+    Verified --> Shadow: Shadow mode enabled (Live comparisons)
+    Shadow --> Approved: Human CLI sign-off (go-anything approve)
+    Verified --> Approved: go-anything approve --skip-shadow
+    Approved --> Cutover: Route switched & kill switch verified
+    Cutover --> Completed: Fallback traffic = 0 & lift verified
+    Completed --> [*]
+```
 
 Every unit has its own state file under `.go-anything/units/`, never in an agent conversation. The server rejects any transition whose evidence is missing; a failed verification sends the unit back to In progress, and the original stays authoritative until Completed.
 
@@ -293,14 +367,14 @@ The rollout is lean: enough to earn trust without drowning an early project in p
 
 ## Decisions and risks
 
-Four decisions are settled, and two are still open before Milestone 0.
+All foundational and architectural pre-M0 decisions are settled and documented in `DECISIONS.md`.
 
 - [x] **License:** Apache-2.0, for its explicit patent grant while staying permissive
 - [x] **State store:** JSON and JSONL files with atomic writes and file locks, so state is reviewable in pull requests
 - [x] **First non-Go adapter:** Python, with subprocess and HTTP transports first
 - [x] **`modernize`:** a mode of the Go adapter (`go-anything init --source=go`) with `go-anything modernize` as an alias
-- [ ] **Sandbox backend:** Linux namespaces, `bubblewrap`, or a container runtime, and what the macOS and Windows fallback is
-- [ ] **Cross-machine claims:** whether pull-request ownership is enough, or units need a shared claim service later
+- [x] **Sandbox backend:** Native Linux namespaces with `bubblewrap` fallback; best-effort isolation with env stripping and invalid proxy sinks on Windows/macOS ([ADR-001](decisions/adr-001-sandbox-backend.md))
+- [x] **Cross-machine claims:** Pull-request and branch ownership is sufficient through v1.0; local leases in `.go-anything/local/` coordinate agents on a single machine without an external claim service ([ADR-002](decisions/adr-002-cross-machine-claims.md))
 
 **Risks**
 
@@ -318,7 +392,16 @@ Four decisions are settled, and two are still open before Milestone 0.
 
 ## Roadmap
 
-&#91;embedded content: roadmap · 8 milestones, each with an exit gate\]
+```mermaid
+flowchart LR
+    M0["M0: Foundation<br/>State, Redactor, Sandbox, Doctor"] --> M1["M1: MVP<br/>Record, Replay, Traps, Comparator"]
+    M1 --> M2["M2: Strangler<br/>Front Door, Kill Switch, Lift"]
+    M2 --> M3["M3: Go Modernize<br/>Analysis, Waves, Facade, Parity"]
+    M3 --> M4["M4: Quality Gate & MCP<br/>Full Gate, Scorecard, Agent Tools"]
+    M4 --> M5["M5: Shadow & v0.1.0<br/>Live Shadow, Capture, Dogfooding"]
+    M5 --> M6["M6: Python & v0.2.0<br/>Py Adapter, Worker Sidecars"]
+    M6 --> M7["M7: Freeze & v1.0.0<br/>TS Adapter, Schema v1, Migrate, Lift"]
+```
 
 M1 is the MVP: sandboxed record and replay prove behavior from outside the app, with no language adapter needed. Each milestone passes its gate before the next starts, and M6 repeats once per added language. `lift` is proven by M2, long before the freeze. Until the quality gate exists in M4, units are verified under the replay-only evidence profile.
 
