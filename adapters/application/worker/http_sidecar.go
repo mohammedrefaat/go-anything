@@ -41,7 +41,12 @@ func NewHTTPSidecar(cfg HTTPConfig) (*HTTPSidecar, error) {
 	}
 	client := cfg.Client
 	if client == nil {
-		client = &http.Client{Timeout: timeout}
+		client = &http.Client{
+			Timeout: timeout,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return errors.New("worker: task redirects disabled by security policy")
+			},
+		}
 	}
 	tasksPath := cfg.TasksPath
 	if tasksPath == "" {

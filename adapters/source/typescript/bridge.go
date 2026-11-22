@@ -2,6 +2,7 @@ package typescript
 
 import (
 	"fmt"
+	"strings"
 )
 
 // BridgeType identifies a foreign library bridging strategy between Node.js/TypeScript and Go.
@@ -97,6 +98,7 @@ func ValidateBridge(b BridgeType) (BridgeLimits, error) {
 
 // GenerateKoffiBinding generates a JavaScript wrapper template for a Go c-shared library using koffi.
 func GenerateKoffiBinding(libPath, functionName string, inputTypes, returnType string) string {
+	cleanReturn := strings.Trim(strings.TrimSpace(returnType), `"'`)
 	return fmt.Sprintf(`// Generated Koffi FFI Bridge for %s
 const koffi = require('koffi');
 const path = require('path');
@@ -109,7 +111,7 @@ module.exports = {
     return %s(...args);
   }
 };
-`, functionName, libPath, functionName, functionName, returnType, inputTypes, functionName, functionName)
+`, functionName, libPath, functionName, functionName, cleanReturn, inputTypes, functionName, functionName)
 }
 
 // GenerateNAPIBinding generates a Node-API C++ stub declaration for bridging a Go exported function.

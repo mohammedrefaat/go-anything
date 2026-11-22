@@ -3,8 +3,10 @@ package capture
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
@@ -64,27 +66,44 @@ func (h *HTTPMirrorSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = r.Body.Close()
 
 		var env MirrorEnvelope
-		if err := json.Unmarshal(bodyBytes, &env); err == nil && (env.Traffic.Request.Path != "" || env.Traffic.Request.Method != "") {
-			if env.UnitID != "" {
-				unitID = env.UnitID
-			}
-			if env.Metadata != nil {
-				if env.Traffic.Metadata == nil {
-					env.Traffic.Metadata = make(map[string]any)
-				}
-				for k, v := range env.Metadata {
-					env.Traffic.Metadata[k] = v
-				}
-			}
-			_, err = h.ingester.IngestHTTP(r.Context(), unitID, env.Traffic)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"status":"captured"}`))
+		if err := json.Unmarshal(bodyBytes, &env); err != nil {
+			http.Error(w, fmt.Sprintf("invalid mirror envelope: %v", err), http.StatusBadRequest)
 			return
 		}
+		if env.Traffic.Request.Path == "" && env.Traffic.Request.Method == "" {
+			http.Error(w, "missing request data in mirror envelope", http.StatusBadRequest)
+			return
+		}
+		if env.UnitID != "" {
+			unitID = env.UnitID
+		}
+		cleanUnit := filepath.Clean(filepath.FromSlash(unitID))
+		if strings.HasPrefix(cleanUnit, "..") || filepath.IsAbs(cleanUnit) || cleanUnit == "." || cleanUnit == "" {
+			http.Error(w, "invalid unit_id: path traversal forbidden", http.StatusBadRequest)
+			return
+		}
+		if env.Metadata != nil {
+			if env.Traffic.Metadata == nil {
+				env.Traffic.Metadata = make(map[string]any)
+			}
+			for k, v := range env.Metadata {
+				env.Traffic.Metadata[k] = v
+			}
+		}
+		_, err = h.ingester.IngestHTTP(r.Context(), unitID, env.Traffic)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"captured"}`))
+		return
+	}
+
+	cleanUnit := filepath.Clean(filepath.FromSlash(unitID))
+	if unitID != "" && (strings.HasPrefix(cleanUnit, "..") || filepath.IsAbs(cleanUnit) || cleanUnit == ".") {
+		http.Error(w, "invalid unit_id: path traversal forbidden", http.StatusBadRequest)
+		return
 	}
 
 	// Otherwise, ingest the live incoming mirrored request directly
@@ -97,7 +116,11 @@ func (h *HTTPMirrorSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var reqBody any
 	if r.Body != nil {
-		bodyBytes, _ := io.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "failed to read body", http.StatusBadRequest)
+			return
+		}
 		_ = r.Body.Close()
 		if len(bodyBytes) > 0 {
 			var parsed any
@@ -109,10 +132,19 @@ func (h *HTTPMirrorSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	reqPath := r.URL.Path
+	if q := r.URL.Query(); len(q) > 0 {
+		q.Del("unit_id")
+		q.Del("unit")
+		if encoded := q.Encode(); encoded != "" {
+			reqPath += "?" + encoded
+		}
+	}
+
 	traffic := HTTPTraffic{
 		Request: HTTPRequest{
 			Method:     r.Method,
-			Path:       r.URL.Path,
+			Path:       reqPath,
 			Headers:    headers,
 			Body:       reqBody,
 			RemoteAddr: r.RemoteAddr,

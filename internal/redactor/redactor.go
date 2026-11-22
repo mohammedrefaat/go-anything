@@ -185,6 +185,22 @@ func (r *Redactor) RedactValue(val any, path string) (any, []string, error) {
 			}
 
 			if strVal, ok := item.(string); ok {
+				trimmed := strings.TrimSpace(strVal)
+				if strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") {
+					var parsed any
+					if err := json.Unmarshal([]byte(trimmed), &parsed); err == nil {
+						redactedParsed, parsedUnrep, err := r.RedactValue(parsed, fieldPath)
+						if err == nil {
+							outBytes, err := json.Marshal(redactedParsed)
+							if err == nil {
+								result[k] = string(outBytes)
+								unreplayable = append(unreplayable, parsedUnrep...)
+								continue
+							}
+						}
+					}
+				}
+
 				redactedChild, childUnrep, err := r.RedactString(strVal)
 				if err != nil {
 					return nil, nil, err
@@ -345,6 +361,33 @@ func (r *Redactor) RedactCase(c *adapterkit.Case) (*adapterkit.Case, error) {
 	if c.ExpectedOutput.Stderr != "" {
 		redactedStderr, _, _ := r.RedactString(c.ExpectedOutput.Stderr)
 		c.ExpectedOutput.Stderr = redactedStderr
+	}
+
+	// 7. Redact Input Path (e.g. secret tokens in query string or path)
+	if c.Input.Path != "" {
+		redactedPath, _, _ := r.RedactString(c.Input.Path)
+		c.Input.Path = redactedPath
+	}
+
+	// 8. Redact Input Argv
+	if len(c.Input.Argv) > 0 {
+		for i, arg := range c.Input.Argv {
+			redactedArg, _, _ := r.RedactString(arg)
+			c.Input.Argv[i] = redactedArg
+		}
+	}
+
+	// 9. Redact Metadata values
+	if c.Metadata != nil {
+		redactedMeta, unrep, err := r.RedactValue(c.Metadata, "metadata")
+		if err == nil {
+			if m, ok := redactedMeta.(map[string]any); ok {
+				c.Metadata = m
+			}
+			for _, u := range unrep {
+				unreplayableSet[u] = true
+			}
+		}
 	}
 
 	// Update Case.UnreplayableFields

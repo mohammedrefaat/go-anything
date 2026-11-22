@@ -410,6 +410,12 @@ func (ing *Ingester) processAndSave(
 	output adapterkit.CaseOutput,
 	meta map[string]any,
 ) (*adapterkit.Case, error) {
+	// 0. Verify unitID is not attempting path traversal
+	cleanUnit := filepath.Clean(filepath.FromSlash(unitID))
+	if strings.HasPrefix(cleanUnit, "..") || filepath.IsAbs(cleanUnit) || cleanUnit == "." || cleanUnit == "" {
+		return nil, fmt.Errorf("invalid unit ID %q: path traversal forbidden", unitID)
+	}
+
 	// 1. Verify observability/capture payload does not attempt routing control
 	if err := validateNoRoutingControl(meta); err != nil {
 		return nil, err

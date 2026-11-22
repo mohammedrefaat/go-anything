@@ -98,31 +98,40 @@ func MigrateWorkspace(workspacePath string) (*MigrationResult, error) {
 			result.TotalFilesModified++
 			result.UpgradedFiles = append(result.UpgradedFiles, rulesPath)
 		}
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error accessing %s: %w", rulesPath, err)
 	}
 
 	// 3. Migrate units/ (*.json)
 	unitsDir := filepath.Join(dotDir, "units")
-	if info, err := os.Stat(unitsDir); err == nil && info.IsDir() {
-		entries, err := os.ReadDir(unitsDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read units directory %s: %w", unitsDir, err)
+	if info, err := os.Stat(unitsDir); err == nil {
+		if !info.IsDir() {
+			return nil, fmt.Errorf("expected units path %s to be a directory", unitsDir)
 		}
-		for _, e := range entries {
-			if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-				continue
+		err := filepath.Walk(unitsDir, func(path string, fi os.FileInfo, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if fi.IsDir() || !strings.HasSuffix(fi.Name(), ".json") {
+				return nil
 			}
 			result.UnitsTotal++
-			filePath := filepath.Join(unitsDir, e.Name())
-			upgraded, err := migrateJSONFile(filePath, "units.schema.json")
+			upgraded, err := migrateJSONFile(path, "units.schema.json")
 			if err != nil {
-				return nil, fmt.Errorf("failed to migrate unit %s: %w", e.Name(), err)
+				return fmt.Errorf("failed to migrate unit %s: %w", fi.Name(), err)
 			}
 			if upgraded {
 				result.UnitsUpgraded++
 				result.TotalFilesModified++
-				result.UpgradedFiles = append(result.UpgradedFiles, filePath)
+				result.UpgradedFiles = append(result.UpgradedFiles, path)
 			}
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed reading units directory %s: %w", unitsDir, err)
 		}
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error accessing %s: %w", unitsDir, err)
 	}
 
 	// 4. Migrate cases/ (*.jsonl)
@@ -195,27 +204,34 @@ func MigrateWorkspace(workspacePath string) (*MigrationResult, error) {
 
 	// 6. Migrate evidence/ (*.json)
 	evidenceDir := filepath.Join(dotDir, "evidence")
-	if info, err := os.Stat(evidenceDir); err == nil && info.IsDir() {
-		entries, err := os.ReadDir(evidenceDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read evidence directory %s: %w", evidenceDir, err)
+	if info, err := os.Stat(evidenceDir); err == nil {
+		if !info.IsDir() {
+			return nil, fmt.Errorf("expected evidence path %s to be a directory", evidenceDir)
 		}
-		for _, e := range entries {
-			if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-				continue
+		err := filepath.Walk(evidenceDir, func(path string, fi os.FileInfo, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if fi.IsDir() || !strings.HasSuffix(fi.Name(), ".json") {
+				return nil
 			}
 			result.EvidenceFilesTotal++
-			filePath := filepath.Join(evidenceDir, e.Name())
-			upgraded, err := migrateJSONFile(filePath, "evidence.schema.json")
+			upgraded, err := migrateJSONFile(path, "evidence.schema.json")
 			if err != nil {
-				return nil, fmt.Errorf("failed to migrate evidence file %s: %w", e.Name(), err)
+				return fmt.Errorf("failed to migrate evidence file %s: %w", fi.Name(), err)
 			}
 			if upgraded {
 				result.EvidenceUpgraded++
 				result.TotalFilesModified++
-				result.UpgradedFiles = append(result.UpgradedFiles, filePath)
+				result.UpgradedFiles = append(result.UpgradedFiles, path)
 			}
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed reading evidence directory %s: %w", evidenceDir, err)
 		}
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error accessing %s: %w", evidenceDir, err)
 	}
 
 	return result, nil
@@ -245,6 +261,10 @@ func migrateJSONFile(filePath, schemaFileName string) (bool, error) {
 	var doc map[string]any
 	if err := dec.Decode(&doc); err != nil {
 		return false, fmt.Errorf("failed to unmarshal JSON from %s: %w", filePath, err)
+	}
+	var trailing any
+	if err := dec.Decode(&trailing); err != io.EOF {
+		return false, fmt.Errorf("unexpected trailing data in JSON file %s", filePath)
 	}
 
 	currentVersion, ok := doc["schema_version"].(string)
@@ -324,6 +344,10 @@ func migrateJSONLFile(filePath, schemaFileName string) (int, int, bool, error) {
 		if err := dec.Decode(&record); err != nil {
 			return totalLines, linesUpgraded, false, fmt.Errorf("line %d in %s has invalid JSON: %w", lineIdx+1, filePath, err)
 		}
+		var trailing any
+		if err := dec.Decode(&trailing); err != io.EOF {
+			return totalLines, linesUpgraded, false, fmt.Errorf("line %d in %s has unexpected trailing data", lineIdx+1, filePath)
+		}
 
 		currentVersion, ok := record["schema_version"].(string)
 		if !ok {
@@ -382,11 +406,17 @@ func writeTempSyncRename(targetPath string, data []byte) error {
 	}
 
 	baseName := filepath.Base(targetPath)
+	fileMode := os.FileMode(0644)
+	if fi, err := os.Stat(targetPath); err == nil {
+		fileMode = fi.Mode()
+	}
+
 	tmpFile, err := os.CreateTemp(dir, "."+baseName+".*.tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file for %s: %w", targetPath, err)
 	}
 	tmpName := tmpFile.Name()
+	_ = os.Chmod(tmpName, fileMode)
 	defer func() {
 		_ = os.Remove(tmpName)
 	}()
@@ -407,10 +437,17 @@ func writeTempSyncRename(targetPath string, data []byte) error {
 
 	// Rename temp file to target path
 	if err := os.Rename(tmpName, targetPath); err != nil {
-		// Fallback for Windows in case target file exists and replace fails
-		_ = os.Remove(targetPath)
-		if err := os.Rename(tmpName, targetPath); err != nil {
-			return fmt.Errorf("failed to rename %s to %s: %w", tmpName, targetPath, err)
+		// Fallback for Windows where target file cannot be replaced atomically
+		backupPath := targetPath + ".migrated.bak"
+		_ = os.Remove(backupPath)
+		if renameErr := os.Rename(targetPath, backupPath); renameErr == nil {
+			if err2 := os.Rename(tmpName, targetPath); err2 != nil {
+				_ = os.Rename(backupPath, targetPath)
+				return fmt.Errorf("failed to rename %s to %s: %w", tmpName, targetPath, err2)
+			}
+			_ = os.Remove(backupPath)
+		} else {
+			return fmt.Errorf("failed to replace %s: %w", targetPath, err)
 		}
 	}
 

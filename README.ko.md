@@ -263,7 +263,7 @@ go-anything verify unit-healthcheck \
 
 ```bash
 # 1. 엔지니어 승인 (CLI 전용, MCP 도구로 호출 불가)
-go-anything approve unit-healthcheck --notes "리플레이 및 품질 게이트 100% 통과 확인"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. 라우팅을 모던 Go 구현체로 전환
 go-anything promote unit-healthcheck

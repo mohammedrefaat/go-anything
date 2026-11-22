@@ -263,7 +263,7 @@ Após a validação, o engenheiro humano realiza a assinatura final, habilita o 
 
 ```bash
 # 1. Aprovação humana (exclusiva na CLI, sem acesso por ferramentas MCP)
-go-anything approve unit-healthcheck --notes "Replay e portão de qualidade com 100% de sucesso"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. Alternar o roteamento para a implementação em Go
 go-anything promote unit-healthcheck

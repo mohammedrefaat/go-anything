@@ -9,8 +9,14 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"sync"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
+)
+
+var (
+	schemaCacheMu sync.RWMutex
+	schemaCache   = make(map[string]*jsonschema.Schema)
 )
 
 // DefaultSchemaVersion specifies the active schema version for workspace files.
@@ -38,8 +44,20 @@ func GetSchema(version, name string) ([]byte, error) {
 	return data, nil
 }
 
-// CompileSchema compiles a schema from embedded storage.
+// CompileSchema compiles a schema from embedded storage, using an in-memory cache.
 func CompileSchema(version, name string) (*jsonschema.Schema, error) {
+	if version == "" {
+		version = DefaultSchemaVersion
+	}
+	cacheKey := version + "/" + name
+
+	schemaCacheMu.RLock()
+	cached, ok := schemaCache[cacheKey]
+	schemaCacheMu.RUnlock()
+	if ok {
+		return cached, nil
+	}
+
 	data, err := GetSchema(version, name)
 	if err != nil {
 		return nil, err
@@ -53,6 +71,11 @@ func CompileSchema(version, name string) (*jsonschema.Schema, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile schema %s: %w", name, err)
 	}
+
+	schemaCacheMu.Lock()
+	schemaCache[cacheKey] = schema
+	schemaCacheMu.Unlock()
+
 	return schema, nil
 }
 
@@ -63,7 +86,9 @@ func ValidateJSON(version, name string, rawJSON []byte) error {
 		return err
 	}
 	var val any
-	if err := json.Unmarshal(rawJSON, &val); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(rawJSON))
+	dec.UseNumber()
+	if err := dec.Decode(&val); err != nil {
 		return fmt.Errorf("invalid json payload: %w", err)
 	}
 	return schema.Validate(val)

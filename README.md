@@ -267,7 +267,7 @@ Once verified, the human operator conducts sign-off, enables shadow traffic rout
 
 ```bash
 # 1. Human sign-off (CLI-only, cannot be executed by MCP tools)
-go-anything approve unit-healthcheck --notes "Behavioral replay and gate pass 100%"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. Switch strangler routing to modern Go implementation
 go-anything promote unit-healthcheck

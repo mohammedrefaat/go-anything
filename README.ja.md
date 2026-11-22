@@ -263,7 +263,7 @@ go-anything verify unit-healthcheck \
 
 ```bash
 # 1. 人間による承認（CLI専用・MCPからの呼び出し不可）
-go-anything approve unit-healthcheck --notes "リプレイ100%一致・品質ゲート全通過を確認"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. フロントドアのルーティングをGo実装へ切り替え
 go-anything promote unit-healthcheck

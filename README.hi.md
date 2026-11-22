@@ -263,7 +263,7 @@ go-anything verify unit-healthcheck \
 
 ```bash
 # 1. मानवीय स्वीकृति (केवल CLI द्वारा, MCP से संभव नहीं)
-go-anything approve unit-healthcheck --notes "रीप्ले और गुणवत्ता परीक्षण 100% पास"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. रूटिंग को नए Go कोड पर स्विच करें
 go-anything promote unit-healthcheck

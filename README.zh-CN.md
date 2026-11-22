@@ -263,7 +263,7 @@ go-anything verify unit-healthcheck \
 
 ```bash
 # 1. 人工审批（仅限 CLI，MCP 工具无权调用）
-go-anything approve unit-healthcheck --notes "用例回放 100% 通过且质量关卡无告警"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. 将路由平滑切换至现代 Go 实现
 go-anything promote unit-healthcheck

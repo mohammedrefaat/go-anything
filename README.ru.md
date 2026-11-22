@@ -263,7 +263,7 @@ go-anything verify unit-healthcheck \
 
 ```bash
 # 1. Одобрение инженером (строго CLI, закрыто для инструментов MCP)
-go-anything approve unit-healthcheck --notes "Поведение и шлюз качества пройдены на 100%"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. Переключение основного маршрута на реализацию Go
 go-anything promote unit-healthcheck

@@ -32,7 +32,7 @@ Our evaluation test suite (`adapters/source/python/cshared/`) analyzed three fat
 
 - **Root Cause:** CPython relies on the Global Interpreter Lock (GIL) to synchronize memory access across Python threads. Go's M:N scheduler multiplexes goroutines over arbitrary OS threads (`M:N`).
 - **Failure Modes:**
-  1. **Thread Starvation:** When Python calls Go via `ctypes`/`cffi`, the calling thread holds the GIL. If Go performs network I/O, disk writes, or GC cycles without releasing the GIL (`Py_BEGIN_ALLOW_THREADS`), all other Python threads in the application freeze.
+  1. **Thread Starvation:** When Python calls Go via `ctypes`/`cffi`, the calling thread holds the GIL. If Go performs network I/O, disk writes, or GC cycles without releasing the GIL (`Py_BEGIN_ALLOW_THREADS`), all other Python threads attempting to execute bytecode or acquire the GIL are starved.
   2. **ThreadState Corruption:** If a Go goroutine attempts to invoke a Python callback, it must obtain a valid `PyThreadState` via `PyGILState_Ensure()`. Because the Go scheduler can dynamically migrate a goroutine to a different OS thread between scheduling points, thread-local state and GIL tracking become corrupted unless pinned with `runtime.LockOSThread()`.
   3. **AB-BA Deadlocks:** If Go code holds a Go mutex and attempts to acquire the GIL while a Python thread holds the GIL and waits on a Go mutex, a classic circular deadlock occurs.
 

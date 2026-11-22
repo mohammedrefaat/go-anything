@@ -693,7 +693,7 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 			return &ToolCallResult{IsError: true, Content: []ContentItem{{Type: "text", Text: "Required checks were skipped; no passing evidence saved"}}}, nil
 		}
 		ev := &adapterkit.Evidence{
-			SchemaVersion:   adapterkit.SchemaVersionV1Alpha1,
+			SchemaVersion:   adapterkit.DefaultSchemaVersion,
 			EvidenceID:      fmt.Sprintf("evi-%s-%s-%d", sanitizeUnitID(unit.ID), commitSHA[:8], time.Now().UnixNano()),
 			UnitID:          unit.ID,
 			CommitSHA:       commitSHA,
@@ -951,7 +951,9 @@ func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidencePr
 		found := false
 		for _, check := range report.Checks {
 			if check.Name == name {
-				if check.Status == gate.StatusPass || (allowMissing && check.Status == gate.StatusSkipped) {
+				if check.Status == gate.StatusPass {
+					found = true
+				} else if allowMissing && check.Status == gate.StatusSkipped && (name == gate.CheckRace || name == gate.CheckGovulncheck || name == "vulncheck") {
 					found = true
 				}
 			}

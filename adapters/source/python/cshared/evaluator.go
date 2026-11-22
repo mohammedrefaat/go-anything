@@ -120,7 +120,6 @@ func (e *Evaluator) EvaluateGIL(ctx context.Context) HazardEvaluation {
 	select {
 	case <-done:
 	case <-ctx.Done():
-		contentionCount = -1
 	}
 
 	return HazardEvaluation{

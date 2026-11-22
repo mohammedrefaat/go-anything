@@ -369,7 +369,7 @@ go-anything verify unit-calc --target ./bin/modern-calc --profile full
 Records human engineering sign-off. This command transitions a unit from `Verified` (or `Shadow`) to `Approved`.
 
 ```bash
-go-anything approve <unit-id> [--skip-shadow] [--notes <text>] [--actor <engineer-name>]
+go-anything approve <unit-id> [--skip-shadow] [--actor <engineer-name>]
 ```
 
 > [!NOTE]
@@ -618,11 +618,11 @@ The `go-anything mcp` server provides 8 tightly scoped tools:
 | `status` | Query migration state, dependency waves, and blockers. | `dir` (optional) |
 | `claim_unit` | Acquire a time-bounded lease on a `Ready` unit. | `unit_id`, `actor`, `ttl_seconds` |
 | `inspect_unit` | Read original code, sample cases, and semantic traps. | `unit_id` |
-| `record_cases` | Run original code in the sandbox to generate cases. | `unit_id`, `cmd`, `url`, `kind` |
+| `record_cases` | Run original code in the sandbox to generate cases. | `unit_id`, `command`, `url`, `kind` |
 | `verify_diff` | Build Go target, replay cases, return diffs on mismatch. | `unit_id`, `target`, `mode` |
 | `run_gate` | Run the 6-stage Quality Gate and create evidence scorecard. | `unit_id`, `target`, `profile` |
 | `mark_verified` | Transition unit to `Verified` (tied to current Git commit). | `unit_id`, `commit_sha` |
-| `handoff` | Write `HANDOFF.md` documenting session accomplishments. | `unit_id`, `notes`, `next_steps` |
+| `handoff` | Write `HANDOFF.md` documenting session accomplishments. | `unit_id`, `summary`, `next_steps` |
 
 ### Agent Operating Loop
 
@@ -754,4 +754,4 @@ When rewriting code into Go, watch out for these subtle language-level semantic 
 
 ---
 
-*For further architectural details, refer to the [Architecture & Implementation Plan](file:///d:/me/go-anything/Docs/go-anything%20Architecture%20%26%20Implementation%20Plan%20(v3)%20(1).md) and [SECURITY.md](file:///d:/me/go-anything/SECURITY.md).*
+*For further architectural details, refer to the [Architecture & Implementation Plan](go-anything%20Architecture%20%26%20Implementation%20Plan%20(v3)%20(1).md) and [SECURITY.md](../SECURITY.md).*

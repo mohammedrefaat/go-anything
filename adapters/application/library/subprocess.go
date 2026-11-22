@@ -74,6 +74,7 @@ func (w *SubprocessWrapper) Start(ctx context.Context) error {
 
 func (w *SubprocessWrapper) startProcessLocked(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, w.cfg.Command, w.cfg.Args...)
+	cmd.WaitDelay = 5 * time.Second
 	if w.cfg.WorkingDir != "" {
 		cmd.Dir = w.cfg.WorkingDir
 	}

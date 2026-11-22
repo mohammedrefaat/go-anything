@@ -263,7 +263,7 @@ Nach erfolgreicher Prüfung erteilt der Entwickler die Freigabe, schaltet den Ve
 
 ```bash
 # 1. Menschliche Freigabe (nur über CLI, keine Ausführung durch MCP-Tools)
-go-anything approve unit-healthcheck --notes "Replay und Quality-Gate zu 100% bestanden"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. Strangler-Routing auf die Go-Implementierung umschalten
 go-anything promote unit-healthcheck

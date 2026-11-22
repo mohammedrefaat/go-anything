@@ -263,7 +263,7 @@ go-anything verify unit-healthcheck \
 
 ```bash
 # 1. موافقة بشرية (حصرياً عبر سطر الأوامر، لا يمكن للوكلاء تنفيذها)
-go-anything approve unit-healthcheck --notes "تطابق السلوك واجتياز الجودة بنسبة 100%"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. تحويل مسار البيانات الرئيسي إلى كود Go الحديث
 go-anything promote unit-healthcheck

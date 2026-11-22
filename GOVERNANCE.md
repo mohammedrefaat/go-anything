@@ -197,7 +197,7 @@ Alternatively, adapters can invoke programmatic validation returning structured 
 ```go
 report := conformance.NewSuite(adapter, cfg).Validate(ctx)
 if !report.Passed {
-    t.Fatalf("conformance failed: %v", report.Errors)
+    t.Fatalf("conformance failed: %v", report.Violations)
 }
 ```
 

@@ -653,3 +653,37 @@ func TestConcurrency_RaceFreeIngestion(t *testing.T) {
 		validateCaseAgainstSchema(t, schema, c)
 	}
 }
+
+func TestCapture_PathTraversalForbidden(t *testing.T) {
+	tempDir := t.TempDir()
+	casesDir := filepath.Join(tempDir, "cases")
+	require.NoError(t, os.MkdirAll(casesDir, 0755))
+
+	fileSink := capture.NewFileSink(casesDir)
+	testCase := &adapterkit.Case{
+		CaseID: "case-trav-1",
+		UnitID: "evil-unit",
+	}
+
+	// 1. FileSink rejects path traversal
+	err := fileSink.SaveCase("../escaped_unit", testCase)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "path traversal forbidden")
+
+	err = fileSink.SaveCase("../../etc/passwd", testCase)
+	assert.Error(t, err)
+
+	// Verify no file was created outside casesDir
+	_, err = os.Stat(filepath.Join(tempDir, "escaped_unit.jsonl"))
+	assert.True(t, os.IsNotExist(err))
+
+	// 2. HTTPMirrorSource rejects path traversal in query param
+	ing, _ := setupTestIngester(t)
+	httpSource := capture.NewHTTPMirrorSource(ing, "default-unit")
+
+	req := httptest.NewRequest("GET", "/mirror?unit_id=../../traversal", nil)
+	w := httptest.NewRecorder()
+	httpSource.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "path traversal forbidden")
+}

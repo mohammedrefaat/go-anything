@@ -424,7 +424,7 @@ func TestBridgeDeclarations(t *testing.T) {
 	// 5. Code generation templates
 	koffiStub := typescript.GenerateKoffiBinding("./libcalc.so", "Add", "'int', 'int'", "'int'")
 	assert.Contains(t, koffiStub, "koffi.load")
-	assert.Contains(t, koffiStub, "lib.func('Add'")
+	assert.Contains(t, koffiStub, "lib.func('Add', 'int', ['int', 'int'])")
 
 	napiStub := typescript.GenerateNAPIBinding("ExecuteQuery")
 	assert.Contains(t, napiStub, "#include <node_api.h>")

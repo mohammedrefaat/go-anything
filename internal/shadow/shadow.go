@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"runtime"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -348,7 +349,7 @@ func (e *Engine) ExecuteHTTP(w http.ResponseWriter, req *http.Request, oldH, new
 			e.Submit(func(ctx context.Context) {
 				e.shadowRuns.Add(1)
 				shadowRec := httptest.NewRecorder()
-				newH.ServeHTTP(shadowRec, clonedReq)
+				newH.ServeHTTP(shadowRec, clonedReq.WithContext(ctx))
 
 				// Compare responses
 				var mismatches []adapterkit.Mismatch
@@ -368,12 +369,20 @@ func (e *Engine) ExecuteHTTP(w http.ResponseWriter, req *http.Request, oldH, new
 						Message:  "response body mismatch",
 					})
 				}
-				for k, v := range oldHeaders {
+				allKeys := make(map[string]bool)
+				for k := range oldHeaders {
+					allKeys[http.CanonicalHeaderKey(k)] = true
+				}
+				for k := range shadowRec.Header() {
+					allKeys[http.CanonicalHeaderKey(k)] = true
+				}
+				for k := range allKeys {
+					oldVals := oldHeaders.Values(k)
 					newVals := shadowRec.Header().Values(k)
-					if fmt.Sprintf("%v", v) != fmt.Sprintf("%v", newVals) {
+					if !slices.Equal(oldVals, newVals) {
 						mismatches = append(mismatches, adapterkit.Mismatch{
 							Path:     "headers." + k,
-							Expected: v,
+							Expected: oldVals,
 							Actual:   newVals,
 							Message:  "header mismatch for " + k,
 						})

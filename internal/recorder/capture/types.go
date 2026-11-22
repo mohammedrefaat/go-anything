@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -113,7 +114,19 @@ func (f *FileSink) SaveCase(unitID string, c *adapterkit.Case) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	caseFile := filepath.Join(f.casesDir, filepath.FromSlash(unitID)+".jsonl")
+	// Confine case-file path to casesDir to prevent path traversal
+	cleanBase := filepath.Clean(f.casesDir)
+	relUnit := filepath.Clean(filepath.FromSlash(unitID))
+	if strings.HasPrefix(relUnit, "..") || filepath.IsAbs(relUnit) || relUnit == "." {
+		return fmt.Errorf("invalid unit ID %q: path traversal forbidden", unitID)
+	}
+
+	caseFile := filepath.Clean(filepath.Join(cleanBase, relUnit+".jsonl"))
+	rel, err := filepath.Rel(cleanBase, caseFile)
+	if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
+		return fmt.Errorf("invalid unit ID %q: path escapes cases directory", unitID)
+	}
+
 	if err := os.MkdirAll(filepath.Dir(caseFile), 0755); err != nil {
 		return fmt.Errorf("failed to create cases directory: %w", err)
 	}

@@ -378,11 +378,31 @@ func isEvidenceValidForProfile(ev *adapterkit.Evidence, profile adapterkit.Evide
 			return false, "profile 'replay' requires check 'replay' with pass status"
 		}
 	case adapterkit.ProfileFull:
-		required := []string{"build", "format", "vet", "race", "replay", "vulncheck"}
-		for _, req := range required {
+		requiredChecks := []string{"build", "format", "vet", "race", "replay", "error_paths", "api_compat"}
+		for _, req := range requiredChecks {
 			status, ok := checksMap[req]
-			if !ok || status != adapterkit.StatusPass {
-				return false, fmt.Sprintf("profile 'full' requires check %q with pass status", req)
+			if !ok {
+				return false, fmt.Sprintf("profile 'full' requires check %q", req)
+			}
+			if status != adapterkit.StatusPass && !(status == adapterkit.StatusSkipped && req == "race") {
+				return false, fmt.Sprintf("profile 'full' check %q has status %q (must be pass)", req, status)
+			}
+		}
+
+		vulnStatus, hasVuln := checksMap["govulncheck"]
+		if !hasVuln {
+			vulnStatus, hasVuln = checksMap["vulncheck"]
+		}
+		if !hasVuln {
+			return false, "profile 'full' requires vulnerability check ('govulncheck' or 'vulncheck')"
+		}
+		if vulnStatus != adapterkit.StatusPass && vulnStatus != adapterkit.StatusSkipped {
+			return false, fmt.Sprintf("profile 'full' vulnerability check has status %q (must be pass)", vulnStatus)
+		}
+
+		for _, c := range ev.Checks {
+			if c.Status == adapterkit.StatusFail {
+				return false, fmt.Sprintf("gate check %q failed", c.Name)
 			}
 		}
 	default:

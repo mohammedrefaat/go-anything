@@ -374,7 +374,6 @@ func AnalyzeDependencies(repoPath string) (*adapterkit.Manifest, []*adapterkit.U
 	planResult := p.PlanWaves(graph)
 
 	// Enrich metadata for each unit
-	var finalUnits []adapterkit.Unit
 	var finalUnitIDs []string
 	for _, u := range planResult.Units {
 		if u == nil {
@@ -391,7 +390,6 @@ func AnalyzeDependencies(repoPath string) (*adapterkit.Manifest, []*adapterkit.U
 		if pkgJSON != nil && pkgJSON.Dependencies != nil {
 			u.Metadata["package_dependencies"] = pkgJSON.Dependencies
 		}
-		finalUnits = append(finalUnits, *u)
 		finalUnitIDs = append(finalUnitIDs, u.ID)
 	}
 

@@ -263,7 +263,7 @@ Après validation, l'ingénieur procède à la signature, teste la bascule et re
 
 ```bash
 # 1. Signature humaine (exclusivement en CLI, inaccessible aux outils MCP)
-go-anything approve unit-healthcheck --notes "Rejeu et tests validés à 100%"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. Bascule du routage vers l'implémentation en Go
 go-anything promote unit-healthcheck

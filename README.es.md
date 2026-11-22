@@ -263,7 +263,7 @@ Una vez verificada, el operador humano otorga la firma final, habilita el tráfi
 
 ```bash
 # 1. Aprobación humana (exclusiva de CLI, no ejecutable por herramientas MCP)
-go-anything approve unit-healthcheck --notes "Reproducción y pruebas al 100%"
+go-anything approve unit-healthcheck --skip-shadow
 
 # 2. Conmutar el enrutador hacia la implementación en Go
 go-anything promote unit-healthcheck
