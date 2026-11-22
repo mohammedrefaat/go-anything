@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v1/units.schema.json",
+  "title": "Unit",
+  "description": "Durable lifecycle state and metadata for a single migration unit.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "state",
+    "evidence_profile"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "v1",
+      "description": "Mandatory schema version identifier."
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique identifier of the migration unit (e.g., 'auth', 'checkout')."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the unit."
+    },
+    "package_path": {
+      "type": "string",
+      "description": "Original package or module path."
+    },
+    "wave": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Assigned migration wave index."
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "Planned",
+        "Recorded",
+        "Ready",
+        "In progress",
+        "Verified",
+        "Shadow",
+        "Approved",
+        "Cutover",
+        "Completed",
+        "Blocked"
+      ],
+      "description": "Current lifecycle state in the ten-state machine."
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Unit identifiers this unit directly depends on."
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Assessed migration risk level."
+    },
+    "evidence_profile": {
+      "type": "string",
+      "enum": ["replay", "full"],
+      "description": "Required evidence profile ('replay' for early milestones, 'full' for production release)."
+    },
+    "unreplayable_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Field paths intentionally excluded from replay comparison (signatures, MACs)."
+    },
+    "fallback_count": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Count of fallback executions through the front door kill switch."
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of the last state update."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary unit-level metadata."
+    }
+  },
+  "additionalProperties": false
+}

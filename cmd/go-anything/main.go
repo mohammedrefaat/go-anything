@@ -92,6 +92,9 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "lift":
 		return runLift(global, subArgs, stdout, stderr)
 
+	case "migrate":
+		return runMigrate(global, subArgs, stdout, stderr)
+
 	case "template":
 		return runTemplate(global, subArgs, stdout, stderr)
 
@@ -182,6 +185,7 @@ Available Commands:
   shadow      Run front door in shadow mode on real traffic
   cutover     Switch primary traffic to verified Go unit
   lift        Remove fallback wrappers and finalize modernization
+  migrate     Upgrade .go-anything/ workspace from v1alpha1 to stable v1 schemas
   template    Render agent instruction files (CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md)
   setup       Render and install agent instruction files into target workspace (alias for template)
   version     Show go-anything version

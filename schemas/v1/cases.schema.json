@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v1/cases.schema.json",
+  "title": "Case",
+  "description": "Redacted, reproducible behavioral test case serialized as versioned JSONL.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "case_id",
+    "unit_id",
+    "kind",
+    "source_revision",
+    "runtime",
+    "captured_at",
+    "input",
+    "expected_output"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "v1",
+      "description": "Mandatory schema version identifier."
+    },
+    "case_id": {
+      "type": "string",
+      "description": "Deterministic, unique identifier for the behavioral case."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Target migration unit identifier."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "happy",
+        "edge",
+        "trap",
+        "fuzz",
+        "captured"
+      ],
+      "description": "Source category of the test case."
+    },
+    "source_revision": {
+      "type": "string",
+      "description": "Git commit hash of the original application during recording."
+    },
+    "runtime": {
+      "type": "string",
+      "description": "Runtime version environment (e.g. 'go1.22', 'python3.11', 'node20')."
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the case was recorded."
+    },
+    "trap_type": {
+      "type": "string",
+      "enum": [
+        "empty_collection",
+        "html_escaping",
+        "map_key_order",
+        "number_precision",
+        "string_offset",
+        "time_format",
+        "error_path"
+      ],
+      "description": "Identifies Go-specific semantic trap category when kind is 'trap'."
+    },
+    "input": {
+      "type": "object",
+      "description": "Redacted and format-substituted input payload provided to original/ported code.",
+      "properties": {
+        "method": {
+          "type": "string",
+          "description": "HTTP method if applicable."
+        },
+        "path": {
+          "type": "string",
+          "description": "HTTP route or CLI subcommand path."
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Request headers."
+        },
+        "body": {
+          "description": "Payload body (JSON object, string, or arbitrary value)."
+        },
+        "argv": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "CLI arguments passed to process."
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variable allowlist values."
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Virtual or ephemeral file inputs."
+        }
+      },
+      "additionalProperties": true
+    },
+    "expected_output": {
+      "type": "object",
+      "description": "Recorded baseline output from the original application execution.",
+      "properties": {
+        "status_code": {
+          "type": "integer",
+          "description": "HTTP status code."
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Response headers."
+        },
+        "body": {
+          "description": "Response payload body."
+        },
+        "stdout": {
+          "type": "string",
+          "description": "Standard output text."
+        },
+        "stderr": {
+          "type": "string",
+          "description": "Standard error text."
+        },
+        "exit_code": {
+          "type": "integer",
+          "description": "Process exit code."
+        },
+        "error_message": {
+          "type": "string",
+          "description": "Error description or exception message."
+        }
+      },
+      "additionalProperties": true
+    },
+    "wildcards": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Case-specific wildcard field paths."
+    },
+    "unreplayable_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Fields marked unreplayable (e.g. signatures, MACs) in this case."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary case metadata."
+    }
+  },
+  "additionalProperties": false
+}
