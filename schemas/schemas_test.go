@@ -960,6 +960,11 @@ func TestSchemasHelpers(t *testing.T) {
 		"waves": [{"wave": 0, "unit_ids": ["u1"]}]
 	}`)
 	assert.NoError(t, schemas.ValidateJSON("v1", "manifest.schema.json", validPayload))
+	assert.NoError(t, schemas.ValidateJSON("v1", "manifest.schema.json", append(validPayload, ' ', '\n')))
+	for _, suffix := range []string{" null", " garbage"} {
+		payload := append(append([]byte(nil), validPayload...), suffix...)
+		assert.ErrorContains(t, schemas.ValidateJSON("v1", "manifest.schema.json", payload), "unexpected data")
+	}
 
 	invalidPayload := []byte(`{
 		"schema_version": "v1alpha1",

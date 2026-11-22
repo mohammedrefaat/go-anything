@@ -618,7 +618,7 @@ The `go-anything mcp` server provides 8 tightly scoped tools:
 | `status` | Query migration state, dependency waves, and blockers. | `dir` (optional) |
 | `claim_unit` | Acquire a time-bounded lease on a `Ready` unit. | `unit_id`, `actor`, `ttl_seconds` |
 | `inspect_unit` | Read original code, sample cases, and semantic traps. | `unit_id` |
-| `record_cases` | Run original code in the sandbox to generate cases. | `unit_id`, `command`, `url`, `kind` |
+| `record_cases` | Run original code in the sandbox to generate cases. To choose a different classification, use `go-anything record --kind` in the CLI. | `unit_id`, `command`, `url` |
 | `verify_diff` | Build Go target, replay cases, return diffs on mismatch. | `unit_id`, `target`, `mode` |
 | `run_gate` | Run the 6-stage Quality Gate and create evidence scorecard. | `unit_id`, `target`, `profile` |
 | `mark_verified` | Transition unit to `Verified` (tied to current Git commit). | `unit_id`, `commit_sha` |

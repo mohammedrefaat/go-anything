@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -25,7 +26,6 @@ type HTTPConfig struct {
 type HTTPSidecar struct {
 	baseURL    string
 	client     *http.Client
-	timeout    time.Duration
 	tasksPath  string
 	healthPath string
 }
@@ -39,14 +39,13 @@ func NewHTTPSidecar(cfg HTTPConfig) (*HTTPSidecar, error) {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
-	client := cfg.Client
-	if client == nil {
-		client = &http.Client{
-			Timeout: timeout,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return errors.New("worker: task redirects disabled by security policy")
-			},
-		}
+	client := &http.Client{}
+	if cfg.Client != nil {
+		*client = *cfg.Client
+	}
+	client.Timeout = timeout
+	client.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return errors.New("worker: redirects disabled by security policy")
 	}
 	tasksPath := cfg.TasksPath
 	if tasksPath == "" {
@@ -60,7 +59,6 @@ func NewHTTPSidecar(cfg HTTPConfig) (*HTTPSidecar, error) {
 	return &HTTPSidecar{
 		baseURL:    strings.TrimRight(cfg.BaseURL, "/"),
 		client:     client,
-		timeout:    timeout,
 		tasksPath:  tasksPath,
 		healthPath: healthPath,
 	}, nil
@@ -97,7 +95,7 @@ func (s *HTTPSidecar) Forward(ctx context.Context, task WorkerTask) (*WorkerResu
 	duration := time.Since(start).Seconds() * 1000
 
 	if err != nil {
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		if isHTTPTaskTimeout(ctx, err) {
 			return nil, ErrTaskTimeout
 		}
 		return nil, fmt.Errorf("worker: HTTP forwarding failed: %w", err)
@@ -106,6 +104,9 @@ func (s *HTTPSidecar) Forward(ctx context.Context, task WorkerTask) (*WorkerResu
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
+		if isHTTPTaskTimeout(ctx, err) {
+			return nil, ErrTaskTimeout
+		}
 		return nil, fmt.Errorf("worker: failed reading response body: %w", err)
 	}
 
@@ -145,6 +146,14 @@ func (s *HTTPSidecar) Forward(ctx context.Context, task WorkerTask) (*WorkerResu
 		result.DurationMS = duration
 	}
 	return &result, nil
+}
+
+func isHTTPTaskTimeout(ctx context.Context, err error) bool {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return errors.Is(ctxErr, context.DeadlineExceeded)
+	}
+	var timeout net.Error
+	return errors.As(err, &timeout) && timeout.Timeout()
 }
 
 // HealthCheck checks the /healthz endpoint on the HTTP worker.

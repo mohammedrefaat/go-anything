@@ -259,7 +259,7 @@ Em pipelines de CI ou sessões com agentes via MCP (`run_gate`), uma evidência 
 
 ### Passo 8: Aprovação Humana, Promoção e Remoção (Lift)
 
-Após a validação, o engenheiro humano realiza a assinatura final, habilita o tráfego sombra, promove a rota e retira o sistema legado:
+Neste exemplo, `--skip-shadow` pula a validação com tráfego espelho e passa a unidade diretamente de Verified para Approved. Assim, o engenheiro pode promover a rota sem essa validação:
 
 ```bash
 # 1. Aprovação humana (exclusiva na CLI, sem acesso por ferramentas MCP)

@@ -263,7 +263,7 @@ When running in an automated pipeline or agent session via MCP (`run_gate`), com
 
 ### Step 8: Human-in-the-Loop Approval, Promotion & Lift
 
-Once verified, the human operator conducts sign-off, enables shadow traffic routing, promotes the route, and safely retires the legacy original:
+In this walkthrough, `go-anything approve unit-healthcheck --skip-shadow` skips shadow validation and moves the unit directly from Verified to Approved. The operator can then promote the route and retire the legacy original once fallback traffic reaches zero:
 
 ```bash
 # 1. Human sign-off (CLI-only, cannot be executed by MCP tools)

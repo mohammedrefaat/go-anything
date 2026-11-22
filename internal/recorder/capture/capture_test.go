@@ -687,3 +687,43 @@ func TestCapture_PathTraversalForbidden(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "path traversal forbidden")
 }
+
+func TestHTTPMirrorKeepsFiltersAndRedactsQueryCredentials(t *testing.T) {
+	sink := capture.NewMemorySink()
+	mirror := capture.NewHTTPMirrorSource(capture.NewIngester(capture.Config{Sink: sink}), "items")
+	req := httptest.NewRequest(http.MethodGet, "/items?filter=open&filter=closed&api_key=opaque-one&api_key=opaque-two", nil)
+	res := httptest.NewRecorder()
+	mirror.ServeHTTP(res, req)
+	require.Equal(t, http.StatusOK, res.Code)
+
+	cases := sink.CasesForUnit("items")
+	require.Len(t, cases, 1)
+	data, err := json.Marshal(cases[0])
+	require.NoError(t, err)
+	assert.NotContains(t, string(data), "opaque-one")
+	assert.NotContains(t, string(data), "opaque-two")
+	assert.Contains(t, cases[0].Input.Path, "filter=open&filter=closed")
+	assert.Equal(t, "/items", cases[0].Metadata["mirror_endpoint"])
+}
+
+func TestFileSinkConfinesCaseFiles(t *testing.T) {
+	casesDir, outside := t.TempDir(), t.TempDir()
+	sink := capture.NewFileSink(casesDir)
+	c := &adapterkit.Case{CaseID: "captured"}
+	require.NoError(t, sink.SaveCase("nested/unit", c))
+	assert.FileExists(t, filepath.Join(casesDir, "nested", "unit.jsonl"))
+
+	outsideFile := filepath.Join(outside, "unit.jsonl")
+	require.NoError(t, os.WriteFile(outsideFile, []byte("fixture\n"), 0600))
+	if err := os.Symlink(outside, filepath.Join(casesDir, "linked")); err != nil {
+		t.Skipf("symlink fixture unavailable: %v", err)
+	}
+	require.NoError(t, os.Symlink(outsideFile, filepath.Join(casesDir, "linked-file.jsonl")))
+	for _, id := range []string{"linked-file", "linked/missing/unit"} {
+		assert.Error(t, sink.SaveCase(id, c))
+	}
+	assert.NoDirExists(t, filepath.Join(outside, "missing"))
+	data, err := os.ReadFile(outsideFile)
+	require.NoError(t, err)
+	assert.Equal(t, "fixture\n", string(data))
+}

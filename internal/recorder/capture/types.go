@@ -109,41 +109,84 @@ func NewFileSink(casesDir string) *FileSink {
 	return &FileSink{casesDir: casesDir}
 }
 
+// caseFilename returns a local path relative to the configured cases directory.
+func caseFilename(unitID string) (string, error) {
+	relUnit := filepath.Clean(filepath.FromSlash(unitID))
+	if !filepath.IsLocal(relUnit) || strings.HasPrefix(relUnit, "..") || relUnit == "." {
+		return "", fmt.Errorf("invalid unit ID %q: path traversal forbidden", unitID)
+	}
+	return relUnit + ".jsonl", nil
+}
+
+func (f *FileSink) openRoot() (*os.Root, error) {
+	// The configured parent is trusted; the cases directory itself must be a
+	// real directory. Verify that the opened directory matches its entry.
+	dir := filepath.Clean(f.casesDir)
+	info, err := os.Lstat(dir)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("cases path is not a directory: %s", dir)
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, err
+	}
+	opened, err := root.Stat(".")
+	if err != nil || !os.SameFile(info, opened) {
+		_ = root.Close()
+		return nil, fmt.Errorf("cases directory changed while opening: %s", dir)
+	}
+	return root, nil
+}
+
+func (f *FileSink) readCases(unitID string) ([]byte, error) {
+	name, err := caseFilename(unitID)
+	if err != nil {
+		return nil, err
+	}
+	root, err := f.openRoot()
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	return root.ReadFile(name)
+}
+
 // SaveCase appends a case to .go-anything/cases/<unit_id>.jsonl atomically and flushes to disk.
 func (f *FileSink) SaveCase(unitID string, c *adapterkit.Case) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	// Confine case-file path to casesDir to prevent path traversal
-	cleanBase := filepath.Clean(f.casesDir)
-	relUnit := filepath.Clean(filepath.FromSlash(unitID))
-	if strings.HasPrefix(relUnit, "..") || filepath.IsAbs(relUnit) || relUnit == "." {
-		return fmt.Errorf("invalid unit ID %q: path traversal forbidden", unitID)
+	name, err := caseFilename(unitID)
+	if err != nil {
+		return err
 	}
-
-	caseFile := filepath.Clean(filepath.Join(cleanBase, relUnit+".jsonl"))
-	rel, err := filepath.Rel(cleanBase, caseFile)
-	if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
-		return fmt.Errorf("invalid unit ID %q: path escapes cases directory", unitID)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(caseFile), 0755); err != nil {
-		return fmt.Errorf("failed to create cases directory: %w", err)
-	}
-
 	data, err := json.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("failed to marshal case: %w", err)
 	}
+	if err := os.MkdirAll(filepath.Clean(f.casesDir), 0755); err != nil {
+		return fmt.Errorf("failed to create cases directory: %w", err)
+	}
+	root, err := f.openRoot()
+	if err != nil {
+		return fmt.Errorf("failed to open cases directory: %w", err)
+	}
+	defer root.Close()
+	if err := root.MkdirAll(filepath.Dir(name), 0755); err != nil {
+		return fmt.Errorf("failed to create case subdirectory: %w", err)
+	}
 
-	file, err := os.OpenFile(caseFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	file, err := root.OpenFile(name, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to open case file: %w", err)
 	}
 	defer file.Close()
 
 	if _, err := file.Write(append(data, '\n')); err != nil {
-		return fmt.Errorf("failed to write case to %s: %w", caseFile, err)
+		return fmt.Errorf("failed to write case to %s: %w", name, err)
 	}
 	return file.Sync()
 }

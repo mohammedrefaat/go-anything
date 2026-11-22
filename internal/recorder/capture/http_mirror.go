@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -46,9 +47,14 @@ type MirrorEnvelope struct {
 // ServeHTTP implements http.Handler to receive mirrored traffic over HTTP.
 // It absorbs mirrored requests, returns a fast 200/204 response, and never proxies or routes.
 func (h *HTTPMirrorSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		http.Error(w, "invalid mirror query", http.StatusBadRequest)
+		return
+	}
 	unitID := r.Header.Get("X-Go-Anything-Unit")
 	if unitID == "" {
-		unitID = r.URL.Query().Get("unit_id")
+		unitID = query.Get("unit_id")
 	}
 	if unitID == "" {
 		unitID = h.defaultUnitID
@@ -133,13 +139,15 @@ func (h *HTTPMirrorSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqPath := r.URL.Path
-	if q := r.URL.Query(); len(q) > 0 {
-		q.Del("unit_id")
-		q.Del("unit")
-		if encoded := q.Encode(); encoded != "" {
-			reqPath += "?" + encoded
-		}
+	query.Del("unit_id")
+	query.Del("unit")
+	if encoded := query.Encode(); encoded != "" {
+		reqPath += "?" + encoded
 	}
+
+	endpoint := *r.URL
+	endpoint.RawQuery = ""
+	endpoint.ForceQuery = false
 
 	traffic := HTTPTraffic{
 		Request: HTTPRequest{
@@ -154,7 +162,7 @@ func (h *HTTPMirrorSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Headers:    map[string]string{"Content-Type": "application/json"},
 		},
 		Metadata: map[string]any{
-			"mirror_endpoint": r.URL.String(),
+			"mirror_endpoint": endpoint.String(),
 		},
 	}
 
@@ -163,7 +171,7 @@ func (h *HTTPMirrorSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.ingester.IngestHTTP(r.Context(), unitID, traffic)
+	_, err = h.ingester.IngestHTTP(r.Context(), unitID, traffic)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

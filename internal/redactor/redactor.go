@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -186,9 +187,17 @@ func (r *Redactor) RedactValue(val any, path string) (any, []string, error) {
 
 			if strVal, ok := item.(string); ok {
 				trimmed := strings.TrimSpace(strVal)
-				if strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") {
-					var parsed any
-					if err := json.Unmarshal([]byte(trimmed), &parsed); err == nil {
+				embeddedJSON := strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[")
+				secret := IsSecretFieldName(k)
+				if secret && embeddedJSON {
+					result[k] = SubstituteToken("sec_"+strVal, "sec_")[4:]
+					continue
+				}
+				if embeddedJSON {
+					var parsed, extra any
+					dec := json.NewDecoder(strings.NewReader(trimmed))
+					dec.UseNumber()
+					if dec.Decode(&parsed) == nil && dec.Decode(&extra) == io.EOF {
 						redactedParsed, parsedUnrep, err := r.RedactValue(parsed, fieldPath)
 						if err == nil {
 							outBytes, err := json.Marshal(redactedParsed)
@@ -211,7 +220,7 @@ func (r *Redactor) RedactValue(val any, path string) (any, []string, error) {
 					continue
 				}
 
-				if IsSecretFieldName(k) {
+				if secret {
 					result[k] = SubstituteToken("sec_"+strVal, "sec_")[4:]
 					continue
 				}

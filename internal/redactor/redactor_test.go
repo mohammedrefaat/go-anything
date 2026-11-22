@@ -410,3 +410,26 @@ func TestRedactCase_PathAndMetadataAndNestedJSON(t *testing.T) {
 		t.Errorf("nested JSON non-secret field lost: %s", nestedStr)
 	}
 }
+
+func TestRedactValueEmbeddedJSON(t *testing.T) {
+	input := map[string]any{
+		"api_key":       `{"value":"opaque-credential"}`,
+		"nested_config": `{"counter":9223372036854775807,"password":"opaque-password"}`,
+		"invalid":       `{"counter":9223372036854775807} trailing`,
+	}
+	value, _, err := New().RedactValue(input, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := value.(map[string]any)
+	if strings.Contains(out["api_key"].(string), "opaque-credential") {
+		t.Error("JSON-shaped credential was retained")
+	}
+	nested := out["nested_config"].(string)
+	if !strings.Contains(nested, "9223372036854775807") || strings.Contains(nested, "opaque-password") {
+		t.Errorf("embedded JSON lost precision or retained a secret: %s", nested)
+	}
+	if out["invalid"] != input["invalid"] {
+		t.Error("invalid embedded JSON was treated as a valid object")
+	}
+}

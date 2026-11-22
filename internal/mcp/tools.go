@@ -652,10 +652,8 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 		return nil, err
 	}
 	runner := gate.New(gate.Config{
-		Dir:    dir,
-		Checks: checks,
-		// Optional linters and the race detector are skipped when the host
-		// toolchain cannot run them; required checks still fail closed.
+		Dir:               dir,
+		Checks:            checks,
 		AllowMissingTools: input.AllowMissingTools,
 		Executors:         executors,
 	})
@@ -689,7 +687,7 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 			return nil, err
 		}
 
-		if !requiredChecksPassed(report, profile, input.AllowMissingTools) {
+		if !requiredChecksPassed(report, profile) {
 			return &ToolCallResult{IsError: true, Content: []ContentItem{{Type: "text", Text: "Required checks were skipped; no passing evidence saved"}}}, nil
 		}
 		ev := &adapterkit.Evidence{
@@ -942,7 +940,7 @@ func validatedProfile(unit *adapterkit.Unit, requested string) (adapterkit.Evide
 	return profile, nil
 }
 
-func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidenceProfile, allowMissing bool) bool {
+func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidenceProfile) bool {
 	checks := gate.FullProfileChecks()
 	if profile == adapterkit.ProfileReplay {
 		checks = []string{gate.CheckReplay}
@@ -950,12 +948,9 @@ func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidencePr
 	for _, name := range checks {
 		found := false
 		for _, check := range report.Checks {
-			if check.Name == name {
-				if check.Status == gate.StatusPass {
-					found = true
-				} else if allowMissing && check.Status == gate.StatusSkipped && (name == gate.CheckRace || name == gate.CheckGovulncheck || name == "vulncheck") {
-					found = true
-				}
+			if check.Name == name && check.Status == gate.StatusPass {
+				found = true
+				break
 			}
 		}
 		if !found {

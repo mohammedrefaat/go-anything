@@ -472,3 +472,73 @@ func TestWorker_StranglerUnitByUnit(t *testing.T) {
 	assert.Equal(t, HealthStateHealthy, healthReports["email_notifier"].Status)
 	assert.Equal(t, HealthStateHealthy, healthReports["image_processor"].Status)
 }
+
+type sidecarRoundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f sidecarRoundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+type sidecarBlockingBody struct{ ctx context.Context }
+
+func (b sidecarBlockingBody) Read([]byte) (int, error) {
+	<-b.ctx.Done()
+	return 0, b.ctx.Err()
+}
+
+func (sidecarBlockingBody) Close() error { return nil }
+
+func TestHTTPSidecarCustomClientPolicy(t *testing.T) {
+	var redirectCalls int
+	client := &http.Client{
+		Timeout: time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			redirectCalls++
+			return nil
+		},
+		Transport: sidecarRoundTripFunc(func(req *http.Request) (*http.Response, error) {
+			switch req.URL.Path {
+			case "/tasks/body":
+				return &http.Response{StatusCode: http.StatusOK, Body: sidecarBlockingBody{req.Context()}}, nil
+			case "/tasks/redirect":
+				return &http.Response{StatusCode: http.StatusTemporaryRedirect, Header: http.Header{"Location": {"/unexpected"}}}, nil
+			case "/tasks/headers", "/healthz":
+				<-req.Context().Done()
+				return nil, req.Context().Err()
+			default:
+				t.Errorf("unexpected request path: %s", req.URL.Path)
+				return nil, context.Canceled
+			}
+		}),
+	}
+	sidecar, err := NewHTTPSidecar(HTTPConfig{BaseURL: "http://sidecar.invalid", Client: client, Timeout: 25 * time.Millisecond})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	for _, phase := range []string{"headers", "body"} {
+		t.Run(phase, func(t *testing.T) {
+			_, err := sidecar.Forward(ctx, WorkerTask{UnitID: phase})
+			require.ErrorIs(t, err, ErrTaskTimeout)
+		})
+	}
+	report, err := sidecar.HealthCheck(ctx)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.Equal(t, HealthStateUnhealthy, report.Status)
+
+	_, err = sidecar.Forward(ctx, WorkerTask{UnitID: "redirect"})
+	require.ErrorContains(t, err, "redirects disabled")
+	assert.Zero(t, redirectCalls)
+	assert.Equal(t, time.Second, client.Timeout)
+	require.NoError(t, client.CheckRedirect(nil, nil))
+	assert.Equal(t, 1, redirectCalls)
+
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	_, err = sidecar.Forward(canceled, WorkerTask{UnitID: "headers"})
+	require.ErrorIs(t, err, context.Canceled)
+
+	expired, cancel := context.WithDeadline(ctx, time.Now().Add(-time.Second))
+	defer cancel()
+	_, err = sidecar.Forward(expired, WorkerTask{UnitID: "headers"})
+	require.ErrorIs(t, err, ErrTaskTimeout)
+}

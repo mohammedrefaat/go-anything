@@ -339,6 +339,9 @@ func TestHTTPExecution_ModesAndIdempotency(t *testing.T) {
 		oldCalls.Add(1)
 		body, _ := io.ReadAll(r.Body)
 		w.Header().Set("X-Backend", "old")
+		w.Header()["X-Example"] = []string{"first"}
+		w.Header()["x-example"] = []string{"second"}
+		w.Header()["x-same"] = []string{"equal"}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("legacy: " + string(body)))
 	})
@@ -347,6 +350,9 @@ func TestHTTPExecution_ModesAndIdempotency(t *testing.T) {
 		newCalls.Add(1)
 		body, _ := io.ReadAll(r.Body)
 		w.Header().Set("X-Backend", "new")
+		w.Header()["X-Example"] = []string{"first"}
+		w.Header()["x-example"] = []string{"different"}
+		w.Header()["X-Same"] = []string{"equal"}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("modern: " + string(body))) // intentional mismatch
 	})
@@ -395,6 +401,10 @@ func TestHTTPExecution_ModesAndIdempotency(t *testing.T) {
 	content, err := os.ReadFile(reportsPath)
 	require.NoError(t, err)
 	assert.Contains(t, string(content), "Shadow mismatch on GET /resource")
+	assert.Contains(t, string(content), "headers.X-Example")
+	assert.Contains(t, string(content), "second")
+	assert.Contains(t, string(content), "different")
+	assert.NotContains(t, string(content), "headers.X-Same")
 }
 
 func TestHTTPExecution_AllowSideEffects_PermitsPost(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"path"
 	"sync"
@@ -90,6 +91,10 @@ func ValidateJSON(version, name string, rawJSON []byte) error {
 	dec.UseNumber()
 	if err := dec.Decode(&val); err != nil {
 		return fmt.Errorf("invalid json payload: %w", err)
+	}
+	var extra any
+	if err := dec.Decode(&extra); err != io.EOF {
+		return fmt.Errorf("invalid json payload: unexpected data after the first value")
 	}
 	return schema.Validate(val)
 }

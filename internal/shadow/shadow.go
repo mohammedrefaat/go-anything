@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -344,7 +345,7 @@ func (e *Engine) ExecuteHTTP(w http.ResponseWriter, req *http.Request, oldH, new
 
 			oldStatus := oldRec.Code
 			oldBody := oldRec.Body.Bytes()
-			oldHeaders := oldRec.Header().Clone()
+			oldHeaders := canonicalHeaders(oldRec.Header())
 
 			e.Submit(func(ctx context.Context) {
 				e.shadowRuns.Add(1)
@@ -369,16 +370,17 @@ func (e *Engine) ExecuteHTTP(w http.ResponseWriter, req *http.Request, oldH, new
 						Message:  "response body mismatch",
 					})
 				}
+				newHeaders := canonicalHeaders(shadowRec.Header())
 				allKeys := make(map[string]bool)
 				for k := range oldHeaders {
-					allKeys[http.CanonicalHeaderKey(k)] = true
+					allKeys[k] = true
 				}
-				for k := range shadowRec.Header() {
-					allKeys[http.CanonicalHeaderKey(k)] = true
+				for k := range newHeaders {
+					allKeys[k] = true
 				}
 				for k := range allKeys {
-					oldVals := oldHeaders.Values(k)
-					newVals := shadowRec.Header().Values(k)
+					oldVals := oldHeaders[k]
+					newVals := newHeaders[k]
 					if !slices.Equal(oldVals, newVals) {
 						mismatches = append(mismatches, adapterkit.Mismatch{
 							Path:     "headers." + k,
@@ -414,6 +416,16 @@ func (e *Engine) ExecuteHTTP(w http.ResponseWriter, req *http.Request, oldH, new
 	default:
 		oldH.ServeHTTP(w, req)
 	}
+}
+
+func canonicalHeaders(headers http.Header) http.Header {
+	canonical := make(http.Header, len(headers))
+	// Differently spelled entries have no relative order in the source map.
+	for _, key := range slices.Sorted(maps.Keys(headers)) {
+		name := http.CanonicalHeaderKey(key)
+		canonical[name] = append(canonical[name], headers[key]...)
+	}
+	return canonical
 }
 
 // WrapHTTP wraps old and new HTTP handlers into an http.Handler managed by the shadow Engine.

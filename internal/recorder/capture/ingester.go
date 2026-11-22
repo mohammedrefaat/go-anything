@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -102,6 +102,11 @@ func (ing *Ingester) IngestHTTP(ctx context.Context, unitID string, traffic HTTP
 		path = "/"
 	}
 
+	path, err := redactHTTPQuery(path)
+	if err != nil {
+		return nil, err
+	}
+
 	input := adapterkit.CaseInput{
 		Method:  strings.ToUpper(method),
 		Path:    path,
@@ -135,6 +140,43 @@ func (ing *Ingester) IngestHTTP(ctx context.Context, unitID string, traffic HTTP
 	}
 
 	return ing.processAndSave(ctx, unitID, input, output, meta)
+}
+
+// redactHTTPQuery protects named credentials that opaque string redaction
+// cannot identify. Keep ordinary queries as supplied when no secret is found.
+func redactHTTPQuery(path string) (string, error) {
+	base, rawQuery, ok := strings.Cut(path, "?")
+	if !ok {
+		return path, nil
+	}
+	rawQuery, fragment, hasFragment := strings.Cut(rawQuery, "#")
+	query, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return "", fmt.Errorf("capture: invalid HTTP request query")
+	}
+
+	changed := false
+	for key, values := range query {
+		for i, value := range values {
+			switch {
+			case redactor.IsSignatureOrMACField(key):
+				values[i] = "[unreplayable]"
+			case redactor.IsSecretFieldName(key):
+				values[i] = redactor.SubstituteToken("sec_"+value, "sec_")[4:]
+			default:
+				continue
+			}
+			changed = true
+		}
+	}
+	if !changed {
+		return path, nil
+	}
+	path = base + "?" + query.Encode()
+	if hasFragment {
+		path += "#" + fragment
+	}
+	return path, nil
 }
 
 // IngestBrokerMessage processes an incoming message broker consumer event.
@@ -485,8 +527,7 @@ func (ing *Ingester) nextCaseID(unitID string) string {
 func (ing *Ingester) initCounter(unitID string) uint64 {
 	// If FileSink is used, count existing lines in cases file
 	if fs, ok := ing.cfg.Sink.(*FileSink); ok {
-		caseFile := filepath.Join(fs.casesDir, filepath.FromSlash(unitID)+".jsonl")
-		if data, err := os.ReadFile(caseFile); err == nil {
+		if data, err := fs.readCases(unitID); err == nil {
 			var count uint64
 			for _, line := range bytes.Split(data, []byte{'\n'}) {
 				if len(bytes.TrimSpace(line)) > 0 {

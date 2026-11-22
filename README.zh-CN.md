@@ -259,7 +259,7 @@ go-anything verify unit-healthcheck \
 
 ### 第 8 步：人工审查签署、路由切换与旧系统剥离
 
-通过验证后，工程师在 CLI 中完成审批、切入影子流量、修改路由规则，并在流量平稳后剥离旧系统：
+在此示例中，`--skip-shadow` 会跳过影子验证，将单元直接从 Verified 转为 Approved。工程师随后即可切换路由，无需进行影子验证：
 
 ```bash
 # 1. 人工审批（仅限 CLI，MCP 工具无权调用）

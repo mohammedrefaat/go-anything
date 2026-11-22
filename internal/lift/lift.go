@@ -384,7 +384,7 @@ func isEvidenceValidForProfile(ev *adapterkit.Evidence, profile adapterkit.Evide
 			if !ok {
 				return false, fmt.Sprintf("profile 'full' requires check %q", req)
 			}
-			if status != adapterkit.StatusPass && !(status == adapterkit.StatusSkipped && req == "race") {
+			if status != adapterkit.StatusPass {
 				return false, fmt.Sprintf("profile 'full' check %q has status %q (must be pass)", req, status)
 			}
 		}
@@ -396,7 +396,7 @@ func isEvidenceValidForProfile(ev *adapterkit.Evidence, profile adapterkit.Evide
 		if !hasVuln {
 			return false, "profile 'full' requires vulnerability check ('govulncheck' or 'vulncheck')"
 		}
-		if vulnStatus != adapterkit.StatusPass && vulnStatus != adapterkit.StatusSkipped {
+		if vulnStatus != adapterkit.StatusPass {
 			return false, fmt.Sprintf("profile 'full' vulnerability check has status %q (must be pass)", vulnStatus)
 		}
 

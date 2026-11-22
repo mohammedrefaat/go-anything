@@ -54,6 +54,26 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 		assert.ErrorIs(t, err, state.ErrEvidenceMissing)
 	})
 
+	for _, name := range []string{"race", "govulncheck"} {
+		t.Run("rejects skipped "+name, func(t *testing.T) {
+			checks := createFullProfileChecks()
+			for i := range checks {
+				if checks[i].Name == name {
+					checks[i].Status = adapterkit.StatusSkipped
+				}
+			}
+			_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
+				Actor: "agent-test",
+				Evidence: &adapterkit.Evidence{
+					EvidenceID: "evi-skipped-" + name,
+					UnitID:     "unit-core", CommitSHA: validCommitSHA,
+					Profile: adapterkit.ProfileFull, Checks: checks,
+				},
+			})
+			assert.ErrorIs(t, err, state.ErrEvidenceProfileUnsatisfied)
+		})
+	}
+
 	t.Run("rejects transition when commit_sha is invalid", func(t *testing.T) {
 		ev := &adapterkit.Evidence{
 			EvidenceID:      "evi-bad-sha",
