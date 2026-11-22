@@ -102,7 +102,7 @@ func (ing *Ingester) IngestHTTP(ctx context.Context, unitID string, traffic HTTP
 		path = "/"
 	}
 
-	path, err := redactHTTPQuery(path)
+	path, err := ing.redactHTTPQuery(path)
 	if err != nil {
 		return nil, err
 	}
@@ -142,37 +142,44 @@ func (ing *Ingester) IngestHTTP(ctx context.Context, unitID string, traffic HTTP
 	return ing.processAndSave(ctx, unitID, input, output, meta)
 }
 
-// redactHTTPQuery protects named credentials that opaque string redaction
-// cannot identify. Keep ordinary queries as supplied when no secret is found.
-func redactHTTPQuery(path string) (string, error) {
+// redactHTTPQuery redacts decoded query values while preserving the original
+// spelling and order of pairs that do not need redaction.
+func (ing *Ingester) redactHTTPQuery(path string) (string, error) {
 	base, rawQuery, ok := strings.Cut(path, "?")
 	if !ok {
 		return path, nil
 	}
 	rawQuery, fragment, hasFragment := strings.Cut(rawQuery, "#")
-	query, err := url.ParseQuery(rawQuery)
-	if err != nil {
-		return "", fmt.Errorf("capture: invalid HTTP request query")
-	}
+	pairs := strings.Split(rawQuery, "&")
+	for i, pair := range pairs {
+		if pair == "" {
+			continue
+		}
+		rawKey, rawValue, _ := strings.Cut(pair, "=")
+		key, keyErr := url.QueryUnescape(rawKey)
+		value, valueErr := url.QueryUnescape(rawValue)
+		if keyErr != nil || valueErr != nil || strings.Contains(pair, ";") {
+			return "", fmt.Errorf("capture: invalid HTTP request query")
+		}
 
-	changed := false
-	for key, values := range query {
-		for i, value := range values {
-			switch {
-			case redactor.IsSignatureOrMACField(key):
-				values[i] = "[unreplayable]"
-			case redactor.IsSecretFieldName(key):
-				values[i] = redactor.SubstituteToken("sec_"+value, "sec_")[4:]
-			default:
-				continue
+		var redacted string
+		switch {
+		case redactor.IsSignatureOrMACField(key):
+			redacted = "[unreplayable]"
+		case redactor.IsSecretFieldName(key):
+			redacted = redactor.SubstituteToken("sec_"+value, "sec_")[4:]
+		default:
+			var err error
+			redacted, _, err = ing.cfg.Redactor.RedactString(value)
+			if err != nil {
+				return "", fmt.Errorf("capture: failed redacting HTTP request query: %w", err)
 			}
-			changed = true
+		}
+		if redacted != value {
+			pairs[i] = rawKey + "=" + url.QueryEscape(redacted)
 		}
 	}
-	if !changed {
-		return path, nil
-	}
-	path = base + "?" + query.Encode()
+	path = base + "?" + strings.Join(pairs, "&")
 	if hasFragment {
 		path += "#" + fragment
 	}

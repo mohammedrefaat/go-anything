@@ -389,15 +389,8 @@ func isEvidenceValidForProfile(ev *adapterkit.Evidence, profile adapterkit.Evide
 			}
 		}
 
-		vulnStatus, hasVuln := checksMap["govulncheck"]
-		if !hasVuln {
-			vulnStatus, hasVuln = checksMap["vulncheck"]
-		}
-		if !hasVuln {
-			return false, "profile 'full' requires vulnerability check ('govulncheck' or 'vulncheck')"
-		}
-		if vulnStatus != adapterkit.StatusPass {
-			return false, fmt.Sprintf("profile 'full' vulnerability check has status %q (must be pass)", vulnStatus)
+		if checksMap["govulncheck"] != adapterkit.StatusPass && checksMap["vulncheck"] != adapterkit.StatusPass {
+			return false, "profile 'full' requires a passing vulnerability check ('govulncheck' or 'vulncheck')"
 		}
 
 		for _, c := range ev.Checks {

@@ -138,11 +138,20 @@ func (h *HTTPMirrorSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	reqPath := r.URL.Path
-	query.Del("unit_id")
-	query.Del("unit")
-	if encoded := query.Encode(); encoded != "" {
-		reqPath += "?" + encoded
+	reqPath := r.URL.EscapedPath()
+	if r.URL.RawQuery != "" {
+		pairs := strings.Split(r.URL.RawQuery, "&")
+		kept := pairs[:0]
+		for _, pair := range pairs {
+			rawKey, _, _ := strings.Cut(pair, "=")
+			key, _ := url.QueryUnescape(rawKey) // RawQuery was validated above.
+			if key != "unit_id" && key != "unit" {
+				kept = append(kept, pair)
+			}
+		}
+		if filtered := strings.Join(kept, "&"); filtered != "" {
+			reqPath += "?" + filtered
+		}
 	}
 
 	endpoint := *r.URL

@@ -415,7 +415,6 @@ func TestRedactValueEmbeddedJSON(t *testing.T) {
 	input := map[string]any{
 		"api_key":       `{"value":"opaque-credential"}`,
 		"nested_config": `{"counter":9223372036854775807,"password":"opaque-password"}`,
-		"invalid":       `{"counter":9223372036854775807} trailing`,
 	}
 	value, _, err := New().RedactValue(input, "")
 	if err != nil {
@@ -429,7 +428,25 @@ func TestRedactValueEmbeddedJSON(t *testing.T) {
 	if !strings.Contains(nested, "9223372036854775807") || strings.Contains(nested, "opaque-password") {
 		t.Errorf("embedded JSON lost precision or retained a secret: %s", nested)
 	}
-	if out["invalid"] != input["invalid"] {
-		t.Error("invalid embedded JSON was treated as a valid object")
+	for _, invalid := range []string{
+		`{"counter":9223372036854775807} trailing`,
+		`{"password":"opaque-password"`,
+		`{"counter":1} []`,
+	} {
+		meta := map[string]any{"config": invalid}
+		_, err := New().RedactCase(&adapterkit.Case{Metadata: meta})
+		if !errors.Is(err, ErrUnparseablePayload) {
+			t.Fatalf("expected ErrUnparseablePayload, got %v", err)
+		}
+
+		got, err := New(Options{UnsafeAllowUnredacted: true}).RedactCase(&adapterkit.Case{Metadata: meta})
+		if err != nil || got.Metadata["config"] != invalid {
+			t.Fatalf("expected unsafe opt-out to preserve malformed text, got %v, %v", got, err)
+		}
+	}
+
+	nestedInvalid := map[string]any{"config": `{"nested":"{"password":"opaque-password"} trailing"}`}
+	if _, _, err := New().RedactValue(nestedInvalid, "metadata"); !errors.Is(err, ErrUnparseablePayload) {
+		t.Fatalf("expected recursive redaction error, got %v", err)
 	}
 }

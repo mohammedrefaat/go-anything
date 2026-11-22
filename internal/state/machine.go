@@ -201,15 +201,8 @@ func validateEvidenceForUnit(unit *adapterkit.Unit, ev *adapterkit.Evidence) err
 		}
 
 		// Vulnerability check: govulncheck or vulncheck
-		vulnStatus, hasVuln := checksMap["govulncheck"]
-		if !hasVuln {
-			vulnStatus, hasVuln = checksMap["vulncheck"]
-		}
-		if !hasVuln {
-			return fmt.Errorf("%w: profile 'full' requires vulnerability check ('govulncheck' or 'vulncheck')", ErrEvidenceProfileUnsatisfied)
-		}
-		if vulnStatus != adapterkit.StatusPass {
-			return fmt.Errorf("%w: profile 'full' vulnerability check has status %q (must be pass)", ErrEvidenceProfileUnsatisfied, vulnStatus)
+		if checksMap["govulncheck"] != adapterkit.StatusPass && checksMap["vulncheck"] != adapterkit.StatusPass {
+			return fmt.Errorf("%w: profile 'full' requires a passing vulnerability check ('govulncheck' or 'vulncheck')", ErrEvidenceProfileUnsatisfied)
 		}
 
 		// Fail-closed: any failed checks in evidence are rejected

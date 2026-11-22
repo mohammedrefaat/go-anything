@@ -199,14 +199,19 @@ func (r *Redactor) RedactValue(val any, path string) (any, []string, error) {
 					dec.UseNumber()
 					if dec.Decode(&parsed) == nil && dec.Decode(&extra) == io.EOF {
 						redactedParsed, parsedUnrep, err := r.RedactValue(parsed, fieldPath)
-						if err == nil {
-							outBytes, err := json.Marshal(redactedParsed)
-							if err == nil {
-								result[k] = string(outBytes)
-								unreplayable = append(unreplayable, parsedUnrep...)
-								continue
-							}
+						if err != nil {
+							return nil, nil, err
 						}
+						outBytes, err := json.Marshal(redactedParsed)
+						if err != nil {
+							return nil, nil, err
+						}
+						result[k] = string(outBytes)
+						unreplayable = append(unreplayable, parsedUnrep...)
+						continue
+					}
+					if !r.opts.UnsafeAllowUnredacted {
+						return nil, nil, fmt.Errorf("%w: malformed embedded JSON at %s", ErrUnparseablePayload, fieldPath)
 					}
 				}
 
@@ -389,13 +394,12 @@ func (r *Redactor) RedactCase(c *adapterkit.Case) (*adapterkit.Case, error) {
 	// 9. Redact Metadata values
 	if c.Metadata != nil {
 		redactedMeta, unrep, err := r.RedactValue(c.Metadata, "metadata")
-		if err == nil {
-			if m, ok := redactedMeta.(map[string]any); ok {
-				c.Metadata = m
-			}
-			for _, u := range unrep {
-				unreplayableSet[u] = true
-			}
+		if err != nil {
+			return nil, err
+		}
+		c.Metadata = redactedMeta.(map[string]any)
+		for _, u := range unrep {
+			unreplayableSet[u] = true
 		}
 	}
 

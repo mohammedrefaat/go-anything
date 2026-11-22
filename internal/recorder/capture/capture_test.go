@@ -691,7 +691,7 @@ func TestCapture_PathTraversalForbidden(t *testing.T) {
 func TestHTTPMirrorKeepsFiltersAndRedactsQueryCredentials(t *testing.T) {
 	sink := capture.NewMemorySink()
 	mirror := capture.NewHTTPMirrorSource(capture.NewIngester(capture.Config{Sink: sink}), "items")
-	req := httptest.NewRequest(http.MethodGet, "/items?filter=open&filter=closed&api_key=opaque-one&api_key=opaque-two", nil)
+	req := httptest.NewRequest(http.MethodGet, "/items%3Fdetails?api_key=opaque-one&filter=open%20now&api_key=opaque-two&%66ilter=closed&note=Bearer%20example-secret&unit=control", nil)
 	res := httptest.NewRecorder()
 	mirror.ServeHTTP(res, req)
 	require.Equal(t, http.StatusOK, res.Code)
@@ -702,8 +702,21 @@ func TestHTTPMirrorKeepsFiltersAndRedactsQueryCredentials(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotContains(t, string(data), "opaque-one")
 	assert.NotContains(t, string(data), "opaque-two")
-	assert.Contains(t, cases[0].Input.Path, "filter=open&filter=closed")
-	assert.Equal(t, "/items", cases[0].Metadata["mirror_endpoint"])
+	assert.NotContains(t, string(data), "example-secret")
+	assert.NotContains(t, cases[0].Input.Path, "unit=control")
+	assert.Contains(t, cases[0].Input.Path, "&filter=open%20now&")
+	assert.Contains(t, cases[0].Input.Path, "&%66ilter=closed&")
+	assert.Equal(t, "/items%3Fdetails", cases[0].Metadata["mirror_endpoint"])
+}
+
+func TestIngestHTTPRejectsMalformedEmbeddedMetadata(t *testing.T) {
+	sink := capture.NewMemorySink()
+	ing := capture.NewIngester(capture.Config{Sink: sink})
+	_, err := ing.IngestHTTP(context.Background(), "items", capture.HTTPTraffic{
+		Metadata: map[string]any{"config": `{"password":"opaque-password"} trailing`},
+	})
+	require.ErrorIs(t, err, redactor.ErrUnparseablePayload)
+	assert.Empty(t, sink.AllCases())
 }
 
 func TestFileSinkConfinesCaseFiles(t *testing.T) {
