@@ -95,7 +95,13 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "template":
 		return runTemplate(global, subArgs, stdout, stderr)
 
-	case "analyze", "diff", "gate", "shadow", "cutover", "setup", "mcp":
+	case "setup":
+		return runTemplate(global, subArgs, stdout, stderr)
+
+	case "mcp":
+		return runMCP(global, subArgs, stdin, stdout, stderr)
+
+	case "analyze", "diff", "gate", "shadow", "cutover":
 		fmt.Fprintf(stdout, "go-anything: command '%s' is registered and will be wired in milestone M1-M4.\n", subcommand)
 		return nil
 

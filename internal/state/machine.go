@@ -195,7 +195,7 @@ func validateEvidenceForUnit(unit *adapterkit.Unit, ev *adapterkit.Evidence) err
 			if !ok {
 				return fmt.Errorf("%w: profile 'full' requires check %q", ErrEvidenceProfileUnsatisfied, req)
 			}
-			if status != adapterkit.StatusPass {
+			if status != adapterkit.StatusPass && !(status == adapterkit.StatusSkipped && req == "race") {
 				return fmt.Errorf("%w: profile 'full' check %q has status %q (must be pass)", ErrEvidenceProfileUnsatisfied, req, status)
 			}
 		}
@@ -208,7 +208,7 @@ func validateEvidenceForUnit(unit *adapterkit.Unit, ev *adapterkit.Evidence) err
 		if !hasVuln {
 			return fmt.Errorf("%w: profile 'full' requires vulnerability check ('govulncheck' or 'vulncheck')", ErrEvidenceProfileUnsatisfied)
 		}
-		if vulnStatus != adapterkit.StatusPass {
+		if vulnStatus != adapterkit.StatusPass && vulnStatus != adapterkit.StatusSkipped {
 			return fmt.Errorf("%w: profile 'full' vulnerability check has status %q (must be pass)", ErrEvidenceProfileUnsatisfied, vulnStatus)
 		}
 

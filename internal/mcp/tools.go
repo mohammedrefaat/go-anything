@@ -689,7 +689,7 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 			return nil, err
 		}
 
-		if !requiredChecksPassed(report, profile) {
+		if !requiredChecksPassed(report, profile, input.AllowMissingTools) {
 			return &ToolCallResult{IsError: true, Content: []ContentItem{{Type: "text", Text: "Required checks were skipped; no passing evidence saved"}}}, nil
 		}
 		ev := &adapterkit.Evidence{
@@ -942,7 +942,7 @@ func validatedProfile(unit *adapterkit.Unit, requested string) (adapterkit.Evide
 	return profile, nil
 }
 
-func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidenceProfile) bool {
+func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidenceProfile, allowMissing bool) bool {
 	checks := gate.FullProfileChecks()
 	if profile == adapterkit.ProfileReplay {
 		checks = []string{gate.CheckReplay}
@@ -950,8 +950,10 @@ func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidencePr
 	for _, name := range checks {
 		found := false
 		for _, check := range report.Checks {
-			if check.Name == name && check.Status == gate.StatusPass {
-				found = true
+			if check.Name == name {
+				if check.Status == gate.StatusPass || (allowMissing && check.Status == gate.StatusSkipped) {
+					found = true
+				}
 			}
 		}
 		if !found {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -55,8 +56,18 @@ func TestSkippedExecutorEvidence(t *testing.T) {
 }
 func TestStaticcheckFallbackDiagnostics(t *testing.T) {
 	dir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "golangci-lint"), []byte("#!/bin/sh\necho 'SA1000: diagnostic'\nexit 1\n"), 0755))
-	t.Setenv("PATH", dir)
+	binName := "golangci-lint"
+	script := "#!/bin/sh\necho 'SA1000: diagnostic'\nexit 1\n"
+	if runtime.GOOS == "windows" {
+		binName = "golangci-lint.bat"
+		script = "@echo SA1000: diagnostic\r\n@exit /b 1\r\n"
+	}
+	require.NoError(t, os.WriteFile(filepath.Join(dir, binName), []byte(script), 0755))
+	if runtime.GOOS == "windows" {
+		t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("SystemRoot")+`\System32`)
+	} else {
+		t.Setenv("PATH", dir)
+	}
 	out, issues, pass, err := defaultStaticcheckExecutor(true)(context.Background(), dir, nil)
 	require.False(t, pass)
 	require.Error(t, err)

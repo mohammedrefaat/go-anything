@@ -198,12 +198,3 @@ func TestCLI_DoctorCatchesUnsafeFlag(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, stderr.String(), "[FAIL] unsafe_flags")
 }
-
-func TestCLI_MCPDeferred(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	require.NoError(t, runCLI([]string{"mcp"}, &stdout, &stderr))
-	assert.Contains(t, stdout.String(), "command 'mcp' is registered and will be wired")
-	stdout.Reset()
-	require.NoError(t, runCLI([]string{"help"}, &stdout, &stderr))
-	assert.NotContains(t, stdout.String(), "stdio server")
-}
