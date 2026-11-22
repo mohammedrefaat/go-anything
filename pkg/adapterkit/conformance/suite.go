@@ -264,7 +264,7 @@ func (s *Suite) checkAnalysisAndDiscovery(ctx context.Context, r *Report) {
 		return
 	}
 
-	if manifest.SchemaVersion != adapterkit.SchemaVersionV1Alpha1 {
+	if manifest.SchemaVersion != adapterkit.SchemaVersionV1Alpha1 && manifest.SchemaVersion != adapterkit.SchemaVersionV1 {
 		r.AddViolation(CheckAnalysisAndDiscovery, "manifest schema_version must be %q, got %q",
 			adapterkit.SchemaVersionV1Alpha1, manifest.SchemaVersion)
 	}
@@ -342,7 +342,7 @@ func (s *Suite) checkAnalysisAndDiscovery(ctx context.Context, r *Report) {
 		if u.Name == "" {
 			r.AddViolation(CheckAnalysisAndDiscovery, "discovered unit %s has empty Name", u.ID)
 		}
-		if u.SchemaVersion != adapterkit.SchemaVersionV1Alpha1 {
+		if u.SchemaVersion != adapterkit.SchemaVersionV1Alpha1 && u.SchemaVersion != adapterkit.SchemaVersionV1 {
 			r.AddViolation(CheckAnalysisAndDiscovery, "discovered unit %s has schema_version %q, expected %q",
 				u.ID, u.SchemaVersion, adapterkit.SchemaVersionV1Alpha1)
 		}
@@ -391,7 +391,7 @@ func (s *Suite) validateCase(c *adapterkit.Case, r *Report) {
 		return
 	}
 
-	if c.SchemaVersion != adapterkit.SchemaVersionV1Alpha1 {
+	if c.SchemaVersion != adapterkit.SchemaVersionV1Alpha1 && c.SchemaVersion != adapterkit.SchemaVersionV1 {
 		r.AddViolation(CheckCaseSchema, "case %s schema_version must be %q, got %q",
 			c.CaseID, adapterkit.SchemaVersionV1Alpha1, c.SchemaVersion)
 	}

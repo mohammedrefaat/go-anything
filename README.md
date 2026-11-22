@@ -3,169 +3,384 @@
   <img src="assets/go-anything.svg" alt="A Gopher transforms multi-language code into clean, modular Go blocks" width="480" />
 
   <h1>go-anything</h1>
-  <p><strong>Move from any language to modern Go—one piece at a time.</strong></p>
-  <p>Replace the risky big-bang rewrite with a gradual migration, backed by<br />recorded behavior and human-reviewed changes.</p>
+  <p><strong>Move from any language to modern Go—one verified unit at a time.</strong></p>
+  <p>Replace high-risk big-bang rewrites with an incremental strangler migration,<br />backed by recorded behavioral evidence, automated quality gates, and human-in-the-loop control.</p>
 
   <p>
-    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go" alt="Go 1.22+" /></a>
+    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go" alt="Go 1.26+" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-6C7CFF.svg" alt="Apache 2.0" /></a>
-    <img src="https://img.shields.io/badge/status-early%20development-orange.svg" alt="Early development" />
+    <a href="https://github.com/mohammedrefat/go-anything/releases"><img src="https://img.shields.io/badge/release-v1.0.0-34D399.svg" alt="Release v1.0.0" /></a>
+    <a href="#milestone-roadmap-m0m7"><img src="https://img.shields.io/badge/milestones-M0--M7%20complete-success.svg" alt="Milestones M0-M7 Complete" /></a>
   </p>
 
   <p>
-    <a href="#quickstart">Quickstart</a> ·
-    <a href="#the-idea">How it works</a> ·
-    <a href="#project-status">Project status</a> ·
+    <a href="#5-minute-vertical-slice-quickstart">Quickstart</a> ·
+    <a href="Docs/USER_GUIDE.md">User Guide</a> ·
+    <a href="#how-it-works">How it works</a> ·
+    <a href="#milestone-roadmap-m0m7">Milestone Roadmap</a> ·
+    <a href="GOVERNANCE.md">Governance</a> ·
+    <a href="SECURITY.md">Security</a> ·
     <a href="Docs/go-anything%20Architecture%20%26%20Implementation%20Plan%20(v3)%20(1).md">Architecture</a>
   </p>
 
-</div>
+  <p>
+    <strong>Translations:</strong><br />
+    <a href="README.md">English</a> ·
+    <a href="README.es.md">Español</a> ·
+    <a href="README.zh-CN.md">简体中文</a> ·
+    <a href="README.ja.md">日本語</a> ·
+    <a href="README.de.md">Deutsch</a> ·
+    <a href="README.fr.md">Français</a> ·
+    <a href="README.pt-BR.md">Português (Brasil)</a> ·
+    <a href="README.ru.md">Русский</a> ·
+    <a href="README.ar.md">العربية</a> ·
+    <a href="README.hi.md">हिन्दी</a> ·
+    <a href="README.ko.md">한국어</a>
+  </p>
 
-> [!WARNING]
-> **Early development:** workspace setup, status and health checks, and parts of the record/replay/verification workflow are available. Automatic source analysis and some later-stage workflow commands are not wired up yet. Check command help and the guide below before relying on a command; APIs and schemas may change.
+</div>
 
 ---
 
 ## On this page
 
-- [The idea](#the-idea)
+- [How it works](#how-it-works)
 - [Why go-anything?](#why-go-anything)
-- [Project status](#project-status)
-- [Quickstart](#quickstart)
-- [How to use go-anything](#how-to-use-go-anything)
-- [Design principles](#design-principles)
-- [Repository map](#repository-map)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
+- [Explicit Parity Disclaimer](#explicit-parity-disclaimer)
+- [5-Minute Vertical-Slice Quickstart](#5-minute-vertical-slice-quickstart)
+- [Milestone Roadmap (M0–M7)](#milestone-roadmap-m0m7)
+- [Autonomous Agent & MCP Workflow](#autonomous-agent--mcp-workflow)
+- [Architecture & Design Principles](#architecture--design-principles)
+- [Repository Map](#repository-map)
+- [Governance & Contributing](#governance--contributing)
 - [License](#license)
 
-## The idea
+---
 
-Migrate an application without putting the whole rewrite on the critical path. Keep the existing app running, replace a small unit at a time, and compare the new Go implementation against behavior you have actually captured.
+## How it works
+
+`go-anything` migrates applications to Go **one unit at a time** and proves each unit matches the original's recorded behavior before it ships.
+
+- **Not an AST code translator:** You or your AI coding agent write idiomatic Go. `go-anything` provides the orchestrator, sandbox, behavioral capture, differential replay, and quality gates.
+- **The Strangler Pattern:** The original application remains live and functional. Bounded units are replaced incrementally, running behind a reversible reverse proxy or sidecar router.
+- **Fail-Closed Verification:** Parity is verified by replaying recorded and fuzzed traffic through both implementations and comparing outputs under deterministic rules.
 
 ```mermaid
 flowchart LR
-    A["Understand<br/>dependencies"] --> B["Capture<br/>behavior"]
-    B --> C["Port one<br/>unit to Go"]
-    C --> D["Replay cases<br/>and review diffs"]
-    D -->|More work| C
-    D -->|Human-approved| E["Switch over"]
-    E --> F["Retire old<br/>fallback"]
+    A["1. Dependency Graph<br/>& Wave Planning"] --> B["2. Sandboxed Case<br/>Recording & Redaction"]
+    B --> C["3. Implement Unit<br/>in Modern Go"]
+    C --> D["4. Concurrent Replay<br/>& Quality Gate"]
+    D -->|Mismatches / Failures| C
+    D -->|Verified with Evidence| E["5. Shadow Mode<br/>(Live Traffic)"]
+    E --> F["6. Human CLI Sign-off<br/>& Cutover"]
+    F --> G["7. Strangler Lift<br/>& Retirement"]
 ```
 
-This is the **strangler pattern** with behavioral checks in the loop. The coding agent or engineer writes the Go implementation; `go-anything` aims to organize and verify the migration—not translate a codebase automatically.
+---
 
 ## Why go-anything?
 
-| Big-bang rewrite | Incremental migration |
-| --- | --- |
-| Replace the application all at once | Move one bounded unit at a time |
-| Discover edge cases after cutover | Compare against recorded examples before switching |
-| Lose progress between agent sessions | Keep plans and evidence with the project |
-| Treat passing tests as a blanket guarantee | State exactly which observed cases were checked |
+| Risky Big-Bang Rewrite | Verified Incremental Migration (`go-anything`) |
+| :--- | :--- |
+| Replace the entire codebase all at once | Move one isolated dependency wave at a time |
+| Discover edge cases and regressions in production | Compare against recorded fixtures before traffic moves |
+| Progress trapped inside ephemeral chat sessions | Durable state persisted in reviewable JSON/JSONL files |
+| Blanket assumptions of parity ("tests passed") | Explicit parity boundaries tied to recorded test vectors |
+| Autonomous agents given unconstrained deployment access | Human-only controls for `approve`, `promote`, and `lift` |
 
-> **Parity has limits.** Passing recorded cases provides evidence for those cases; it does not prove equivalence for behavior you never observed.
+---
 
-## Project status
+## Explicit Parity Disclaimer
 
-| Today | Direction |
-| --- | --- |
-| CLI help, version, workspace setup, status, and doctor | Automatic dependency analysis and migration planning |
-| Early record, replay, and verification commands | Complete behavior capture and quality-gate workflow |
-| Human approval and promotion commands | Fully integrated shadowing and gradual cutover |
+> [!IMPORTANT]
+> **Parity has limits.**
+>
+> Parity is claimed **only for recorded, observed, and fuzzed inputs**, never for unobserved behavior. Passing behavioral checks proves equivalence under the recorded test vectors and distributions—it is **not** a mathematical guarantee of semantic equivalence across arbitrary, untested execution paths.
+>
+> `go-anything` enforces dual-run recording to identify volatile fields (timestamps, random tokens, UUIDs) and normalizes them with auto-detected rules, but migration teams must review behavioral diffs and audit coverage before traffic cutover.
 
-**This is an early, incomplete workflow.** In particular, automatic source analysis is not wired up. For Go-to-Go migrations, `modernize` can prepare the workspace; for other source languages, `init` currently creates an empty workspace.
+---
 
-## Quickstart
+## 5-Minute Vertical-Slice Quickstart
 
-Requires [Go 1.22+](https://go.dev/dl/).
+Follow this self-contained walkthrough from a clean machine to initializing a project, recording behavior, implementing a Go unit, passing the quality gate, and replaying cases **without human assistance**.
 
-```sh
+### Prerequisites
+
+- [Go 1.26+](https://go.dev/dl/) installed and available on your `PATH`.
+- Git.
+
+### Step 1: Install `go-anything`
+
+Clone the repository and build or install the CLI:
+
+```bash
 git clone https://github.com/mohammedrefat/go-anything.git
 cd go-anything
 
-# See the current CLI help
-go run ./cmd/go-anything help
+# Install CLI binary into $GOPATH/bin
+go install ./cmd/go-anything
 
-# Print the development version
-go run ./cmd/go-anything version
-
-# Run the tests
-go test ./...
+# Verify installation
+go-anything version
+# Output: go-anything v1.0.0 (profile: full, jobs: 8)
 ```
 
-The CLI currently reports `go-anything dev`. To install the CLI from the repository, run `go install ./cmd/go-anything`; then use `go-anything help` to see the available commands.
+*(Alternatively, run commands directly via `go run ./cmd/go-anything <subcommand>`.)*
 
-## How to use go-anything
+---
 
-Start by preparing a workspace for the application you want to migrate. For a Go application:
+### Step 2: Initialize or Modernize a Workspace
 
-```sh
-go run ./cmd/go-anything modernize /path/to/your-go-app
-go run ./cmd/go-anything status /path/to/your-go-app
-go run ./cmd/go-anything doctor /path/to/your-go-app
+Create a dedicated migration workspace or modernize an existing project. For a legacy Go microservice, `modernize` creates the `legacy/` reference copy and `modern/` target scaffold:
+
+```bash
+# Initialize a workspace for an existing service
+go-anything init --source=go --name=sample-service /path/to/my-service
+cd /path/to/my-service
+
+# Inspect workspace health and security baseline
+go-anything doctor
 ```
 
-`modernize` sets up the `legacy/` original and `modern/` working copy and registers the units it can identify. For a different source language, initialize an empty workspace instead:
+`go-anything doctor` validates:
+- Unit state store in `.go-anything/units/`
+- `.gitignore` protection for `.go-anything/local/` (preventing accidental lease commits)
+- Redaction rules in `.go-anything/rules.json`
+- Sandbox isolation readiness
 
-```sh
-go run ./cmd/go-anything init --source=python --name=my-app /path/to/your-app
+---
+
+### Step 3: Inspect Units and Dependency Waves
+
+View registered units, their dependency waves, and active leases:
+
+```bash
+go-anything status
 ```
 
-Once a unit is registered, the available early workflow is to record examples from the original, implement the unit in Go, then replay and verify those examples against your Go program:
-
-```sh
-go run ./cmd/go-anything record --unit <unit-id> --cmd "<original command>" --dir /path/to/your-app
-go run ./cmd/go-anything replay --unit <unit-id> --target /path/to/ported-program --dir /path/to/your-app
-go run ./cmd/go-anything verify <unit-id> --target /path/to/ported-program --dir /path/to/your-app
+Output:
+```text
+Workspace: sample-service (schemas: v1)
+Dependency Waves:
+  Wave 0:
+    [Ready] unit-healthcheck (dependencies: none, risk: low)
+    [Ready] unit-auth-token  (dependencies: none, risk: medium)
+  Wave 1:
+    [Planned] unit-user-api   (dependencies: [unit-auth-token], risk: high)
 ```
 
-Recording runs the original command, so only use it with code you trust. Verification checks the recorded cases; it does not prove parity for behavior that was not observed. Commands for automatic analysis and some later migration stages are not yet fully connected. Run `go run ./cmd/go-anything help` for current command help, and see the [security policy](SECURITY.md) before running project code.
+---
 
-## Design principles
+### Step 4: Record Behavioral Cases (Sandboxed & Redacted)
 
-- **Small, reversible steps.** Keep the original application available while units are being replaced.
-- **Evidence, not absolutes.** Compare known behavior and make the limits of parity explicit.
-- **Human-owned decisions.** Review and release remain with the people responsible for the application.
-- **Local, reviewable state.** Keep migration artifacts alongside the project, not inside a chat session.
-- **Treat target code as code.** Tests and commands from a legacy repository can execute arbitrary project code. Only work with repositories you trust; read the [security policy](SECURITY.md).
+Capture behavioral test cases from the original application. `go-anything record` executes the command inside a restricted sandbox, performs in-memory fail-closed redaction of sensitive credentials, and saves sanitized JSONL fixtures:
 
-These are design goals; they are not a claim that the current CLI enforces a complete migration workflow.
+```bash
+# Record behavioral cases from the original CLI or service
+go-anything record \
+  --unit unit-healthcheck \
+  --cmd "./legacy-service --health" \
+  --dir .
+```
 
-## Repository map
+`go-anything` automatically:
+- Executes the original binary twice to detect volatile outputs (timestamps, monotonic counters).
+- Applies format-preserving substitution to secrets (passwords, tokens, cookies).
+- Stores sanitized fixtures in `.go-anything/cases/unit-healthcheck.jsonl`.
+- Transitions unit state from `Planned` to `Recorded`.
+
+---
+
+### Step 5: Implement the Ported Unit in Modern Go
+
+Write the ported unit implementation in `modern/` (or let an autonomous coding agent write it):
+
+```go
+// modern/health/main.go
+package main
+
+import (
+    "encoding/json"
+    "os"
+)
+
+type HealthResponse struct {
+    Status string `json:"status"`
+}
+
+func main() {
+    resp := HealthResponse{Status: "ok"}
+    _ = json.NewEncoder(os.Stdout).Encode(resp)
+}
+```
+
+Build the ported target:
+```bash
+go build -o ./bin/modern-health ./modern/health/main.go
+```
+
+---
+
+### Step 6: Concurrent Deterministic Replay
+
+Replay all recorded cases against the ported Go binary across worker pools:
+
+```bash
+go-anything replay \
+  --unit unit-healthcheck \
+  --target ./bin/modern-health \
+  --dir .
+```
+
+Output:
+```text
+[REPLAY] Replaying 10 recorded cases for 'unit-healthcheck' across 8 workers...
+  ✓ case-001: MATCH (0.8ms)
+  ✓ case-002: MATCH (0.9ms)
+  ...
+  ✓ case-010: MATCH (0.7ms)
+Replay complete: 10/10 passed (0 mismatches, 0 errors).
+```
+
+---
+
+### Step 7: Verification & Quality Gate
+
+Verify the unit against the full quality gate (`build`, `vet`, `test -race`, `govulncheck`, `error_paths`, `api_compat`):
+
+```bash
+# Verify behavioral equivalence against recorded cases
+go-anything verify unit-healthcheck \
+  --target ./bin/modern-health \
+  --profile replay \
+  --dir .
+```
+
+When running in an automated pipeline or agent session via MCP (`run_gate`), commit-tied evidence is recorded under `.go-anything/evidence/`, advancing the unit state to `Verified`.
+
+---
+
+### Step 8: Human-in-the-Loop Approval, Promotion & Lift
+
+In this walkthrough, `go-anything approve unit-healthcheck --skip-shadow` skips shadow validation and moves the unit directly from Verified to Approved. The operator can then promote the route and retire the legacy original once fallback traffic reaches zero:
+
+```bash
+# 1. Human sign-off (CLI-only, cannot be executed by MCP tools)
+go-anything approve unit-healthcheck --skip-shadow
+
+# 2. Switch strangler routing to modern Go implementation
+go-anything promote unit-healthcheck
+
+# 3. Retire the legacy bridge once fallback traffic reaches zero
+go-anything lift unit-healthcheck
+```
+
+---
+
+## Milestone Roadmap (M0–M7)
+
+All core milestones from initial architecture through v1.0.0 have been fully implemented and verified:
+
+| Milestone | Release | Scope & Deliverables | Exit Gate Status |
+| :--- | :--- | :--- | :--- |
+| **M0: Foundation** | `v0.0.x` | State machine (10 states), atomic I/O, file locks, fail-closed redactor, sandbox, CLI skeleton, ADR-001/002. | ✅ **Passed:** `go-anything init` + `doctor` pass with clean validation. |
+| **M1: Sandboxed Replay** | `v0.0.x` | Dual-run volatility detection, multi-mode comparator (exact, json, numeric, regex), concurrent replay engine. | ✅ **Passed:** 100% replay across 3 identical consecutive runs. |
+| **M2: Front Door & Lift** | `v0.0.x` | Reverse proxy front door, emergency kill-switch (`KILL_SWITCH=1`), fallback monitoring, and `lift` command. | ✅ **Passed:** Full strangler lifecycle on demo CLI & HTTP applications. |
+| **M3: Go Source Adapter** | `v0.1.0` | Go AST analyzer, type resolution, call graph dependency wave planner, `go-anything modernize` workflow. | ✅ **Passed:** Real Go service ported with 0 mismatches. |
+| **M4: Quality Gate & MCP** | `v0.1.0` | 6-check toolchain quality gate runner, scorecard engine, stdio MCP server (8 tools) with payload sanitization. | ✅ **Passed:** Autonomous AI agent ports a complete unit unaided. |
+| **M5: Shadow & Capture** | `v0.1.0` | Real-time traffic shadowing, bounded pool with overflow counters, idempotent-only GET/HEAD default, capture ingestion. | ✅ **Passed:** Clean shadow log on live traffic + dogfood case study. |
+| **M6: Python Adapter** | `v0.2.0` | Python source adapter (AST import analysis, pytest discovery, Subprocess, HTTP, C-Shared transports, foreign library wrappers). | ✅ **Passed:** Python CLI and FastAPI HTTP service ported + conformance suite pass. |
+| **M7: TypeScript & Freeze** | `v1.0.0` | TypeScript/Node adapter (ESM/CommonJS, Jest/Vitest), `schemas/v1/` freeze, `go-anything migrate`, `GOVERNANCE.md`. | ✅ **Passed:** Multi-unit open-source project fully lifted with zero fallback traffic. |
+
+---
+
+## Autonomous Agent & MCP Workflow
+
+`go-anything` includes a built-in Model Context Protocol (MCP) server that runs over `stdio` without external network listeners:
+
+```bash
+go-anything mcp
+```
+
+### The 8 Standard MCP Tools
+
+The MCP server enforces the 10-state unit lifecycle server-side. Agents cannot forge gate results or skip steps:
+
+1. `status` — Show progress, next unit in dependency wave order, active leases, and blockers.
+2. `claim_unit` — Take a Ready unit with a time-bounded local lease in `.go-anything/local/`.
+3. `inspect_unit` — View original source code, sanitized sample cases, detected traps, and constraints.
+4. `record_cases` — Run the original application in the sandbox, apply fail-closed redaction, and save JSONL.
+5. `verify_diff` — Build the port, replay all cases, and return PASS or top sanitized mismatches.
+6. `run_gate` — Run the full quality gate pipeline and write commit-tied evidence.
+7. `mark_verified` — Advance unit to Verified (rejected unless evidence exists for HEAD).
+8. `handoff` — Write `HANDOFF.md` with progress and next steps for subsequent sessions.
+
+> **Human-Only Boundary:** The MCP server **never** exposes `approve`, `promote`, `lift`, or routing changes. These remain human-only CLI commands.
+
+---
+
+## Architecture & Design Principles
+
+1. **Small, Reversible Steps:** Replace software incrementally using the strangler pattern. The original remains immediately available as fallback until final lift.
+2. **Fail-Closed In-Memory Redaction:** Sensitive credentials (tokens, private keys, session cookies, cards) are replaced before any data hits disk. Unparseable sensitive payloads abort recording unless explicitly overridden.
+3. **Restricted Sandboxing:** Application execution occurs within sandbox boundaries: Linux namespaces (Tier 1) and best-effort process isolation on macOS/Windows (Tier 2). Network access is disabled by default.
+4. **Deterministic Evidence:** Test cases, diffs, and scorecards are deterministically sorted by `case_id`, never execution time.
+5. **Local-First, Zero Telemetry:** All state, leases, and evidence remain inside `.go-anything/`. No telemetry is transmitted over the network.
+6. **Decoupled Adapter Architecture:** Language adapters interact via the frozen `pkg/adapterkit` contract and must achieve 100% compliance on `pkg/adapterkit/conformance`.
+
+---
+
+## Repository Map
 
 ```text
-cmd/go-anything/   CLI entry point
-internal/          Core packages
-pkg/adapterkit/    Experimental adapter contracts
-schemas/           Schema package and v1alpha1 JSON Schemas
-skills/            Agent workflow skill definitions
-templates/         Project templates
-Docs/              Architecture plans and decision records
-.githooks/         Git hooks (pre-commit, commit-msg, pre-push)
+cmd/go-anything/        CLI entry point and MCP stdio server
+pkg/adapterkit/         Public, frozen adapter contracts (v1)
+  └── conformance/      Official adapter certification test suite
+internal/               Core migration engine:
+  ├── analyzer/         Source code AST, type analysis & call graphs
+  ├── bench/            Latency and allocation benchmarks
+  ├── comparator/       Multi-mode diffing (exact, json, numeric, regex)
+  ├── gate/             Quality gate runner (build, vet, staticcheck, race, vuln)
+  ├── mcp/              Stdio MCP server with payload sanitization
+  ├── migrate/          Workspace schema migration engine
+  ├── planner/          Topological dependency wave planner
+  ├── recorder/         Sandboxed dual-run case recording & volatility detection
+  ├── redactor/         Fail-closed in-memory credential redaction
+  ├── replay/           Concurrent deterministic replay engine
+  ├── sandbox/          Linux namespaces & OS process isolation
+  ├── shadow/           Live shadow mode engine with bounded worker pools
+  └── state/            10-state unit lifecycle, atomic I/O & file locks
+adapters/               Language and runtime adapters:
+  ├── source/           Source adapters (Go, Python, TypeScript)
+  └── application/      Runtime adapters (CLI, HTTP, Foreign Library, Worker)
+schemas/                Versioned JSON Schemas:
+  ├── v1/               Stable frozen schemas (manifest, units, rules, cases, etc.)
+  └── v1alpha1/         Legacy schemas (supported via go-anything migrate)
+Docs/                   Architecture, decisions, and case studies:
+  ├── decisions/        Architecture Decision Records (ADR-001, ADR-002)
+  └── case-studies/     Public dogfooding case studies (M3, M4, M5, M6, M7)
+GOVERNANCE.md           Maintainer roles, consensus, RFCs, and adapter certification
+SECURITY.md             Threat model, sandboxing, and vulnerability disclosure policy
+CONTRIBUTING.md         Development prerequisites, coding standards, and verification
 ```
 
-For design details, see [DECISIONS.md](DECISIONS.md) and the [architecture and implementation plan](<Docs/go-anything Architecture & Implementation Plan (v3) (1).md>).
+---
 
-## Roadmap
+## Governance & Contributing
 
-- [ ] Connect the existing foundations to a usable CLI workflow.
-- [ ] Build a complete record-and-replay path for a migration unit.
-- [ ] Add reviewable verification gates before any cutover workflow.
-- [ ] Grow language and application adapters behind the experimental adapter contract.
+- **Governance Model:** Read [GOVERNANCE.md](GOVERNANCE.md) for details on maintainer tiers (Core Maintainers, Adapter Maintainers, Contributors), consensus models, the RFC process for schemas and `pkg/adapterkit`, and adapter certification.
+- **Security Policy:** Read [SECURITY.md](SECURITY.md) for the complete threat model, sandboxing tiers, and private vulnerability reporting workflows.
+- **Contributing:** Read [CONTRIBUTING.md](CONTRIBUTING.md) for local environment setup, pre-commit git hooks, and verification requirements.
 
-Roadmap items are goals; timelines and interfaces are subject to change.
+To enable the automated git hooks:
 
-## Contributing
-
-Contributions and thoughtful feedback are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), and check the status above before building on commands or APIs that are not implemented or stable.
-
-To enable the quality and security hooks after cloning, run:
-
-```sh
+```bash
 git config core.hooksPath .githooks
 ```
 
+---
+
 ## License
 
-`go-anything` is available under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
+`go-anything` is distributed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attributions.

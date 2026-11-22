@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v1/reports.schema.json",
+  "title": "Report",
+  "description": "Deterministic comparison, replay, benchmark, or quality gate report.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "report_id",
+    "unit_id",
+    "report_type",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "v1",
+      "description": "Mandatory schema version identifier."
+    },
+    "report_id": {
+      "type": "string",
+      "description": "Unique identifier of the generated report."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Associated migration unit identifier."
+    },
+    "case_id": {
+      "type": "string",
+      "description": "Associated case identifier if reporting on a specific case mismatch."
+    },
+    "report_type": {
+      "type": "string",
+      "enum": [
+        "diff",
+        "replay",
+        "bench",
+        "gate",
+        "scorecard"
+      ],
+      "description": "Classification of the report."
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "exact",
+        "structural_json",
+        "numeric_tolerance",
+        "error_equivalence",
+        "http_contract",
+        "filesystem_snapshot"
+      ],
+      "description": "Comparison mode utilized."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "skipped"
+      ],
+      "description": "Outcome status of the evaluation."
+    },
+    "mismatches": {
+      "type": "array",
+      "description": "Detailed list of structural or behavioral mismatches.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "message"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Field path where mismatch occurred."
+          },
+          "expected": {
+            "description": "Expected value from baseline recording."
+          },
+          "actual": {
+            "description": "Actual value produced by ported Go implementation."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable explanation of discrepancy."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when report was produced."
+    },
+    "duration_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Duration of the test or comparison in milliseconds."
+    },
+    "summary": {
+      "type": "string",
+      "description": "High-level summary of findings."
+    },
+    "details": {
+      "type": "object",
+      "description": "Auxiliary metrics or check-specific details."
+    }
+  },
+  "additionalProperties": false
+}

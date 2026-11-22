@@ -363,3 +363,90 @@ func TestRedactCase_FullPipeline(t *testing.T) {
 		t.Errorf("expected ErrUnparseablePayload for corrupt case body, got %v", err)
 	}
 }
+
+func TestRedactCase_PathAndMetadataAndNestedJSON(t *testing.T) {
+	r := New()
+
+	c := &adapterkit.Case{
+		Input: adapterkit.CaseInput{
+			Path: "/auth?token=ghp_012345678901234567890123456789012345",
+			Argv: []string{"--key", "ghp_012345678901234567890123456789012346"},
+		},
+		Metadata: map[string]any{
+			"api_key":       "my-super-secret-key-12345",
+			"nested_config": `{"password": "secretPassword123", "normal": "hello"}`,
+		},
+	}
+
+	redacted, err := r.RedactCase(c)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// 1. Path must not contain raw token
+	if strings.Contains(redacted.Input.Path, "ghp_012345678901234567890123456789012345") {
+		t.Errorf("leaked raw token in Input.Path: %s", redacted.Input.Path)
+	}
+
+	// 2. Argv must not contain raw token
+	if strings.Contains(redacted.Input.Argv[1], "ghp_012345678901234567890123456789012346") {
+		t.Errorf("leaked raw token in Input.Argv: %v", redacted.Input.Argv)
+	}
+
+	// 3. Metadata secret field must be redacted
+	if redacted.Metadata["api_key"] == "my-super-secret-key-12345" {
+		t.Errorf("metadata api_key was not redacted")
+	}
+
+	// 4. Nested JSON string inside metadata must have password redacted
+	nestedStr, ok := redacted.Metadata["nested_config"].(string)
+	if !ok {
+		t.Fatalf("expected nested_config to be string, got %T", redacted.Metadata["nested_config"])
+	}
+	if strings.Contains(nestedStr, "secretPassword123") {
+		t.Errorf("nested JSON password was not redacted: %s", nestedStr)
+	}
+	if !strings.Contains(nestedStr, "normal") {
+		t.Errorf("nested JSON non-secret field lost: %s", nestedStr)
+	}
+}
+
+func TestRedactValueEmbeddedJSON(t *testing.T) {
+	input := map[string]any{
+		"api_key":       `{"value":"opaque-credential"}`,
+		"nested_config": `{"counter":9223372036854775807,"password":"opaque-password"}`,
+	}
+	value, _, err := New().RedactValue(input, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := value.(map[string]any)
+	if strings.Contains(out["api_key"].(string), "opaque-credential") {
+		t.Error("JSON-shaped credential was retained")
+	}
+	nested := out["nested_config"].(string)
+	if !strings.Contains(nested, "9223372036854775807") || strings.Contains(nested, "opaque-password") {
+		t.Errorf("embedded JSON lost precision or retained a secret: %s", nested)
+	}
+	for _, invalid := range []string{
+		`{"counter":9223372036854775807} trailing`,
+		`{"password":"opaque-password"`,
+		`{"counter":1} []`,
+	} {
+		meta := map[string]any{"config": invalid}
+		_, err := New().RedactCase(&adapterkit.Case{Metadata: meta})
+		if !errors.Is(err, ErrUnparseablePayload) {
+			t.Fatalf("expected ErrUnparseablePayload, got %v", err)
+		}
+
+		got, err := New(Options{UnsafeAllowUnredacted: true}).RedactCase(&adapterkit.Case{Metadata: meta})
+		if err != nil || got.Metadata["config"] != invalid {
+			t.Fatalf("expected unsafe opt-out to preserve malformed text, got %v, %v", got, err)
+		}
+	}
+
+	nestedInvalid := map[string]any{"config": `{"nested":"{"password":"opaque-password"} trailing"}`}
+	if _, _, err := New().RedactValue(nestedInvalid, "metadata"); !errors.Is(err, ErrUnparseablePayload) {
+		t.Fatalf("expected recursive redaction error, got %v", err)
+	}
+}

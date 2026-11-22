@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v1/rules.schema.json",
+  "title": "Rules",
+  "description": "Auto-detected wildcards, normalizers, and field semantics for comparison and replay.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "wildcards",
+    "normalizers"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "v1",
+      "description": "Mandatory schema version identifier."
+    },
+    "wildcards": {
+      "type": "array",
+      "description": "Fields that vary across dual runs (timestamps, UUIDs, request IDs) treated as wildcards.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "type"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Field path (dot-notation or JSONPath) targeting the volatile element."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "timestamp",
+              "uuid",
+              "request_id",
+              "random",
+              "volatile",
+              "regex"
+            ],
+            "description": "Category of volatility detected."
+          },
+          "pattern": {
+            "type": "string",
+            "description": "Optional regular expression pattern for matching."
+          },
+          "description": {
+            "type": "string",
+            "description": "Context or justification for the wildcard."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "normalizers": {
+      "type": "array",
+      "description": "Transformation rules applied before structural comparison.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "type"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Field path to normalize."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "date_format",
+              "trim_whitespace",
+              "lower_case",
+              "float_tolerance",
+              "sort_array",
+              "key_sort"
+            ],
+            "description": "Normalizer operation type."
+          },
+          "params": {
+            "type": "object",
+            "description": "Optional parameter map for the normalizer (e.g., tolerance delta, format pattern)."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "field_semantics": {
+      "type": "array",
+      "description": "Declared field semantic designations from adapters.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "semantic"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Target field path."
+          },
+          "semantic": {
+            "type": "string",
+            "enum": [
+              "secret",
+              "volatile",
+              "ordered"
+            ],
+            "description": "Semantic meaning declared by adapter."
+          },
+          "description": {
+            "type": "string",
+            "description": "Reason or doc comment for the semantic designation."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary rule metadata."
+    }
+  },
+  "additionalProperties": false
+}

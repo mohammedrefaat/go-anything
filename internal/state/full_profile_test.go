@@ -54,6 +54,26 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 		assert.ErrorIs(t, err, state.ErrEvidenceMissing)
 	})
 
+	for _, name := range []string{"race", "govulncheck"} {
+		t.Run("rejects skipped "+name, func(t *testing.T) {
+			checks := createFullProfileChecks()
+			for i := range checks {
+				if checks[i].Name == name {
+					checks[i].Status = adapterkit.StatusSkipped
+				}
+			}
+			_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
+				Actor: "agent-test",
+				Evidence: &adapterkit.Evidence{
+					EvidenceID: "evi-skipped-" + name,
+					UnitID:     "unit-core", CommitSHA: validCommitSHA,
+					Profile: adapterkit.ProfileFull, Checks: checks,
+				},
+			})
+			assert.ErrorIs(t, err, state.ErrEvidenceProfileUnsatisfied)
+		})
+	}
+
 	t.Run("rejects transition when commit_sha is invalid", func(t *testing.T) {
 		ev := &adapterkit.Evidence{
 			EvidenceID:      "evi-bad-sha",
@@ -211,7 +231,26 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 		assert.ErrorIs(t, err, state.ErrEvidenceProfileUnsatisfied)
 	})
 
-	t.Run("clean verification with commit-tied evidence succeeds and is queryable", func(t *testing.T) {
+	t.Run("explicit vulnerability failure overrides a passing alias", func(t *testing.T) {
+		checks := append(createFullProfileChecks(), adapterkit.GateCheck{Name: "vulncheck", Status: adapterkit.StatusFail})
+		_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
+			Actor: "agent-test",
+			Evidence: &adapterkit.Evidence{
+				EvidenceID: "evi-failed-vuln-alias", UnitID: "unit-core", CommitSHA: validCommitSHA,
+				Profile: adapterkit.ProfileFull, Checks: checks,
+			},
+		})
+		require.ErrorIs(t, err, state.ErrEvidenceProfileUnsatisfied)
+	})
+
+	t.Run("verification accepts a passing vulnerability alias and keeps commit-tied evidence queryable", func(t *testing.T) {
+		checks := createFullProfileChecks()
+		for i := range checks {
+			if checks[i].Name == "govulncheck" {
+				checks[i].Status = adapterkit.StatusSkipped
+			}
+		}
+		checks = append(checks, adapterkit.GateCheck{Name: "vulncheck", Status: adapterkit.StatusPass})
 		cleanEvidence := &adapterkit.Evidence{
 			EvidenceID:      fmt.Sprintf("evi-core-%s", validCommitSHA[:8]),
 			UnitID:          "unit-core",
@@ -219,7 +258,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 			Profile:         adapterkit.ProfileFull,
 			VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
 			VerifiedBy:      "agent-test",
-			Checks:          createFullProfileChecks(),
+			Checks:          checks,
 			MismatchesCount: 0,
 		}
 

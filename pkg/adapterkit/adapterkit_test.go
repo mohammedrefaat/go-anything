@@ -317,3 +317,27 @@ func TestTypesJSONRoundtrip(t *testing.T) {
 		assert.Equal(t, ev, parsed)
 	})
 }
+
+// TestV1ConstantsAndSchemas verifies that adapterkit exports frozen v1 schema constants and references.
+func TestV1ConstantsAndSchemas(t *testing.T) {
+	assert.Equal(t, "v1", adapterkit.Version)
+	assert.Equal(t, "v1", adapterkit.SchemaVersionV1)
+	assert.Equal(t, "v1alpha1", adapterkit.SchemaVersionV1Alpha1)
+	assert.Equal(t, "v1", adapterkit.DefaultSchemaVersion)
+
+	// Check stable v1 schema IDs
+	assert.Contains(t, adapterkit.SchemaIDManifestV1, "/v1/manifest.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDUnitsV1, "/v1/units.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDRulesV1, "/v1/rules.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDCasesV1, "/v1/cases.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDReportsV1, "/v1/reports.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDEvidenceV1, "/v1/evidence.schema.json")
+
+	// Check legacy v1alpha1 schema IDs
+	assert.Contains(t, adapterkit.SchemaIDManifestV1Alpha1, "/v1alpha1/manifest.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDUnitsV1Alpha1, "/v1alpha1/units.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDRulesV1Alpha1, "/v1alpha1/rules.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDCasesV1Alpha1, "/v1alpha1/cases.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDReportsV1Alpha1, "/v1alpha1/reports.schema.json")
+	assert.Contains(t, adapterkit.SchemaIDEvidenceV1Alpha1, "/v1alpha1/evidence.schema.json")
+}

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -144,6 +145,9 @@ func (c *mcpTestClient) callTool(t *testing.T, name string, args any) (*mcp.Tool
 func startAcceptanceService(t *testing.T, dir string) string {
 	t.Helper()
 	binary := filepath.Join(t.TempDir(), "service")
+	if runtime.GOOS == "windows" {
+		binary += ".exe"
+	}
 	runCmd(t, dir, "go", "build", "-o", binary, "./cmd/server")
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)

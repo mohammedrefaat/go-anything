@@ -3,8 +3,8 @@
 //
 // Stability Notice:
 // In accordance with ADRs and the v3 specification, pkg/adapterkit and the
-// matching v1alpha1 schemas are versioned and UNSTABLE until v1.0. Breaking
-// changes prior to v1.0 are documented and accompanied by migration tooling.
+// matching v1 schemas are frozen and STABLE as of v1.0. Breaking changes
+// are prohibited; backwards compatibility is strictly maintained.
 //
 // Architectural Invariants (Rule 8):
 //  1. pkg/adapterkit must NEVER import any internal/ package.

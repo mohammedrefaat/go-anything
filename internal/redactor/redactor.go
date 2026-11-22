@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -185,6 +186,35 @@ func (r *Redactor) RedactValue(val any, path string) (any, []string, error) {
 			}
 
 			if strVal, ok := item.(string); ok {
+				trimmed := strings.TrimSpace(strVal)
+				embeddedJSON := strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[")
+				secret := IsSecretFieldName(k)
+				if secret && embeddedJSON {
+					result[k] = SubstituteToken("sec_"+strVal, "sec_")[4:]
+					continue
+				}
+				if embeddedJSON {
+					var parsed, extra any
+					dec := json.NewDecoder(strings.NewReader(trimmed))
+					dec.UseNumber()
+					if dec.Decode(&parsed) == nil && dec.Decode(&extra) == io.EOF {
+						redactedParsed, parsedUnrep, err := r.RedactValue(parsed, fieldPath)
+						if err != nil {
+							return nil, nil, err
+						}
+						outBytes, err := json.Marshal(redactedParsed)
+						if err != nil {
+							return nil, nil, err
+						}
+						result[k] = string(outBytes)
+						unreplayable = append(unreplayable, parsedUnrep...)
+						continue
+					}
+					if !r.opts.UnsafeAllowUnredacted {
+						return nil, nil, fmt.Errorf("%w: malformed embedded JSON at %s", ErrUnparseablePayload, fieldPath)
+					}
+				}
+
 				redactedChild, childUnrep, err := r.RedactString(strVal)
 				if err != nil {
 					return nil, nil, err
@@ -195,7 +225,7 @@ func (r *Redactor) RedactValue(val any, path string) (any, []string, error) {
 					continue
 				}
 
-				if IsSecretFieldName(k) {
+				if secret {
 					result[k] = SubstituteToken("sec_"+strVal, "sec_")[4:]
 					continue
 				}
@@ -345,6 +375,32 @@ func (r *Redactor) RedactCase(c *adapterkit.Case) (*adapterkit.Case, error) {
 	if c.ExpectedOutput.Stderr != "" {
 		redactedStderr, _, _ := r.RedactString(c.ExpectedOutput.Stderr)
 		c.ExpectedOutput.Stderr = redactedStderr
+	}
+
+	// 7. Redact Input Path (e.g. secret tokens in query string or path)
+	if c.Input.Path != "" {
+		redactedPath, _, _ := r.RedactString(c.Input.Path)
+		c.Input.Path = redactedPath
+	}
+
+	// 8. Redact Input Argv
+	if len(c.Input.Argv) > 0 {
+		for i, arg := range c.Input.Argv {
+			redactedArg, _, _ := r.RedactString(arg)
+			c.Input.Argv[i] = redactedArg
+		}
+	}
+
+	// 9. Redact Metadata values
+	if c.Metadata != nil {
+		redactedMeta, unrep, err := r.RedactValue(c.Metadata, "metadata")
+		if err != nil {
+			return nil, err
+		}
+		c.Metadata = redactedMeta.(map[string]any)
+		for _, u := range unrep {
+			unreplayableSet[u] = true
+		}
 	}
 
 	// Update Case.UnreplayableFields

@@ -652,10 +652,8 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 		return nil, err
 	}
 	runner := gate.New(gate.Config{
-		Dir:    dir,
-		Checks: checks,
-		// Optional linters and the race detector are skipped when the host
-		// toolchain cannot run them; required checks still fail closed.
+		Dir:               dir,
+		Checks:            checks,
 		AllowMissingTools: input.AllowMissingTools,
 		Executors:         executors,
 	})
@@ -693,7 +691,7 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 			return &ToolCallResult{IsError: true, Content: []ContentItem{{Type: "text", Text: "Required checks were skipped; no passing evidence saved"}}}, nil
 		}
 		ev := &adapterkit.Evidence{
-			SchemaVersion:   adapterkit.SchemaVersionV1Alpha1,
+			SchemaVersion:   adapterkit.DefaultSchemaVersion,
 			EvidenceID:      fmt.Sprintf("evi-%s-%s-%d", sanitizeUnitID(unit.ID), commitSHA[:8], time.Now().UnixNano()),
 			UnitID:          unit.ID,
 			CommitSHA:       commitSHA,
@@ -952,6 +950,7 @@ func requiredChecksPassed(report *gate.GateReport, profile adapterkit.EvidencePr
 		for _, check := range report.Checks {
 			if check.Name == name && check.Status == gate.StatusPass {
 				found = true
+				break
 			}
 		}
 		if !found {
