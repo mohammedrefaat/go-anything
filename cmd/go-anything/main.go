@@ -122,6 +122,9 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "cutover":
 		cmdErr = runCutover(global, subArgs, stdout, stderr)
 
+	case "fuzz":
+		cmdErr = runFuzz(global, subArgs, stdout, stderr)
+
 	default:
 		cmdErr = exitErrorf(ExitCodeUsage, "unknown command %q. Run 'go-anything --help' for usage", subcommand)
 	}
@@ -200,6 +203,7 @@ Available Commands:
   approve     Record human sign-off and advance state to Approved (--skip-shadow)
   promote     Switch front door routing to Go, test kill switch, and advance state to Cutover
   diff        Replay cases against Go implementation and show structural diffs
+  fuzz        Execute differential fuzzing against recorded cases and target
   gate        Execute Quality Gate pipeline
   shadow      Run front door in shadow mode on real traffic
   cutover     Switch primary traffic to verified Go unit

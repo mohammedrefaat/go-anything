@@ -525,6 +525,131 @@ func TestValidateV2_CutoverOutput(t *testing.T) {
 	}
 }
 
+func TestValidateV2_FuzzReport(t *testing.T) {
+	tests := []struct {
+		name        string
+		schemaName  string
+		payload     string
+		expectError bool
+	}{
+		{
+			name:       "valid fuzz report with zero divergences",
+			schemaName: "fuzz.report.schema.json",
+			payload: `{
+				"schema_version": "v2",
+				"unit_id": "unit_math",
+				"duration_ms": 2500.5,
+				"total_runs": 10000,
+				"divergences_count": 0,
+				"divergences": [],
+				"promoted_count": 0,
+				"promoted_cases": [],
+				"corpus_path": ".go-anything/cases/unit_math.jsonl",
+				"passed": true,
+				"summary": "10000 fuzz runs completed with 0 divergences"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "valid fuzz report with divergences and promoted cases (shorthand)",
+			schemaName: "fuzz.report",
+			payload: `{
+				"unit_id": "unit_parser",
+				"duration_ms": 5000.0,
+				"total_runs": 50000,
+				"divergences_count": 1,
+				"divergences": [
+					{
+						"case_id": "fuzz_case_001",
+						"input": {"payload": "invalid-utf8-\ufffd"},
+						"legacy_output": {"error": "syntax error"},
+						"modern_output": {"status": "ok"},
+						"diff": "- error: syntax error\n+ status: ok"
+					}
+				],
+				"promoted_count": 1,
+				"promoted_cases": ["fuzz_case_001"],
+				"corpus_path": ".go-anything/cases/unit_parser.jsonl",
+				"passed": false
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "missing unit_id",
+			schemaName: "fuzz.report.schema.json",
+			payload: `{
+				"duration_ms": 100.0,
+				"total_runs": 100,
+				"divergences_count": 0,
+				"divergences": [],
+				"promoted_count": 0,
+				"promoted_cases": [],
+				"corpus_path": ".go-anything/cases/unit_test.jsonl"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "missing corpus_path",
+			schemaName: "fuzz.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"duration_ms": 100.0,
+				"total_runs": 100,
+				"divergences_count": 0,
+				"divergences": [],
+				"promoted_count": 0,
+				"promoted_cases": []
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "negative total_runs",
+			schemaName: "fuzz.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"duration_ms": 100.0,
+				"total_runs": -5,
+				"divergences_count": 0,
+				"divergences": [],
+				"promoted_count": 0,
+				"promoted_cases": [],
+				"corpus_path": ".go-anything/cases/unit_test.jsonl"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "divergence item missing case_id",
+			schemaName: "fuzz.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"duration_ms": 100.0,
+				"total_runs": 100,
+				"divergences_count": 1,
+				"divergences": [
+					{
+						"input": "test"
+					}
+				],
+				"promoted_count": 0,
+				"promoted_cases": [],
+				"corpus_path": ".go-anything/cases/unit_test.jsonl"
+			}`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2(tt.schemaName, []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateV2_UnknownSchema(t *testing.T) {
 	err := schemas.ValidateV2("does_not_exist.schema.json", []byte(`{}`))
 	require.Error(t, err)

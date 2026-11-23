@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/fuzz.report.schema.json",
+  "title": "FuzzReport",
+  "description": "Differential fuzzing report detailing execution metrics, detected behavioral divergences, and promoted test cases.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "duration_ms",
+    "total_runs",
+    "divergences_count",
+    "divergences",
+    "promoted_count",
+    "promoted_cases",
+    "corpus_path"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Migration unit identifier targeted by the differential fuzzer."
+    },
+    "duration_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total fuzzing duration in milliseconds."
+    },
+    "total_runs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of generated fuzzed input executions."
+    },
+    "divergences_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of inputs where original and ported outputs differed."
+    },
+    "divergences": {
+      "type": "array",
+      "description": "Detailed records of behavioral discrepancies detected during fuzzing.",
+      "items": {
+        "type": "object",
+        "required": [
+          "case_id"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "description": "Identifier of the divergent fuzz case."
+          },
+          "input": {
+            "description": "Mutated input payload that triggered the divergence."
+          },
+          "legacy_output": {
+            "description": "Output produced by the original legacy implementation."
+          },
+          "modern_output": {
+            "description": "Output produced by the modern Go implementation."
+          },
+          "diff": {
+            "description": "Difference details or unified diff representation.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array"
+              },
+              {
+                "type": "object"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "promoted_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of divergent cases promoted and appended to durable test cases."
+    },
+    "promoted_cases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of case IDs promoted to the regression corpus."
+    },
+    "corpus_path": {
+      "type": "string",
+      "description": "Path to the seed corpus or durable cases file."
+    },
+    "passed": {
+      "type": "boolean",
+      "description": "Whether fuzzing completed without detecting any behavioral divergences."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Human-readable summary of fuzzing outcomes."
+    }
+  }
+}

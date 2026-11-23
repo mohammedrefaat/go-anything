@@ -23,7 +23,7 @@ func TestStatusFileUpToDate(t *testing.T) {
 
 func TestAllRegisteredCommandsValid(t *testing.T) {
 	assert.NotEmpty(t, AllRegisteredCommands)
-	assert.Equal(t, 21, len(AllRegisteredCommands), "expected exactly 21 commands documented")
+	assert.Equal(t, 22, len(AllRegisteredCommands), "expected exactly 22 commands documented")
 
 	seen := make(map[string]bool)
 	for _, c := range AllRegisteredCommands {
