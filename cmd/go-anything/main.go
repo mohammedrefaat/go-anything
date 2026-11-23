@@ -128,6 +128,9 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "bench":
 		cmdErr = runBench(global, subArgs, stdout, stderr)
 
+	case "profile":
+		cmdErr = runProfile(global, subArgs, stdout, stderr)
+
 	default:
 		cmdErr = exitErrorf(ExitCodeUsage, "unknown command %q. Run 'go-anything --help' for usage", subcommand)
 	}
@@ -208,6 +211,7 @@ Available Commands:
   diff        Replay cases against Go implementation and show structural diffs
   fuzz        Execute differential fuzzing against recorded cases and target
   bench       Execute latency and throughput benchmarks between original and Go
+  profile     Profile legacy execution and rank candidate hot functions for migration
   gate        Execute Quality Gate pipeline
   shadow      Run front door in shadow mode on real traffic
   cutover     Switch primary traffic to verified Go unit

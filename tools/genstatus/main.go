@@ -20,7 +20,7 @@ type CommandMetadata struct {
 	Description    string
 }
 
-// AllRegisteredCommands lists all 23 CLI commands in go-anything.
+// AllRegisteredCommands lists all 24 CLI commands in go-anything.
 var AllRegisteredCommands = []CommandMetadata{
 	{
 		Name:           "init",
@@ -151,6 +151,16 @@ var AllRegisteredCommands = []CommandMetadata{
 		SinceVersion:   "v2.0.0-alpha",
 		Milestone:      "v2.0 / R2",
 		Description:    "Execute comparative latency and memory allocation benchmarks",
+	},
+	{
+		Name:           "profile",
+		WiringStatus:   "Fully Wired",
+		E2ECovered:     true,
+		E2ETestFiles:   "cmd/go-anything/profile_test.go",
+		MCPCounterpart: "`profile`",
+		SinceVersion:   "v2.0.0-alpha",
+		Milestone:      "v2.0 / R3",
+		Description:    "Profile legacy execution and rank candidate hot functions for migration",
 	},
 	{
 		Name:           "gate",

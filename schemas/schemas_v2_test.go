@@ -843,6 +843,175 @@ func TestValidateV2_BenchReport(t *testing.T) {
 	}
 }
 
+func TestValidateV2_ProfileReport(t *testing.T) {
+	tests := []struct {
+		name        string
+		schemaName  string
+		payload     string
+		expectError bool
+	}{
+		{
+			name:       "valid profile report with full schema name",
+			schemaName: "profile.report.schema.json",
+			payload: `{
+				"schema_version": "v2",
+				"unit_id": "unit_math_py",
+				"language": "python",
+				"profiler": "cProfile",
+				"total_duration_ms": 12500.0,
+				"top": 5,
+				"candidates": [
+					{
+						"rank": 1,
+						"function_name": "compute_factors",
+						"file": "math_service/factors.py",
+						"line": 42,
+						"self_percent": 68.5,
+						"cumulative_percent": 72.0,
+						"call_count": 50000,
+						"is_pure_heuristic": true,
+						"purity_reason": "no global mutations, no I/O calls identified in AST"
+					}
+				],
+				"summary": "Top hotspot compute_factors consumes 68.5% self CPU time",
+				"timestamp": "2026-11-23T11:20:00Z"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "valid profile report using shorthand schema name",
+			schemaName: "profile.report",
+			payload: `{
+				"unit_id": "unit_tokenizer_ts",
+				"language": "typescript",
+				"profiler": "v8_cpuprofile",
+				"total_duration_ms": 8000.0,
+				"top": 3,
+				"candidates": [
+					{
+						"rank": 1,
+						"function_name": "tokenizeWord",
+						"file": "src/tokenizer.ts",
+						"self_percent": 55.0,
+						"cumulative_percent": 55.0,
+						"call_count": 120000,
+						"is_pure_heuristic": true,
+						"purity_reason": "pure string-to-token transformation without side effects"
+					}
+				],
+				"summary": "tokenizeWord is primary hotspot",
+				"timestamp": "2026-11-23T11:25:00Z"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "missing unit_id",
+			schemaName: "profile.report.schema.json",
+			payload: `{
+				"language": "python",
+				"profiler": "cProfile",
+				"total_duration_ms": 1000.0,
+				"top": 1,
+				"candidates": [],
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "missing candidates field",
+			schemaName: "profile.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"language": "python",
+				"profiler": "cProfile",
+				"total_duration_ms": 1000.0,
+				"top": 1,
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "candidate missing required function_name",
+			schemaName: "profile.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"language": "python",
+				"profiler": "cProfile",
+				"total_duration_ms": 1000.0,
+				"top": 1,
+				"candidates": [
+					{
+						"rank": 1,
+						"file": "foo.py",
+						"self_percent": 50.0,
+						"cumulative_percent": 50.0,
+						"call_count": 10,
+						"is_pure_heuristic": false,
+						"purity_reason": "none"
+					}
+				],
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "self_percent out of range (> 100)",
+			schemaName: "profile.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"language": "python",
+				"profiler": "cProfile",
+				"total_duration_ms": 1000.0,
+				"top": 1,
+				"candidates": [
+					{
+						"rank": 1,
+						"function_name": "fn",
+						"file": "foo.py",
+						"self_percent": 105.0,
+						"cumulative_percent": 105.0,
+						"call_count": 10,
+						"is_pure_heuristic": false,
+						"purity_reason": "none"
+					}
+				],
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "top less than 1",
+			schemaName: "profile.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"language": "python",
+				"profiler": "cProfile",
+				"total_duration_ms": 1000.0,
+				"top": 0,
+				"candidates": [],
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2(tt.schemaName, []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateV2_UnknownSchema(t *testing.T) {
 	err := schemas.ValidateV2("does_not_exist.schema.json", []byte(`{}`))
 	require.Error(t, err)
