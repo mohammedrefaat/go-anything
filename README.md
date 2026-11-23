@@ -14,6 +14,7 @@
   </p>
 
   <p>
+    <a href="#installation--verification">Installation</a> ·
     <a href="#5-minute-vertical-slice-quickstart">Quickstart</a> ·
     <a href="Docs/USER_GUIDE.md">User Guide</a> ·
     <a href="#how-it-works">How it works</a> ·
@@ -48,6 +49,7 @@
 - [How it works](#how-it-works)
 - [Why go-anything?](#why-go-anything)
 - [Explicit Parity Disclaimer](#explicit-parity-disclaimer)
+- [Installation & Verification](#installation--verification)
 - [5-Minute Vertical-Slice Quickstart](#5-minute-vertical-slice-quickstart)
 - [Milestone Roadmap (M0–M7)](#milestone-roadmap-m0m7)
 - [Known Limitations](#known-limitations)
@@ -103,6 +105,107 @@ flowchart LR
 
 ---
 
+## Installation & Verification
+
+`go-anything` is distributed as signed, zero-dependency standalone binaries, as well as via the Go toolchain. Full platform matrix, checksums, and keyless Sigstore Cosign verification instructions are documented in [Docs/install.md](Docs/install.md).
+
+### Prebuilt Binaries
+
+Download prebuilt binaries for your platform from [GitHub Releases](https://github.com/mohammedrefat/go-anything/releases):
+
+| Platform | Architecture | Binary / Archive |
+| :--- | :--- | :--- |
+| **Linux** | `amd64`, `arm64` | `go-anything_<version>_linux_<arch>.tar.gz` |
+| **macOS** | `arm64` (Apple Silicon), `amd64` (Intel) | `go-anything_<version>_darwin_<arch>.tar.gz` |
+| **Windows** | `amd64` | `go-anything_<version>_windows_amd64.zip` |
+
+#### Linux & macOS (Bash / Zsh)
+
+```bash
+VERSION="1.0.0"
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+RELEASE_URL="https://github.com/mohammedrefat/go-anything/releases/download/v${VERSION}"
+ARTIFACT="go-anything_${VERSION}_${OS}_${ARCH}.tar.gz"
+
+# Download archive, checksums, and signature
+curl -fsSL -O "${RELEASE_URL}/${ARTIFACT}"
+curl -fsSL -O "${RELEASE_URL}/checksums.txt"
+curl -fsSL -O "${RELEASE_URL}/checksums.txt.sigstore.json"
+
+# Verify cryptographic signature via Cosign (Keyless Sigstore)
+cosign verify-blob \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp "^https://github\\.com/mohammedrefat/go-anything/\\.github/workflows/release\\.yml@refs/tags/v.*$" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  checksums.txt
+
+# Verify SHA-256 checksum
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256sum --ignore-missing -c checksums.txt
+else
+  shasum -a 256 --ignore-missing -c checksums.txt
+fi
+
+# Extract and install
+tar -xzf "${ARTIFACT}" go-anything
+sudo install -m 0755 go-anything /usr/local/bin/go-anything
+```
+
+#### Windows (PowerShell)
+
+```powershell
+$Version = "1.0.0"
+$ReleaseUrl = "https://github.com/mohammedrefat/go-anything/releases/download/v$Version"
+$Artifact = "go-anything_${Version}_windows_amd64.zip"
+
+Invoke-WebRequest -Uri "$ReleaseUrl/$Artifact" -OutFile $Artifact
+Invoke-WebRequest -Uri "$ReleaseUrl/checksums.txt" -OutFile "checksums.txt"
+Invoke-WebRequest -Uri "$ReleaseUrl/checksums.txt.sigstore.json" -OutFile "checksums.txt.sigstore.json"
+
+# Verify signature with Cosign (if installed)
+if (Get-Command cosign -ErrorAction SilentlyContinue) {
+    cosign verify-blob `
+      --bundle checksums.txt.sigstore.json `
+      --certificate-identity-regexp "^https://github\.com/mohammedrefat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" `
+      --certificate-oidc-issuer "https://token.actions.githubusercontent.com" `
+      checksums.txt
+}
+
+# Verify SHA-256 hash
+$expected = (Get-Content checksums.txt | Select-String $Artifact).Line.Split(" ")[0].ToLower()
+$actual = (Get-FileHash -Algorithm SHA256 $Artifact).Hash.ToLower()
+if ($expected -ne $actual) { throw "Checksum mismatch!" }
+
+# Extract and install
+Expand-Archive -Path $Artifact -DestinationPath .\go-anything-bin -Force
+$targetDir = "$HOME\bin"
+if (!(Test-Path $targetDir)) { New-Item -ItemType Directory -Path $targetDir }
+Move-Item .\go-anything-bin\go-anything.exe "$targetDir\go-anything.exe" -Force
+```
+
+### Install via Go Toolchain (`go install`)
+
+If Go 1.26+ is installed:
+
+```bash
+go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
+```
+
+### Verification & Health Check
+
+Verify the CLI binary and check system readiness:
+
+```bash
+go-anything version
+# Output: go-anything v1.0.0 (profile: full, jobs: 8)
+
+go-anything doctor
+# Output: [PASS] workspace clean, tools available, no stale leases
+```
+
+---
+
 ## 5-Minute Vertical-Slice Quickstart
 
 Follow this self-contained walkthrough from a clean machine to initializing a project, recording behavior, implementing a Go unit, passing the quality gate, and replaying cases **without human assistance**.
@@ -114,13 +217,15 @@ Follow this self-contained walkthrough from a clean machine to initializing a pr
 
 ### Step 1: Install `go-anything`
 
-Clone the repository and build or install the CLI:
+Install the CLI using prebuilt binaries, `go install`, or from source (see [Installation & Verification](#installation--verification) or [Docs/install.md](Docs/install.md) for full instructions and cryptographic verification):
 
 ```bash
+# Option A: Go toolchain
+go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
+
+# Option B: Clone and install locally
 git clone https://github.com/mohammedrefat/go-anything.git
 cd go-anything
-
-# Install CLI binary into $GOPATH/bin
 go install ./cmd/go-anything
 
 # Verify installation

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,6 +13,7 @@ import (
 )
 
 var linkRegex = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
+var htmlLinkRegex = regexp.MustCompile(`(?i)<a\s+[^>]*href=["']([^"']+)["'][^>]*>`)
 var headerRegex = regexp.MustCompile(`(?m)^#{1,6}\s+(.+)$`)
 
 func slugify(header string) string {
@@ -36,13 +38,13 @@ func slugify(header string) string {
 	return strings.Trim(b.String(), "-")
 }
 
-func TestREADME_LinksAndAnchors(t *testing.T) {
-	readmePath := filepath.Join("..", "..", "README.md")
-	if _, err := os.Stat(readmePath); os.IsNotExist(err) {
-		readmePath = "README.md"
+func verifyDocLinks(t *testing.T, relPath string) {
+	docPath := relPath
+	if _, err := os.Stat(docPath); os.IsNotExist(err) {
+		docPath = filepath.Join("..", "..", relPath)
 	}
-	contentBytes, err := os.ReadFile(readmePath)
-	require.NoError(t, err)
+	contentBytes, err := os.ReadFile(docPath)
+	require.NoError(t, err, "Failed to read doc file %s", docPath)
 	content := string(contentBytes)
 
 	// Collect all anchors/headings
@@ -54,24 +56,46 @@ func TestREADME_LinksAndAnchors(t *testing.T) {
 		anchors[slug] = true
 	}
 
-	matches := linkRegex.FindAllStringSubmatch(content, -1)
-	require.NotEmpty(t, matches)
+	repoRoot := filepath.Dir(docPath)
+	if filepath.Base(filepath.Dir(docPath)) == "Docs" {
+		repoRoot = filepath.Dir(filepath.Dir(docPath))
+	} else if filepath.Base(docPath) == "README.md" {
+		repoRoot = filepath.Dir(docPath)
+	}
 
-	repoRoot := filepath.Dir(readmePath)
+	type linkItem struct {
+		text   string
+		target string
+	}
+	var links []linkItem
 
-	for _, m := range matches {
-		target := m[2]
-		linkText := m[1]
+	// Markdown links
+	mdMatches := linkRegex.FindAllStringSubmatch(content, -1)
+	for _, m := range mdMatches {
+		links = append(links, linkItem{text: m[1], target: m[2]})
+	}
+
+	// HTML links (<a href="...">)
+	htmlMatches := htmlLinkRegex.FindAllStringSubmatch(content, -1)
+	for _, m := range htmlMatches {
+		links = append(links, linkItem{text: "html-link", target: m[1]})
+	}
+
+	require.NotEmpty(t, links)
+
+	for _, l := range links {
+		target := l.target
+		linkText := l.text
 
 		// Skip external HTTP/HTTPS links
 		if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
 			continue
 		}
 
-		// Anchor link
+		// Anchor link in same document
 		if strings.HasPrefix(target, "#") {
 			anchor := strings.TrimPrefix(target, "#")
-			assert.True(t, anchors[anchor], "Broken anchor %q for text %q in README.md", target, linkText)
+			assert.True(t, anchors[anchor], "Broken anchor %q for text %q in %s", target, linkText, relPath)
 			continue
 		}
 
@@ -81,9 +105,28 @@ func TestREADME_LinksAndAnchors(t *testing.T) {
 			filePath = filePath[:idx]
 		}
 
-		// Check file existence
+		// URL unescape in case of %20, %26 etc.
+		unescapedPath, err := url.PathUnescape(filePath)
+		if err == nil {
+			filePath = unescapedPath
+		}
+
+		// Check file existence relative to repoRoot
 		fullPath := filepath.Join(repoRoot, filepath.FromSlash(filePath))
-		_, err := os.Stat(fullPath)
-		assert.NoError(t, err, "Broken file link %q for text %q in README.md (resolved to %s)", target, linkText, fullPath)
+		if _, err := os.Stat(fullPath); err != nil {
+			// Also try relative to the doc's directory
+			altPath := filepath.Join(filepath.Dir(docPath), filepath.FromSlash(filePath))
+			if _, errAlt := os.Stat(altPath); errAlt != nil {
+				assert.NoError(t, err, "Broken file link %q for text %q in %s (resolved to %s)", target, linkText, relPath, fullPath)
+			}
+		}
 	}
+}
+
+func TestREADME_LinksAndAnchors(t *testing.T) {
+	verifyDocLinks(t, "README.md")
+}
+
+func TestInstallDoc_LinksAndAnchors(t *testing.T) {
+	verifyDocLinks(t, filepath.Join("Docs", "install.md"))
 }
