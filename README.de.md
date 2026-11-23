@@ -42,6 +42,11 @@
 
 ---
 
+> [!NOTE]
+> Diese lokalisierte Dokumentation entspricht dem Release **v1.0.0** und kann hinter der kanonischen englischen Spezifikation in [README.md](README.md) (v1.0.1+) zurückbleiben.
+
+---
+
 ## Auf dieser Seite
 
 - [Funktionsweise](#funktionsweise)

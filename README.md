@@ -37,6 +37,7 @@
     <a href="README.hi.md">हिन्दी</a> ·
     <a href="README.ko.md">한국어</a>
   </p>
+  <p><em>Note: Localized documentation files (<code>README.&lt;lang&gt;.md</code>) correspond to release <strong>v1.0.0</strong> and may lag the canonical English specification (v1.0.1+).</em></p>
 
 </div>
 
@@ -49,6 +50,7 @@
 - [Explicit Parity Disclaimer](#explicit-parity-disclaimer)
 - [5-Minute Vertical-Slice Quickstart](#5-minute-vertical-slice-quickstart)
 - [Milestone Roadmap (M0–M7)](#milestone-roadmap-m0m7)
+- [Known Limitations](#known-limitations)
 - [Autonomous Agent & MCP Workflow](#autonomous-agent--mcp-workflow)
 - [Architecture & Design Principles](#architecture--design-principles)
 - [Repository Map](#repository-map)
@@ -280,18 +282,33 @@ go-anything lift unit-healthcheck
 
 ## Milestone Roadmap (M0–M7)
 
-All core milestones from initial architecture through v1.0.0 have been fully implemented and verified:
+All core milestones from initial architecture through v1.0.0 have been fully implemented, proven by automated test suites, and verified:
 
-| Milestone | Release | Scope & Deliverables | Exit Gate Status |
-| :--- | :--- | :--- | :--- |
-| **M0: Foundation** | `v0.0.x` | State machine (10 states), atomic I/O, file locks, fail-closed redactor, sandbox, CLI skeleton, ADR-001/002. | ✅ **Passed:** `go-anything init` + `doctor` pass with clean validation. |
-| **M1: Sandboxed Replay** | `v0.0.x` | Dual-run volatility detection, multi-mode comparator (exact, json, numeric, regex), concurrent replay engine. | ✅ **Passed:** 100% replay across 3 identical consecutive runs. |
-| **M2: Front Door & Lift** | `v0.0.x` | Reverse proxy front door, emergency kill-switch (`KILL_SWITCH=1`), fallback monitoring, and `lift` command. | ✅ **Passed:** Full strangler lifecycle on demo CLI & HTTP applications. |
-| **M3: Go Source Adapter** | `v0.1.0` | Go AST analyzer, type resolution, call graph dependency wave planner, `go-anything modernize` workflow. | ✅ **Passed:** Real Go service ported with 0 mismatches. |
-| **M4: Quality Gate & MCP** | `v0.1.0` | 6-check toolchain quality gate runner, scorecard engine, stdio MCP server (8 tools) with payload sanitization. | ✅ **Passed:** Autonomous AI agent ports a complete unit unaided. |
-| **M5: Shadow & Capture** | `v0.1.0` | Real-time traffic shadowing, bounded pool with overflow counters, idempotent-only GET/HEAD default, capture ingestion. | ✅ **Passed:** Clean shadow log on live traffic + dogfood case study. |
-| **M6: Python Adapter** | `v0.2.0` | Python source adapter (AST import analysis, pytest discovery, Subprocess, HTTP, C-Shared transports, foreign library wrappers). | ✅ **Passed:** Python CLI and FastAPI HTTP service ported + conformance suite pass. |
-| **M7: TypeScript & Freeze** | `v1.0.0` | TypeScript/Node adapter (ESM/CommonJS, Jest/Vitest), `schemas/v1/` freeze, `go-anything migrate`, `GOVERNANCE.md`. | ✅ **Passed:** Multi-unit open-source project fully lifted with zero fallback traffic. |
+| Milestone | Release | Proving CLI Command(s) | Proving Test File(s) | Scope & Deliverables | Exit Gate Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **M0: Foundation** | `v0.0.x` | [`init`](cmd/go-anything/init.go), [`doctor`](cmd/go-anything/doctor.go), [`status`](cmd/go-anything/status.go), [`template`](cmd/go-anything/template.go) | [`cmd/go-anything/cli_test.go`](cmd/go-anything/cli_test.go) | State machine (10 states), atomic I/O, file locks, fail-closed redactor, sandbox, CLI skeleton, ADR-001/002. | ✅ **Passed:** `go-anything init` + `doctor` pass with clean validation. |
+| **M1: Sandboxed Replay** | `v0.0.x` | [`record`](cmd/go-anything/record.go), [`replay`](cmd/go-anything/replay.go), [`diff`](cmd/go-anything/diff.go) | [`cmd/go-anything/e2e_m1_test.go`](cmd/go-anything/e2e_m1_test.go) | Dual-run volatility detection, multi-mode comparator (exact, json, numeric, regex), concurrent replay engine. | ✅ **Passed:** 100% replay across 3 identical consecutive runs. |
+| **M2: Front Door & Lift** | `v0.0.x` | [`verify`](cmd/go-anything/verify.go), [`approve`](cmd/go-anything/approve.go), [`promote`](cmd/go-anything/promote.go), [`cutover`](cmd/go-anything/cutover.go), [`lift`](cmd/go-anything/lift.go) | [`cmd/go-anything/e2e_m2_test.go`](cmd/go-anything/e2e_m2_test.go), [`cmd/go-anything/verify_approve_promote_test.go`](cmd/go-anything/verify_approve_promote_test.go) | Reverse proxy front door, emergency kill-switch (`KILL_SWITCH=1`), fallback monitoring, and `lift` command. | ✅ **Passed:** Full strangler lifecycle on demo CLI & HTTP applications. |
+| **M3: Go Source Adapter** | `v0.1.0` | [`modernize`](cmd/go-anything/init.go), [`analyze`](cmd/go-anything/analyze.go) | [`cmd/go-anything/modernize_test.go`](cmd/go-anything/modernize_test.go), [`cmd/go-anything/dogfood_test.go`](cmd/go-anything/dogfood_test.go) | Go AST analyzer, type resolution, call graph dependency wave planner, `go-anything modernize` workflow. | ✅ **Passed:** Real Go service ported with 0 mismatches. |
+| **M4: Quality Gate & MCP** | `v0.1.0` | [`gate`](cmd/go-anything/gate.go), [`mcp`](cmd/go-anything/mcp.go) | [`cmd/go-anything/m4_acceptance_test.go`](cmd/go-anything/m4_acceptance_test.go), [`cmd/go-anything/mcp_test.go`](cmd/go-anything/mcp_test.go) | 6-check toolchain quality gate runner, scorecard engine, stdio MCP server (8 tools) with payload sanitization. | ✅ **Passed:** Autonomous AI agent ports a complete unit unaided. |
+| **M5: Shadow & Capture** | `v0.1.0` | [`shadow`](cmd/go-anything/shadow.go) | [`cmd/go-anything/m5_acceptance_test.go`](cmd/go-anything/m5_acceptance_test.go) | Real-time traffic shadowing, bounded pool with overflow counters, idempotent-only GET/HEAD default, capture ingestion. | ✅ **Passed:** Clean shadow log on live traffic + dogfood case study. |
+| **M6: Python Adapter** | `v0.2.0` | [`init --source=python`](cmd/go-anything/init.go) | [`cmd/go-anything/m6_acceptance_test.go`](cmd/go-anything/m6_acceptance_test.go) | Python source adapter (AST import analysis, pytest discovery, Subprocess, HTTP, C-Shared transports, foreign library wrappers). | ✅ **Passed:** Python CLI and FastAPI HTTP service ported + conformance suite pass. |
+| **M7: TypeScript & Freeze** | `v1.0.0` | [`migrate`](cmd/go-anything/migrate.go), [`init --source=typescript`](cmd/go-anything/init.go) | [`cmd/go-anything/m7_acceptance_test.go`](cmd/go-anything/m7_acceptance_test.go), [`cmd/go-anything/migrate_test.go`](cmd/go-anything/migrate_test.go) | TypeScript/Node adapter (ESM/CommonJS, Jest/Vitest), `schemas/v1/` freeze, `go-anything migrate`, `GOVERNANCE.md`. | ✅ **Passed:** Multi-unit open-source project fully lifted with zero fallback traffic. |
+
+---
+
+## Known Limitations
+
+1. **CGO and Data Race Detector Host Requirements:**
+   The `full` verification profile runs `go test -race`, which requires CGO and a host C compiler (GCC/Clang on Linux/macOS, MinGW-w64 on Windows). In CGO-free or cross-compiled environments (`CGO_ENABLED=0`), the race detector check is skipped (`StatusSkipped`). Environments without a C compiler should specify the `--profile=replay` evidence profile or provision a C toolchain.
+2. **Behavioral Parity Claim Boundary (Rule R-6):**
+   `go-anything` claims behavioral equivalence **strictly and only for recorded, observed, and fuzzed inputs** (happy paths, edge cases, semantic traps, and captured production fixtures). It does **not** provide a mathematical proof or blanket assertion of universal semantic parity across unobserved, non-tested execution paths. Teams must review diffs, test vectors, and coverage scorecards before approving cutover.
+3. **Sandbox Isolation Tiers (ADR-001):**
+   Full kernel-level namespace isolation (network, mount, pid, ipc namespaces via Linux `unshare`/cgroups) is available as **Tier 1** on Linux hosts. On macOS and Windows environments, **Tier 2** best-effort process isolation is applied: restrictive environment variable allowlisting, local temporary directory virtualization, non-zero timeout enforcement, and loopback binding guards. Bare-metal network hardware isolation is not guaranteed under Tier 2; use containerized or Linux CI runners for strict sandbox isolation.
+4. **Python C-Shared Extension Status:**
+   CPython C-Shared library in-process invocation (`adapters/source/python/cshared`) is experimental due to CPython Global Interpreter Lock (GIL) constraints, signal trapping, and thread-safety pitfalls across Go runtimes. For production Python migrations, the Subprocess and HTTP sidecar transports (`adapters/application/cli` and `adapters/application/http`) are the recommended, supported approaches.
+5. **Strict Human-Only Control Boundaries (Execution Rule 4):**
+   Altering live production routing tables, approving migration units, and permanently retiring legacy original code via `lift` are strictly human-only CLI operations (`approve`, `promote`, `lift`, `cutover`, `shadow`). These commands are intentionally excluded from the MCP agent server interface and cannot be invoked or forged by autonomous agents.
 
 ---
 
