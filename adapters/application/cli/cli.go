@@ -47,13 +47,21 @@ func WithEnv(env map[string]string) Option {
 	}
 }
 
+// WithAllowNetwork allows outbound/loopback network access in the sandbox.
+func WithAllowNetwork(allow bool) Option {
+	return func(a *Adapter) {
+		a.allowNetwork = allow
+	}
+}
+
 // Adapter executes black-box CLI applications and implements adapterkit.Replay.
 type Adapter struct {
-	binaryPath string
-	workingDir string
-	timeout    time.Duration
-	env        map[string]string
-	sandbox    sandbox.Runner
+	binaryPath   string
+	workingDir   string
+	timeout      time.Duration
+	env          map[string]string
+	sandbox      sandbox.Runner
+	allowNetwork bool
 }
 
 // NewAdapter creates a new CLI application adapter.
@@ -135,12 +143,23 @@ func (a *Adapter) Execute(ctx context.Context, input adapterkit.CaseInput) (*ada
 		mergedEnv[k] = v
 	}
 
+	allowNet := a.allowNetwork
+	if _, ok := mergedEnv["HTTP_PROXY"]; ok {
+		allowNet = true
+	}
+	if _, ok := mergedEnv["SMTP_PORT"]; ok {
+		allowNet = true
+	}
+	if _, ok := mergedEnv["SMTP_SERVER"]; ok {
+		allowNet = true
+	}
+
 	sandboxCfg := sandbox.Config{
 		Command:         command,
 		Args:            args,
 		WorkingDir:      a.workingDir,
 		TempWorkingCopy: true,
-		AllowNetwork:    false,
+		AllowNetwork:    allowNet,
 		Timeout:         a.timeout,
 		CustomEnv:       mergedEnv,
 	}

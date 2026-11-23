@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -15,7 +16,9 @@ import (
 	"time"
 
 	"github.com/mohammedrefat/go-anything/internal/recorder"
+	"github.com/mohammedrefat/go-anything/internal/recorder/effects"
 	"github.com/mohammedrefat/go-anything/internal/recorder/fromtests"
+	"github.com/mohammedrefat/go-anything/internal/sandbox"
 	"github.com/mohammedrefat/go-anything/internal/state"
 	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
 )
@@ -32,6 +35,7 @@ Record baseline behavioral test cases in sandbox, from commands, HTTP endpoints,
 
 Flags:
   --unit, -u <id>        Migration unit identifier (required)
+  --effects              Record external side-effects (outbound HTTP requests and SMTP emails)
   --from-tests           Record behavioral cases by executing unit test suites
   --max-cases <N>        Maximum cases to ingest from tests (default: 500)
   --cmd, -c <cmd>        CLI command to execute and record
@@ -51,6 +55,7 @@ Exit Codes:
 	unitID := fs.String("unit", "", "Migration unit identifier to record cases for (required)")
 	fs.StringVar(unitID, "u", "", "Migration unit identifier (shorthand)")
 
+	effectsFlag := fs.Bool("effects", false, "Record external side-effects (outbound HTTP requests and SMTP emails)")
 	fromTests := fs.Bool("from-tests", false, "Record behavioral cases by executing unit test suites")
 	maxCases := fs.Int("max-cases", 500, "Maximum number of recorded cases to ingest from test run")
 
@@ -108,6 +113,16 @@ Exit Codes:
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	var effectsMgr *effects.Manager
+	if *effectsFlag {
+		var err error
+		effectsMgr, err = effects.NewManager()
+		if err != nil {
+			return exitErrorf(ExitCodeInternal, "failed to initialize effects recording manager: %w", err)
+		}
+		defer effectsMgr.Close()
+	}
+
 	recordedCount := 0
 	var lastResult *recorder.RecordResult
 
@@ -130,6 +145,18 @@ Exit Codes:
 			"GO_ANYTHING_RECORD="+tempCaptureDir,
 			"GO_ANYTHING_UNIT="+*unitID,
 		)
+
+		if effectsMgr != nil {
+			for k, v := range effectsMgr.Env() {
+				env = append(env, k+"="+v)
+				os.Setenv(k, v)
+			}
+			defer func() {
+				for k := range effectsMgr.Env() {
+					os.Unsetenv(k)
+				}
+			}()
+		}
 
 		// Inject pytest plugin if available
 		repoRoot := findRepoRoot()
@@ -194,7 +221,15 @@ Exit Codes:
 		command := tokens[0]
 		cmdArgs := tokens[1:]
 
-		res, err := rec.RecordCommand(ctx, *unitID, command, cmdArgs, kind)
+		input := adapterkit.CaseInput{
+			Argv: append([]string{command}, cmdArgs...),
+		}
+		if effectsMgr != nil {
+			input.Env = effectsMgr.Env()
+		}
+
+		execFn := createCommandExecutionFunc(sandbox.New(), command, cmdArgs, absPath, effectsMgr)
+		res, err := rec.RecordCase(ctx, *unitID, input, kind, execFn)
 		if err != nil {
 			return exitErrorf(ExitCodeInternal, "command recording failed: %w", err)
 		}
@@ -211,7 +246,15 @@ Exit Codes:
 		if err != nil {
 			return exitErrorf(ExitCodeUsage, "failed to parse curl command: %w", err)
 		}
-		execFn := createHTTPExecutionFunc(input.Path)
+		if effectsMgr != nil {
+			if input.Env == nil {
+				input.Env = make(map[string]string)
+			}
+			for k, v := range effectsMgr.Env() {
+				input.Env[k] = v
+			}
+		}
+		execFn := createHTTPExecutionFunc(input.Path, effectsMgr)
 		res, err := rec.RecordCase(ctx, *unitID, *input, kind, execFn)
 		if err != nil {
 			return exitErrorf(ExitCodeInternal, "HTTP recording failed: %w", err)
@@ -229,7 +272,10 @@ Exit Codes:
 			Method: "GET",
 			Path:   *urlStr,
 		}
-		execFn := createHTTPExecutionFunc(*urlStr)
+		if effectsMgr != nil {
+			input.Env = effectsMgr.Env()
+		}
+		execFn := createHTTPExecutionFunc(*urlStr, effectsMgr)
 		res, err := rec.RecordCase(ctx, *unitID, input, kind, execFn)
 		if err != nil {
 			return exitErrorf(ExitCodeInternal, "HTTP recording failed: %w", err)
@@ -251,6 +297,9 @@ Exit Codes:
 		fmt.Fprintf(stdout, "Recorded %d case(s) for unit %q into .go-anything/cases/%s.jsonl\n", recordedCount, *unitID, *unitID)
 		if lastResult != nil && len(lastResult.Wildcards) > 0 {
 			fmt.Fprintf(stdout, "Detected %d volatile field(s) merged into .go-anything/rules.json\n", len(lastResult.Wildcards))
+		}
+		if *effectsFlag && lastResult != nil && len(lastResult.Case.ExpectedOutput.Effects) > 0 {
+			fmt.Fprintf(stdout, "Recorded %d side effect(s) on baseline case\n", len(lastResult.Case.ExpectedOutput.Effects))
 		}
 	}
 
@@ -275,9 +324,88 @@ func findRepoRoot() string {
 	return "."
 }
 
-func createHTTPExecutionFunc(targetURL string) recorder.ExecutionFunc {
+func createCommandExecutionFunc(runner sandbox.Runner, command string, cmdArgs []string, workDir string, effectsMgr *effects.Manager) recorder.ExecutionFunc {
+	return func(ctx context.Context, in adapterkit.CaseInput) (*adapterkit.CaseOutput, error) {
+		if effectsMgr != nil {
+			effectsMgr.Reset()
+		}
+
+		cmdToRun := command
+		argsToRun := cmdArgs
+		if len(in.Argv) > 0 {
+			cmdToRun = in.Argv[0]
+			argsToRun = in.Argv[1:]
+		}
+
+		var customEnv map[string]string
+		allowNetwork := false
+		if effectsMgr != nil {
+			customEnv = make(map[string]string)
+			for k, v := range effectsMgr.Env() {
+				customEnv[k] = v
+			}
+			allowNetwork = true
+		}
+
+		if len(in.Env) > 0 {
+			if customEnv == nil {
+				customEnv = make(map[string]string)
+			}
+			for k, v := range in.Env {
+				customEnv[k] = v
+			}
+		}
+
+		sandboxCfg := sandbox.Config{
+			Command:         cmdToRun,
+			Args:            argsToRun,
+			WorkingDir:      workDir,
+			TempWorkingCopy: true,
+			AllowNetwork:    allowNetwork,
+			CustomEnv:       customEnv,
+			Timeout:         15 * time.Second,
+		}
+
+		res, err := runner.Run(ctx, sandboxCfg)
+		if err != nil && !errors.Is(err, sandbox.ErrTimeout) {
+			return nil, err
+		}
+
+		output := &adapterkit.CaseOutput{
+			Stdout:   res.Stdout,
+			Stderr:   res.Stderr,
+			ExitCode: res.ExitCode,
+		}
+
+		if res.TimedOut {
+			output.ErrorMessage = "execution timed out"
+		} else if res.ExitCode != 0 {
+			output.ErrorMessage = res.Stderr
+		}
+
+		var parsed any
+		if json.Unmarshal([]byte(res.Stdout), &parsed) == nil {
+			output.Body = parsed
+		}
+
+		if effectsMgr != nil {
+			output.Effects = effectsMgr.Effects()
+		}
+
+		return output, nil
+	}
+}
+
+func createHTTPExecutionFunc(targetURL string, effectsMgr *effects.Manager) recorder.ExecutionFunc {
 	client := &http.Client{Timeout: 10 * time.Second}
 	return func(ctx context.Context, in adapterkit.CaseInput) (*adapterkit.CaseOutput, error) {
+		if effectsMgr != nil {
+			effectsMgr.Reset()
+			for k, v := range effectsMgr.Env() {
+				os.Setenv(k, v)
+			}
+		}
+
 		method := in.Method
 		if method == "" {
 			method = "GET"
@@ -328,6 +456,11 @@ func createHTTPExecutionFunc(targetURL string) recorder.ExecutionFunc {
 			Headers:    headers,
 			Body:       string(respBytes),
 		}
+
+		if effectsMgr != nil {
+			out.Effects = effectsMgr.Effects()
+		}
+
 		return out, nil
 	}
 }

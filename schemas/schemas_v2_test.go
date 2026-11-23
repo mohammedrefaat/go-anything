@@ -1012,6 +1012,129 @@ func TestValidateV2_ProfileReport(t *testing.T) {
 	}
 }
 
+func TestValidateV2_Effects(t *testing.T) {
+	tests := []struct {
+		name        string
+		schemaName  string
+		payload     string
+		expectError bool
+	}{
+		{
+			name:       "valid effects container with http, smtp, and generic effects",
+			schemaName: "effects.schema.json",
+			payload: `{
+				"schema_version": "v2",
+				"unit_id": "unit_checkout",
+				"case_id": "case_001",
+				"total_effects": 3,
+				"effects": [
+					{
+						"type": "http",
+						"order": 0,
+						"target": "https://api.stripe.com/v1/charges",
+						"method": "POST",
+						"headers": {
+							"Authorization": "Bearer REDACTED"
+						},
+						"body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+						"count": 1
+					},
+					{
+						"type": "smtp",
+						"order": 1,
+						"target": "smtp.sendgrid.net:587",
+						"envelope_from": "receipts@example.com",
+						"envelope_to": ["user@example.com"],
+						"subject": "Payment Receipt",
+						"count": 1
+					},
+					{
+						"type": "generic",
+						"order": 2,
+						"target": "redis://cache:6379",
+						"count": 1
+					}
+				],
+				"summary": "3 recorded side effects"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "valid direct array of effects using shorthand schema name",
+			schemaName: "effects",
+			payload: `[
+				{
+					"type": "http",
+					"order": 1,
+					"target": "https://api.example.com/v1/notify",
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body_hash": "a1b2c3d4e5f67890123456789012345678901234567890123456789012345678",
+					"count": 1
+				}
+			]`,
+			expectError: false,
+		},
+		{
+			name:       "invalid effect type",
+			schemaName: "effects.schema.json",
+			payload: `[
+				{
+					"type": "ftp",
+					"order": 0,
+					"target": "ftp://files.example.com"
+				}
+			]`,
+			expectError: true,
+		},
+		{
+			name:       "negative order",
+			schemaName: "effects.schema.json",
+			payload: `[
+				{
+					"type": "http",
+					"order": -1,
+					"target": "https://example.com"
+				}
+			]`,
+			expectError: true,
+		},
+		{
+			name:       "missing target in effect object",
+			schemaName: "effects.schema.json",
+			payload: `[
+				{
+					"type": "http",
+					"order": 0
+				}
+			]`,
+			expectError: true,
+		},
+		{
+			name:       "container object missing effects array",
+			schemaName: "effects.schema.json",
+			payload: `{
+				"unit_id": "unit_checkout",
+				"total_effects": 0
+			}`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2(tt.schemaName, []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateV2_UnknownSchema(t *testing.T) {
 	err := schemas.ValidateV2("does_not_exist.schema.json", []byte(`{}`))
 	require.Error(t, err)

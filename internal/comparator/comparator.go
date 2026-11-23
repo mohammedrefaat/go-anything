@@ -19,6 +19,7 @@ const (
 	ModeErrorEquivalence   = "error_equivalence"
 	ModeHTTPContract       = "http_contract"
 	ModeFilesystemSnapshot = "filesystem_snapshot"
+	ModeEffectMultiset     = "effect_multiset"
 )
 
 // ComparisonResult represents the outcome of comparing behavioral outputs.
@@ -107,6 +108,14 @@ func (c *Comparator) Compare(mode string, expected, actual any) (*ComparisonResu
 		}
 		mismatches = c.compareFilesystemSnapshot(expMap, actMap)
 
+	case ModeEffectMultiset:
+		expEffects, err1 := toEffects(expected)
+		actEffects, err2 := toEffects(actual)
+		if err1 != nil || err2 != nil {
+			return nil, fmt.Errorf("effect_multiset requires []adapterkit.Effect inputs: expErr=%v, actErr=%v", err1, err2)
+		}
+		mismatches = c.CompareEffectMultiset(expEffects, actEffects)
+
 	default:
 		return nil, fmt.Errorf("unsupported comparison mode: %q", mode)
 	}
@@ -181,8 +190,24 @@ func (c *Comparator) CompareCaseOutput(mode string, expected, actual *adapterkit
 			})
 		}
 
+	case ModeEffectMultiset:
+		if expected != nil && actual != nil {
+			mismatches = c.CompareEffectMultiset(expected.Effects, actual.Effects)
+		} else if expected != nil || actual != nil {
+			mismatches = append(mismatches, adapterkit.Mismatch{
+				Path:    "effects",
+				Message: "missing CaseOutput payload for effect comparison",
+			})
+		}
+
 	default:
 		return nil, fmt.Errorf("unsupported mode for CaseOutput: %q", mode)
+	}
+
+	// When not in ModeEffectMultiset, if either expected or actual produced side effects,
+	// also validate effect equivalence to ensure no unexpected or missing side effects.
+	if mode != ModeEffectMultiset && expected != nil && actual != nil && (len(expected.Effects) > 0 || len(actual.Effects) > 0) {
+		mismatches = append(mismatches, c.CompareEffectMultiset(expected.Effects, actual.Effects)...)
 	}
 
 	// Deterministic sorting (Rule 2)
@@ -254,4 +279,26 @@ func (c *Comparator) SaveMismatchCase(targetDir, unitID, caseID string, input *a
 	}
 
 	return fullPath, nil
+}
+
+func toEffects(v any) ([]adapterkit.Effect, error) {
+	if v == nil {
+		return nil, nil
+	}
+	switch val := v.(type) {
+	case []adapterkit.Effect:
+		return val, nil
+	case adapterkit.Effect:
+		return []adapterkit.Effect{val}, nil
+	default:
+		data, err := json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		var effs []adapterkit.Effect
+		if err := json.Unmarshal(data, &effs); err != nil {
+			return nil, err
+		}
+		return effs, nil
+	}
 }

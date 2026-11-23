@@ -107,6 +107,20 @@ type CaseInput struct {
 	Files   map[string]string `json:"files,omitempty"`
 }
 
+// Effect captures an observed outbound side effect (HTTP request, SMTP email, etc.).
+type Effect struct {
+	Type         string            `json:"type"` // "http", "smtp", "generic"
+	Order        int               `json:"order"`
+	Target       string            `json:"target"`
+	Method       string            `json:"method,omitempty"`
+	Headers      map[string]string `json:"headers,omitempty"`
+	BodyHash     string            `json:"body_hash,omitempty"`
+	EnvelopeFrom string            `json:"envelope_from,omitempty"`
+	EnvelopeTo   []string          `json:"envelope_to,omitempty"`
+	Subject      string            `json:"subject,omitempty"`
+	Count        int               `json:"count,omitempty"`
+}
+
 // CaseOutput defines the recorded output observed from execution.
 type CaseOutput struct {
 	StatusCode   int               `json:"status_code,omitempty"`
@@ -116,6 +130,7 @@ type CaseOutput struct {
 	Stderr       string            `json:"stderr,omitempty"`
 	ExitCode     int               `json:"exit_code,omitempty"`
 	ErrorMessage string            `json:"error_message,omitempty"`
+	Effects      []Effect          `json:"effects,omitempty"`
 }
 
 // Case represents a recorded behavioral case stored in .go-anything/cases/<unit>.jsonl.
@@ -130,6 +145,7 @@ type Case struct {
 	TrapType           string         `json:"trap_type,omitempty"`
 	Input              CaseInput      `json:"input"`
 	ExpectedOutput     CaseOutput     `json:"expected_output"`
+	Effects            []Effect       `json:"effects,omitempty"`
 	Wildcards          []string       `json:"wildcards,omitempty"`
 	UnreplayableFields []string       `json:"unreplayable_fields,omitempty"`
 	Metadata           map[string]any `json:"metadata,omitempty"`

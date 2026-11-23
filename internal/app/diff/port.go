@@ -8,9 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	cliadapter "github.com/mohammedrefat/go-anything/adapters/application/cli"
 	httpadapter "github.com/mohammedrefat/go-anything/adapters/application/http"
+	"github.com/mohammedrefat/go-anything/internal/comparator"
+	"github.com/mohammedrefat/go-anything/internal/recorder/effects"
 	"github.com/mohammedrefat/go-anything/internal/replay"
 	"github.com/mohammedrefat/go-anything/internal/state"
 	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
@@ -79,6 +82,25 @@ func (p *DefaultReplayComparatorPort) ReplayCases(ctx context.Context, unitID st
 	} else {
 		driver = cliadapter.NewAdapter(target)
 	}
+
+	hasEffects := mode == comparator.ModeEffectMultiset
+	if !hasEffects {
+		for _, c := range cases {
+			if c != nil && len(c.ExpectedOutput.Effects) > 0 {
+				hasEffects = true
+				break
+			}
+		}
+	}
+
+	if hasEffects {
+		effectsMgr, err := effects.NewManager()
+		if err != nil {
+			driver.Close()
+			return nil, fmt.Errorf("failed to start effects mock server: %w", err)
+		}
+		driver = newEffectsInterceptionDriver(driver, effectsMgr)
+	}
 	defer driver.Close()
 
 	var opts []replay.Option
@@ -94,4 +116,58 @@ func (p *DefaultReplayComparatorPort) ReplayCases(ctx context.Context, unitID st
 
 	engine := replay.New(opts...)
 	return engine.ReplayCases(ctx, unitID, cases, driver)
+}
+
+type effectsInterceptionDriver struct {
+	inner      adapterkit.Replay
+	effectsMgr *effects.Manager
+	mu         sync.Mutex
+}
+
+func newEffectsInterceptionDriver(inner adapterkit.Replay, mgr *effects.Manager) *effectsInterceptionDriver {
+	return &effectsInterceptionDriver{
+		inner:      inner,
+		effectsMgr: mgr,
+	}
+}
+
+func (d *effectsInterceptionDriver) DriverName() string {
+	return d.inner.DriverName()
+}
+
+func (d *effectsInterceptionDriver) ExecuteCase(ctx context.Context, testCase *adapterkit.Case) (*adapterkit.CaseOutput, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.effectsMgr.Reset()
+
+	tc := *testCase
+	inputEnv := make(map[string]string)
+	for k, v := range tc.Input.Env {
+		inputEnv[k] = v
+	}
+	for k, v := range d.effectsMgr.Env() {
+		inputEnv[k] = v
+		os.Setenv(k, v)
+	}
+	tc.Input.Env = inputEnv
+
+	out, err := d.inner.ExecuteCase(ctx, &tc)
+	if err != nil {
+		return nil, err
+	}
+	if out == nil {
+		out = &adapterkit.CaseOutput{}
+	}
+
+	out.Effects = d.effectsMgr.Effects()
+	return out, nil
+}
+
+func (d *effectsInterceptionDriver) Close() error {
+	for k := range d.effectsMgr.Env() {
+		os.Unsetenv(k)
+	}
+	d.effectsMgr.Close()
+	return d.inner.Close()
 }

@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/effects.schema.json",
+  "title": "EffectsRecord",
+  "description": "Side-effect recording capturing outbound HTTP calls, SMTP emails, or generic network effects during recorded test execution.",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": ["effects"],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "description": "Schema version identifier (e.g. 'v2')."
+        },
+        "unit_id": {
+          "type": "string",
+          "description": "Associated migration unit identifier."
+        },
+        "case_id": {
+          "type": "string",
+          "description": "Associated test case identifier."
+        },
+        "effects": {
+          "type": "array",
+          "description": "Ordered sequence of captured side effects.",
+          "items": {
+            "$ref": "#/$defs/effect"
+          }
+        },
+        "total_effects": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total count of captured side effects."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Summary description of captured effects."
+        }
+      }
+    },
+    {
+      "type": "array",
+      "description": "Ordered sequence of captured side effects.",
+      "items": {
+        "$ref": "#/$defs/effect"
+      }
+    }
+  ],
+  "$defs": {
+    "effect": {
+      "type": "object",
+      "required": [
+        "type",
+        "order",
+        "target"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "http",
+            "smtp",
+            "generic"
+          ],
+          "description": "Category of side effect."
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Sequence order index of this effect (0-indexed or 1-indexed)."
+        },
+        "target": {
+          "type": "string",
+          "description": "Destination endpoint (e.g. URL or host:port)."
+        },
+        "method": {
+          "type": "string",
+          "description": "HTTP request method (GET, POST, PUT, DELETE, etc.)."
+        },
+        "headers": {
+          "type": "object",
+          "description": "Outbound headers with sensitive values redacted.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "body_hash": {
+          "type": "string",
+          "description": "SHA-256 hash hex string of outbound payload body."
+        },
+        "envelope_from": {
+          "type": "string",
+          "description": "SMTP envelope sender address."
+        },
+        "envelope_to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "SMTP envelope recipient addresses."
+        },
+        "subject": {
+          "type": "string",
+          "description": "SMTP subject line."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Invocation count for identical batched effects."
+        }
+      }
+    }
+  }
+}

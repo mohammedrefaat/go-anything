@@ -25,7 +25,7 @@ Replay recorded behavioral test cases against ported target and report diffs.
 Flags:
   --unit, -u <id>      Migration unit identifier (required)
   --target, -t <url>   Target executable or HTTP base URL of ported Go service (required)
-  --mode, -m <mode>    Comparator mode ('exact', 'structural_json', 'http_contract', 'numeric_tolerance')
+  --mode, -m <mode>    Comparator mode ('exact', 'structural_json', 'http_contract', 'numeric_tolerance', 'effect_multiset')
   --jobs, -j <N>       Parallel replay workers (default: runtime.NumCPU())
   --case, -c <id>      Filter and test a single specific case ID
   --dir, -d <path>     Path to workspace repository root (default: '.')
