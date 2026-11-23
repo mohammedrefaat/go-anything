@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/gate.output.schema.json",
+  "title": "GateOutput",
+  "description": "Output schema for the go-anything gate command.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "profile",
+    "passed",
+    "checks"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Migration unit identifier evaluated by the gate."
+    },
+    "profile": {
+      "type": "string",
+      "description": "Verification evidence profile ('replay' or 'full')."
+    },
+    "passed": {
+      "type": "boolean",
+      "description": "Whether all required quality checks passed."
+    },
+    "commit_sha": {
+      "type": "string",
+      "description": "Git commit SHA to which evidence is tied."
+    },
+    "duration_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total gate execution time in milliseconds."
+    },
+    "checks": {
+      "type": "array",
+      "description": "Individual quality gate checks executed.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Check identifier (e.g. build, vet, staticcheck, race, replay, api_compat)."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "skipped"
+            ],
+            "description": "Execution status of the check."
+          },
+          "duration_ms": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Check execution duration in milliseconds."
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of diagnostic issues, warnings, or errors identified."
+          },
+          "output": {
+            "type": "string",
+            "description": "Raw standard output/error from the check process."
+          }
+        }
+      }
+    },
+    "scorecard": {
+      "description": "Scorecard metrics summary or structure.",
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Formatted scorecard summary string or path."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "total_units": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verified_units": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total_mismatches": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "overall_coverage": {
+              "type": "number"
+            },
+            "cases": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    },
+    "scorecard_path": {
+      "type": "string",
+      "description": "File path where the detailed scorecard was written."
+    },
+    "evidence_saved": {
+      "type": "boolean",
+      "description": "Whether cryptographic evidence was committed to .go-anything/evidence/."
+    },
+    "summary": {
+      "type": "string",
+      "description": "High-level summary of gate execution."
+    }
+  }
+}

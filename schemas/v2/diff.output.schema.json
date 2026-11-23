@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/diff.output.schema.json",
+  "title": "DiffOutput",
+  "description": "Output schema for the go-anything diff command.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "target",
+    "total_cases"
+  ],
+  "anyOf": [
+    {
+      "required": ["matched_cases", "mismatched_cases"]
+    },
+    {
+      "required": ["matched", "mismatched"]
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Migration unit identifier being compared."
+    },
+    "target": {
+      "type": "string",
+      "description": "Comparison target implementation or pattern (e.g. 'modern', 'go')."
+    },
+    "mode": {
+      "type": "string",
+      "description": "Comparison mode (e.g. 'exact', 'structural_json', 'numeric_tolerance')."
+    },
+    "total_cases": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of test cases evaluated."
+    },
+    "matched_cases": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of test cases matching recorded behavior."
+    },
+    "matched": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of test cases matching recorded behavior."
+    },
+    "mismatched_cases": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of test cases with behavioral discrepancies."
+    },
+    "mismatched": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of test cases with behavioral discrepancies."
+    },
+    "passed": {
+      "type": "boolean",
+      "description": "Whether all cases passed comparison with zero mismatches."
+    },
+    "duration_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total execution and comparison duration in milliseconds."
+    },
+    "mismatches": {
+      "type": "array",
+      "description": "Detailed discrepancies per failing case.",
+      "items": {
+        "type": "object",
+        "required": ["case_id"],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "description": "Test case identifier."
+          },
+          "diffs": {
+            "type": "array",
+            "description": "List of differences or unified diff text.",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "expected": {},
+                    "actual": {},
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "inputs": {
+            "description": "Inputs provided to the case under test."
+          },
+          "outputs": {
+            "description": "Outputs produced or compared during replay."
+          },
+          "message": {
+            "type": "string",
+            "description": "Failure or mismatch summary."
+          },
+          "error": {
+            "type": "string",
+            "description": "Execution error if case replay failed prematurely."
+          }
+        }
+      }
+    },
+    "mismatch_list": {
+      "type": "array",
+      "description": "Detailed discrepancies per failing case (alias).",
+      "items": {
+        "type": "object",
+        "required": ["case_id"],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "diffs": {
+            "type": "array"
+          },
+          "inputs": {},
+          "outputs": {},
+          "message": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "description": "Human-readable summary of comparison results."
+    }
+  }
+}

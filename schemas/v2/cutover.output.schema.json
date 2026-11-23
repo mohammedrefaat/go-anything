@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/cutover.output.schema.json",
+  "title": "CutoverOutput",
+  "description": "Output schema for the go-anything cutover command.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "action",
+    "route_state",
+    "kill_switch_active"
+  ],
+  "anyOf": [
+    {
+      "required": ["fallback_count"]
+    },
+    {
+      "required": ["fallbacks"]
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Migration unit identifier targeted by the cutover command."
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "status",
+        "kill"
+      ],
+      "description": "Cutover operation executed or planned."
+    },
+    "route_state": {
+      "type": "string",
+      "description": "Current traffic routing target (e.g. 'original', 'modern', 'fallback', 'cutover')."
+    },
+    "kill_switch_active": {
+      "type": "boolean",
+      "description": "Whether the kill switch is currently engaged for this unit or globally."
+    },
+    "target_service": {
+      "type": "string",
+      "description": "Active target service or binary receiving production traffic."
+    },
+    "fallback_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Cumulative count of automatic fallback invocations back to the legacy original."
+    },
+    "fallbacks": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Cumulative count of automatic fallback invocations back to the legacy original (alias)."
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Safety warnings or prerequisite advisories (e.g. active fallback traffic, unverified unit)."
+    },
+    "message": {
+      "type": "string",
+      "description": "Descriptive outcome message."
+    }
+  }
+}

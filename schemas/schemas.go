@@ -29,7 +29,10 @@ const VersionV1Alpha1 = "v1alpha1"
 // VersionV1 is the stable v1 schema version.
 const VersionV1 = "v1"
 
-//go:embed v1alpha1/*.json v1/*.json
+// VersionV2 is the v2 schema version for CLI command output contracts.
+const VersionV2 = "v2"
+
+//go:embed v1alpha1/*.json v1/*.json v2/*.json
 var FS embed.FS
 
 // GetSchema returns the raw JSON schema bytes for a given version and schema name.
@@ -97,4 +100,18 @@ func ValidateJSON(version, name string, rawJSON []byte) error {
 		return fmt.Errorf("invalid json payload: unexpected data after the first value")
 	}
 	return schema.Validate(val)
+}
+
+// ValidateV2 validates JSON data against a schema in the v2/ directory.
+// schemaFileName can be provided with or without ".schema.json" or ".json" suffix.
+func ValidateV2(schemaFileName string, data []byte) error {
+	target := schemaFileName
+	if _, err := GetSchema(VersionV2, target); err != nil {
+		if _, err2 := GetSchema(VersionV2, schemaFileName+".schema.json"); err2 == nil {
+			target = schemaFileName + ".schema.json"
+		} else if _, err3 := GetSchema(VersionV2, schemaFileName+".json"); err3 == nil {
+			target = schemaFileName + ".json"
+		}
+	}
+	return ValidateJSON(VersionV2, target, data)
 }

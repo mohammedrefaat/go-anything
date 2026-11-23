@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/analyze.output.schema.json",
+  "title": "AnalyzeOutput",
+  "description": "Output schema for the go-anything analyze command.",
+  "type": "object",
+  "required": [
+    "project",
+    "source_language",
+    "units",
+    "waves",
+    "cycles"
+  ],
+  "anyOf": [
+    {
+      "required": ["edges"]
+    },
+    {
+      "required": ["graph"]
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "project": {
+      "type": "string",
+      "description": "Project name or root directory path."
+    },
+    "source_language": {
+      "type": "string",
+      "description": "Source programming language being analyzed (e.g., 'go', 'python', 'typescript')."
+    },
+    "units": {
+      "type": "array",
+      "description": "Discovered migration units.",
+      "items": {
+        "anyOf": [
+          {
+            "type": "string",
+            "description": "Unit identifier."
+          },
+          {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique identifier of the migration unit."
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable unit name."
+              },
+              "package_path": {
+                "type": "string",
+                "description": "Original package or module path."
+              },
+              "dir": {
+                "type": "string",
+                "description": "Directory path of the unit."
+              },
+              "wave": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Assigned migration wave index."
+              },
+              "dependencies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of unit IDs this unit depends on."
+              },
+              "risk": {
+                "type": "string",
+                "description": "Assessed risk classification."
+              },
+              "metadata": {
+                "type": "object",
+                "description": "Additional package or unit metadata."
+              }
+            }
+          }
+        ]
+      }
+    },
+    "waves": {
+      "type": "array",
+      "description": "Topologically ordered execution waves.",
+      "items": {
+        "type": "object",
+        "required": ["wave"],
+        "properties": {
+          "wave": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Migration wave sequence index."
+          },
+          "unit_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Unit identifiers assigned to this wave."
+          },
+          "units": {
+            "type": "array",
+            "description": "Unit objects or identifiers in this wave."
+          }
+        }
+      }
+    },
+    "cycles": {
+      "type": "array",
+      "description": "Strongly connected components representing dependency cycles.",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Dependency graph edges between units.",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Source unit or package ID."
+          },
+          "to": {
+            "type": "string",
+            "description": "Target dependency unit or package ID."
+          }
+        }
+      }
+    },
+    "graph": {
+      "description": "Dependency graph representation.",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "total_units": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of discovered units."
+    },
+    "max_wave": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Highest wave index."
+    }
+  }
+}

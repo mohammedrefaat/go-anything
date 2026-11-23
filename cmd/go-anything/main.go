@@ -23,8 +23,9 @@ type GlobalFlags struct {
 
 func main() {
 	if err := runCLI(os.Args[1:], os.Stdout, os.Stderr); err != nil {
+		code := GetExitCode(err)
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		os.Exit(code)
 	}
 }
 
@@ -104,12 +105,23 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "mcp":
 		return runMCP(global, subArgs, stdin, stdout, stderr)
 
-	case "analyze", "diff", "gate", "shadow", "cutover":
-		fmt.Fprintf(stdout, "go-anything: command '%s' is registered and will be wired in milestone M1-M4.\n", subcommand)
-		return nil
+	case "analyze":
+		return runAnalyze(global, subArgs, stdout, stderr)
+
+	case "diff":
+		return runDiff(global, subArgs, stdout, stderr)
+
+	case "gate":
+		return runGate(global, subArgs, stdout, stderr)
+
+	case "shadow":
+		return runShadow(global, subArgs, stdout, stderr)
+
+	case "cutover":
+		return runCutover(global, subArgs, stdout, stderr)
 
 	default:
-		return fmt.Errorf("unknown command %q. Run 'go-anything --help' for usage", subcommand)
+		return exitErrorf(ExitCodeUsage, "unknown command %q. Run 'go-anything --help' for usage", subcommand)
 	}
 }
 
@@ -121,24 +133,24 @@ func parseGlobalFlags(args []string, global *GlobalFlags) ([]string, error) {
 		switch {
 		case arg == "--jobs" || arg == "-j":
 			if i+1 >= len(args) {
-				return nil, fmt.Errorf("flag %s requires an integer argument", arg)
+				return nil, exitErrorf(ExitCodeUsage, "flag %s requires an integer argument", arg)
 			}
 			var j int
 			if _, err := fmt.Sscanf(args[i+1], "%d", &j); err != nil || j <= 0 {
-				return nil, fmt.Errorf("invalid value for --jobs: %s", args[i+1])
+				return nil, exitErrorf(ExitCodeUsage, "invalid value for --jobs: %s", args[i+1])
 			}
 			global.Jobs = j
 			i += 2
 		case len(arg) > 7 && arg[:7] == "--jobs=":
 			var j int
 			if _, err := fmt.Sscanf(arg[7:], "%d", &j); err != nil || j <= 0 {
-				return nil, fmt.Errorf("invalid value for %s", arg)
+				return nil, exitErrorf(ExitCodeUsage, "invalid value for %s", arg)
 			}
 			global.Jobs = j
 			i++
 		case arg == "--profile" || arg == "-p":
 			if i+1 >= len(args) {
-				return nil, fmt.Errorf("flag %s requires an argument", arg)
+				return nil, exitErrorf(ExitCodeUsage, "flag %s requires an argument", arg)
 			}
 			global.Profile = args[i+1]
 			global.ProfileExplicit = true
@@ -189,7 +201,13 @@ Available Commands:
   template    Render agent instruction files (CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md)
   setup       Render and install agent instruction files into target workspace (alias for template)
   version     Show go-anything version
-  help        Show command usage`)
+  help        Show command usage
+
+Exit Codes:
+  0   Success / OK
+  1   Failed verification check, gate failure, or diff mismatch
+  2   Usage error (invalid flags, missing arguments)
+  3   Internal error`)
 }
 
 // reorderArgs places flags and flag values before positional arguments so that

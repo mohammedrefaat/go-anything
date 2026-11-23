@@ -113,8 +113,8 @@ All 40 Go packages identified by `go list ./...` are mapped to their correspondi
 | 40 | `templates` | Agent Scaffolding | `template`, `setup` | — | **Active**: Instruction template engine (`CLAUDE.md`, `.cursorrules`, `AGENTS.md`, `GEMINI.md`). |
 
 ### CLI Subcommand Wiring Status
-- **Fully Wired Commands (14):** `init`, `modernize`, `status`, `doctor`, `record`, `replay`, `verify`, `approve`, `promote`, `lift`, `migrate`, `template` (and alias `setup`), `mcp`, `version`, `help`.
-- **Stubbed Commands (5):** `analyze`, `diff`, `gate`, `shadow`, `cutover` (registered in `cmd/go-anything/main.go` lines 107–109; print notice that they will be wired in milestones M1–M4).
+- **Fully Wired Commands (19):** `init`, `modernize`, `status`, `doctor`, `analyze`, `record`, `replay`, `verify`, `approve`, `promote`, `diff`, `gate`, `shadow`, `cutover`, `lift`, `migrate`, `template` (and alias `setup`), `mcp`, `version`, `help`.
+- **Stubbed Commands (0):** All 5 previously stubbed commands (`analyze`, `diff`, `gate`, `shadow`, `cutover`) are now fully wired to their application handlers in `internal/app/`.
 
 ---
 
@@ -178,7 +178,7 @@ When invoked, the MCP server returns an error response:
 | **Public Adapter Contract** | `pkg/adapterkit` public contract, zero imports of `internal/` | `pkg/adapterkit` imports no internal packages; exports `LanguageAdapter`, `Replay`, `Transport` | **CONFIRMED** | Rule 8 strictly maintained. Conformance test suite implemented in `pkg/adapterkit/conformance/`. |
 | **Sandbox Execution** | Linux namespaces with best-effort fallback on Windows/macOS (ADR-001) | `internal/sandbox` implements Linux namespace runner with fallback | **CONFIRMED** | Follows ADR-001. Fallback prints isolation warning and strips unlisted environment variables. |
 | **Leases and State Storage** | Durable state in `.go-anything/units/`, local leases in gitignored `local/` (ADR-002) | Implemented in `internal/state/store.go` and `machine.go` | **CONFIRMED** | Follows ADR-002. Atomic writes under OS file locks (`LockFileEx` / `flock`). Leases stored in `local/`. |
-| **CLI Command Set** | 19 CLI commands described across M0–M7 | 14 wired commands, 5 stubbed commands (`analyze`, `diff`, `gate`, `shadow`, `cutover`) | **PARTIALLY WIRED** | Stubbed commands print notice that they will be wired in milestones M1–M4. |
+| **CLI Command Set** | 19 CLI commands described across M0–M7 | All 19 commands fully wired (`analyze`, `diff`, `gate`, `shadow`, `cutover` wired to `internal/app/`) | **CONFIRMED** | All 19 CLI commands are wired and operational. |
 
 ---
 
