@@ -15,6 +15,17 @@ import (
 )
 
 func runStatus(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
+	for _, a := range args {
+		if a == "--help" || a == "-h" {
+			fmt.Fprintf(stdout, `Usage:
+  go-anything status [directory]
+
+Show migration progress, units, waves, and active leases.
+`)
+			return nil
+		}
+	}
+
 	targetDir := "."
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		targetDir = args[0]

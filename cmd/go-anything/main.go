@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -53,6 +54,7 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	subcommand := cmdArgs[0]
 	subArgs := cmdArgs[1:]
 
+	var cmdErr error
 	switch subcommand {
 	case "version", "--version", "-v":
 		fmt.Fprintf(stdout, "go-anything %s (profile: %s, jobs: %d)\n", Version, global.Profile, global.Jobs)
@@ -63,66 +65,71 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 		return nil
 
 	case "init":
-		return runInit(global, subArgs, stdout, stderr)
+		cmdErr = runInit(global, subArgs, stdout, stderr)
 
 	case "modernize":
 		// Modernize is an alias for init --source=go
-		return runModernize(global, subArgs, stdout, stderr)
+		cmdErr = runModernize(global, subArgs, stdout, stderr)
 
 	case "status":
-		return runStatus(global, subArgs, stdout, stderr)
+		cmdErr = runStatus(global, subArgs, stdout, stderr)
 
 	case "doctor":
-		return runDoctor(global, subArgs, stdout, stderr)
+		cmdErr = runDoctor(global, subArgs, stdout, stderr)
 
 	case "record":
-		return runRecord(global, subArgs, stdout, stderr)
+		cmdErr = runRecord(global, subArgs, stdout, stderr)
 
 	case "replay":
-		return runReplay(global, subArgs, stdout, stderr)
+		cmdErr = runReplay(global, subArgs, stdout, stderr)
 
 	case "verify":
-		return runVerify(global, subArgs, stdout, stderr)
+		cmdErr = runVerify(global, subArgs, stdout, stderr)
 
 	case "approve":
-		return runApprove(global, subArgs, stdout, stderr)
+		cmdErr = runApprove(global, subArgs, stdout, stderr)
 
 	case "promote":
-		return runPromote(global, subArgs, stdout, stderr)
+		cmdErr = runPromote(global, subArgs, stdout, stderr)
 
 	case "lift":
-		return runLift(global, subArgs, stdout, stderr)
+		cmdErr = runLift(global, subArgs, stdout, stderr)
 
 	case "migrate":
-		return runMigrate(global, subArgs, stdout, stderr)
+		cmdErr = runMigrate(global, subArgs, stdout, stderr)
 
 	case "template":
-		return runTemplate(global, subArgs, stdout, stderr)
+		cmdErr = runTemplate(global, subArgs, stdout, stderr)
 
 	case "setup":
-		return runTemplate(global, subArgs, stdout, stderr)
+		cmdErr = runTemplate(global, subArgs, stdout, stderr)
 
 	case "mcp":
-		return runMCP(global, subArgs, stdin, stdout, stderr)
+		cmdErr = runMCP(global, subArgs, stdin, stdout, stderr)
 
 	case "analyze":
-		return runAnalyze(global, subArgs, stdout, stderr)
+		cmdErr = runAnalyze(global, subArgs, stdout, stderr)
 
 	case "diff":
-		return runDiff(global, subArgs, stdout, stderr)
+		cmdErr = runDiff(global, subArgs, stdout, stderr)
 
 	case "gate":
-		return runGate(global, subArgs, stdout, stderr)
+		cmdErr = runGate(global, subArgs, stdout, stderr)
 
 	case "shadow":
-		return runShadow(global, subArgs, stdout, stderr)
+		cmdErr = runShadow(global, subArgs, stdout, stderr)
 
 	case "cutover":
-		return runCutover(global, subArgs, stdout, stderr)
+		cmdErr = runCutover(global, subArgs, stdout, stderr)
 
 	default:
-		return exitErrorf(ExitCodeUsage, "unknown command %q. Run 'go-anything --help' for usage", subcommand)
+		cmdErr = exitErrorf(ExitCodeUsage, "unknown command %q. Run 'go-anything --help' for usage", subcommand)
 	}
+
+	if errors.Is(cmdErr, flag.ErrHelp) {
+		return nil
+	}
+	return cmdErr
 }
 
 func parseGlobalFlags(args []string, global *GlobalFlags) ([]string, error) {

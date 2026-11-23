@@ -10,6 +10,17 @@ import (
 )
 
 func runDoctor(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
+	for _, a := range args {
+		if a == "--help" || a == "-h" {
+			fmt.Fprintf(stdout, `Usage:
+  go-anything doctor [directory]
+
+Diagnose workspace health, check .gitignore, and scan for leaked secrets.
+`)
+			return nil
+		}
+	}
+
 	var targetDir string
 	var activeFlags []string
 
