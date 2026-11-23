@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/bench.report.schema.json",
+  "title": "BenchReport",
+  "description": "Comparative benchmark report evaluating latency distributions, memory allocations, and throughput between original and Go implementations.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "original",
+    "go",
+    "speedup_ratio",
+    "iterations",
+    "warmup",
+    "environment",
+    "summary",
+    "timestamp"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Target migration unit identifier benchmarked."
+    },
+    "original": {
+      "type": "object",
+      "description": "Performance metrics of the original legacy implementation.",
+      "required": [
+        "p50_ns",
+        "p95_ns",
+        "p99_ns",
+        "throughput_ops_sec",
+        "mean_ns"
+      ],
+      "properties": {
+        "p50_ns": {
+          "type": "number",
+          "minimum": 0,
+          "description": "50th percentile (median) latency in nanoseconds."
+        },
+        "p95_ns": {
+          "type": "number",
+          "minimum": 0,
+          "description": "95th percentile latency in nanoseconds."
+        },
+        "p99_ns": {
+          "type": "number",
+          "minimum": 0,
+          "description": "99th percentile latency in nanoseconds."
+        },
+        "throughput_ops_sec": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Throughput in operations per second."
+        },
+        "mean_ns": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Mean execution latency in nanoseconds."
+        },
+        "allocs_per_op": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Average memory allocations per operation."
+        },
+        "bytes_per_op": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Average memory allocation bytes per operation."
+        }
+      }
+    },
+    "go": {
+      "type": "object",
+      "description": "Performance metrics of the modern Go implementation.",
+      "required": [
+        "p50_ns",
+        "p95_ns",
+        "p99_ns",
+        "throughput_ops_sec",
+        "mean_ns",
+        "allocs_per_op",
+        "bytes_per_op"
+      ],
+      "properties": {
+        "p50_ns": {
+          "type": "number",
+          "minimum": 0,
+          "description": "50th percentile (median) latency in nanoseconds."
+        },
+        "p95_ns": {
+          "type": "number",
+          "minimum": 0,
+          "description": "95th percentile latency in nanoseconds."
+        },
+        "p99_ns": {
+          "type": "number",
+          "minimum": 0,
+          "description": "99th percentile latency in nanoseconds."
+        },
+        "throughput_ops_sec": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Throughput in operations per second."
+        },
+        "mean_ns": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Mean execution latency in nanoseconds."
+        },
+        "allocs_per_op": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Average memory allocations per operation."
+        },
+        "bytes_per_op": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Average memory allocation bytes per operation."
+        }
+      }
+    },
+    "speedup_ratio": {
+      "type": "number",
+      "description": "Ratio of original latency to Go latency (e.g. 2.5 means 2.5x faster)."
+    },
+    "iterations": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of measured execution iterations."
+    },
+    "warmup": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of unmeasured warmup iterations performed prior to timing."
+    },
+    "environment": {
+      "type": "object",
+      "description": "Hardware and runtime benchmarking environment details.",
+      "required": [
+        "cpu_model",
+        "os",
+        "go_version",
+        "original_runtime",
+        "cores"
+      ],
+      "properties": {
+        "cpu_model": {
+          "type": "string",
+          "description": "CPU model specification."
+        },
+        "os": {
+          "type": "string",
+          "description": "Operating system and architecture."
+        },
+        "go_version": {
+          "type": "string",
+          "description": "Go compiler and runtime version."
+        },
+        "original_runtime": {
+          "type": "string",
+          "description": "Runtime version of the original legacy language (e.g. Python 3.12, Node 20)."
+        },
+        "cores": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of logical CPU cores available."
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "description": "Human-readable performance comparison summary."
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 or RFC-3339 timestamp of the benchmark run."
+    }
+  }
+}

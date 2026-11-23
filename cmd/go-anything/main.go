@@ -125,6 +125,9 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "fuzz":
 		cmdErr = runFuzz(global, subArgs, stdout, stderr)
 
+	case "bench":
+		cmdErr = runBench(global, subArgs, stdout, stderr)
+
 	default:
 		cmdErr = exitErrorf(ExitCodeUsage, "unknown command %q. Run 'go-anything --help' for usage", subcommand)
 	}
@@ -204,6 +207,7 @@ Available Commands:
   promote     Switch front door routing to Go, test kill switch, and advance state to Cutover
   diff        Replay cases against Go implementation and show structural diffs
   fuzz        Execute differential fuzzing against recorded cases and target
+  bench       Execute latency and throughput benchmarks between original and Go
   gate        Execute Quality Gate pipeline
   shadow      Run front door in shadow mode on real traffic
   cutover     Switch primary traffic to verified Go unit

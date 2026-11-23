@@ -650,6 +650,199 @@ func TestValidateV2_FuzzReport(t *testing.T) {
 	}
 }
 
+func TestValidateV2_BenchReport(t *testing.T) {
+	tests := []struct {
+		name        string
+		schemaName  string
+		payload     string
+		expectError bool
+	}{
+		{
+			name:       "valid bench report with full schema name",
+			schemaName: "bench.report.schema.json",
+			payload: `{
+				"schema_version": "v2",
+				"unit_id": "unit_hasher",
+				"original": {
+					"p50_ns": 120000.0,
+					"p95_ns": 150000.0,
+					"p99_ns": 180000.0,
+					"throughput_ops_sec": 8200.0,
+					"mean_ns": 121951.0
+				},
+				"go": {
+					"p50_ns": 30000.0,
+					"p95_ns": 35000.0,
+					"p99_ns": 42000.0,
+					"throughput_ops_sec": 32000.0,
+					"mean_ns": 31250.0,
+					"allocs_per_op": 2,
+					"bytes_per_op": 128
+				},
+				"speedup_ratio": 3.9,
+				"iterations": 10000,
+				"warmup": 1000,
+				"environment": {
+					"cpu_model": "AMD Ryzen 9 5950X",
+					"os": "windows/amd64",
+					"go_version": "go1.26",
+					"original_runtime": "python 3.12",
+					"cores": 16
+				},
+				"summary": "Go implementation is 3.9x faster with 128 B/op allocation",
+				"timestamp": "2026-11-23T11:00:00Z"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "valid bench report using shorthand schema name",
+			schemaName: "bench.report",
+			payload: `{
+				"unit_id": "unit_crypto",
+				"original": {
+					"p50_ns": 50000.0,
+					"p95_ns": 60000.0,
+					"p99_ns": 70000.0,
+					"throughput_ops_sec": 20000.0,
+					"mean_ns": 50000.0
+				},
+				"go": {
+					"p50_ns": 25000.0,
+					"p95_ns": 30000.0,
+					"p99_ns": 35000.0,
+					"throughput_ops_sec": 40000.0,
+					"mean_ns": 25000.0,
+					"allocs_per_op": 0,
+					"bytes_per_op": 0
+				},
+				"speedup_ratio": 2.0,
+				"iterations": 5000,
+				"warmup": 500,
+				"environment": {
+					"cpu_model": "Apple M2 Pro",
+					"os": "darwin/arm64",
+					"go_version": "go1.26",
+					"original_runtime": "node 20",
+					"cores": 12
+				},
+				"summary": "2.0x faster with zero allocations",
+				"timestamp": "2026-11-23T11:15:00Z"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "missing unit_id",
+			schemaName: "bench.report.schema.json",
+			payload: `{
+				"original": {
+					"p50_ns": 100.0, "p95_ns": 150.0, "p99_ns": 200.0,
+					"throughput_ops_sec": 10000.0, "mean_ns": 100.0
+				},
+				"go": {
+					"p50_ns": 50.0, "p95_ns": 75.0, "p99_ns": 100.0,
+					"throughput_ops_sec": 20000.0, "mean_ns": 50.0,
+					"allocs_per_op": 0, "bytes_per_op": 0
+				},
+				"speedup_ratio": 2.0,
+				"iterations": 1000,
+				"warmup": 100,
+				"environment": {
+					"cpu_model": "CPU", "os": "linux", "go_version": "go1.26",
+					"original_runtime": "python", "cores": 4
+				},
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "missing allocs_per_op in go metrics",
+			schemaName: "bench.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"original": {
+					"p50_ns": 100.0, "p95_ns": 150.0, "p99_ns": 200.0,
+					"throughput_ops_sec": 10000.0, "mean_ns": 100.0
+				},
+				"go": {
+					"p50_ns": 50.0, "p95_ns": 75.0, "p99_ns": 100.0,
+					"throughput_ops_sec": 20000.0, "mean_ns": 50.0,
+					"bytes_per_op": 0
+				},
+				"speedup_ratio": 2.0,
+				"iterations": 1000,
+				"warmup": 100,
+				"environment": {
+					"cpu_model": "CPU", "os": "linux", "go_version": "go1.26",
+					"original_runtime": "python", "cores": 4
+				},
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "missing environment",
+			schemaName: "bench.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"original": {
+					"p50_ns": 100.0, "p95_ns": 150.0, "p99_ns": 200.0,
+					"throughput_ops_sec": 10000.0, "mean_ns": 100.0
+				},
+				"go": {
+					"p50_ns": 50.0, "p95_ns": 75.0, "p99_ns": 100.0,
+					"throughput_ops_sec": 20000.0, "mean_ns": 50.0,
+					"allocs_per_op": 0, "bytes_per_op": 0
+				},
+				"speedup_ratio": 2.0,
+				"iterations": 1000,
+				"warmup": 100,
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "negative iterations",
+			schemaName: "bench.report.schema.json",
+			payload: `{
+				"unit_id": "unit_test",
+				"original": {
+					"p50_ns": 100.0, "p95_ns": 150.0, "p99_ns": 200.0,
+					"throughput_ops_sec": 10000.0, "mean_ns": 100.0
+				},
+				"go": {
+					"p50_ns": 50.0, "p95_ns": 75.0, "p99_ns": 100.0,
+					"throughput_ops_sec": 20000.0, "mean_ns": 50.0,
+					"allocs_per_op": 0, "bytes_per_op": 0
+				},
+				"speedup_ratio": 2.0,
+				"iterations": -10,
+				"warmup": 100,
+				"environment": {
+					"cpu_model": "CPU", "os": "linux", "go_version": "go1.26",
+					"original_runtime": "python", "cores": 4
+				},
+				"summary": "ok",
+				"timestamp": "now"
+			}`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2(tt.schemaName, []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateV2_UnknownSchema(t *testing.T) {
 	err := schemas.ValidateV2("does_not_exist.schema.json", []byte(`{}`))
 	require.Error(t, err)
