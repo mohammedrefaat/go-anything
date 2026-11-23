@@ -130,3 +130,7 @@ func TestREADME_LinksAndAnchors(t *testing.T) {
 func TestInstallDoc_LinksAndAnchors(t *testing.T) {
 	verifyDocLinks(t, filepath.Join("Docs", "install.md"))
 }
+
+func TestUserGuide_LinksAndAnchors(t *testing.T) {
+	verifyDocLinks(t, filepath.Join("Docs", "USER_GUIDE.md"))
+}
