@@ -84,6 +84,11 @@ func (r *Redactor) RedactString(s string) (string, []string, error) {
 		return SubstituteToken(m, "sk_")
 	})
 
+	// 5b. Anthropic / LLM Keys (sk-ant-..., sk-proj-...)
+	s = regexAnthropicKey.ReplaceAllStringFunc(s, func(m string) string {
+		return SubstituteToken(m, "sk-")
+	})
+
 	// 6. Slack Tokens (xoxb-, xoxp-, etc.)
 	s = regexSlackToken.ReplaceAllStringFunc(s, func(m string) string {
 		prefixEnd := strings.Index(m, "-")

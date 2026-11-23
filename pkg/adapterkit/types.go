@@ -93,6 +93,7 @@ const (
 	KindTrap     CaseKind = "trap"
 	KindFuzz     CaseKind = "fuzz"
 	KindCaptured CaseKind = "captured"
+	KindFromTest CaseKind = "from-test"
 )
 
 // CaseInput defines the input payload delivered to the unit.
