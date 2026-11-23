@@ -163,6 +163,16 @@ var AllRegisteredCommands = []CommandMetadata{
 		Description:    "Profile legacy execution and rank candidate hot functions for migration",
 	},
 	{
+		Name:           "bridge",
+		WiringStatus:   "Fully Wired",
+		E2ECovered:     true,
+		E2ETestFiles:   "cmd/go-anything/bridge_test.go",
+		MCPCounterpart: "`bridge`",
+		SinceVersion:   "v2.0.0-beta",
+		Milestone:      "v2.0 / B2",
+		Description:    "Generate and manage hot-path strangler sidecar bridges",
+	},
+	{
 		Name:           "gate",
 		WiringStatus:   "Fully Wired",
 		E2ECovered:     true,
