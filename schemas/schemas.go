@@ -32,7 +32,7 @@ const VersionV1 = "v1"
 // VersionV2 is the v2 schema version for CLI command output contracts.
 const VersionV2 = "v2"
 
-//go:embed v1alpha1/*.json v1/*.json v2/*.json
+//go:embed v1alpha1/*.json v1/*.json v2/*.json v2/mcp/*.json
 var FS embed.FS
 
 // GetSchema returns the raw JSON schema bytes for a given version and schema name.

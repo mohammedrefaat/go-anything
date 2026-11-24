@@ -60,7 +60,7 @@ func TestCLI_MCPCommand_StdioServer(t *testing.T) {
 	require.True(t, ok)
 	toolsList, ok := listMap["tools"].([]any)
 	require.True(t, ok)
-	assert.Len(t, toolsList, 8, "CLI MCP server must advertise exactly 8 tools")
+	assert.Len(t, toolsList, len(mcp.StandardToolNames), "CLI MCP server must advertise standard tools")
 
 	// 3. status response
 	var statusResp mcp.JSONRPCResponse

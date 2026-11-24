@@ -1403,6 +1403,99 @@ func TestValidateV2_MapOutput(t *testing.T) {
 	}
 }
 
+func TestValidateV2_MCPSchemas(t *testing.T) {
+	tests := []struct {
+		name        string
+		schemaName  string
+		payload     string
+		expectError bool
+	}{
+		{
+			name:        "analyze input schema",
+			schemaName:  "mcp/analyze.input.schema.json",
+			payload:     `{"dir": "/workspace", "unit_id": "auth"}`,
+			expectError: false,
+		},
+		{
+			name:        "analyze output schema",
+			schemaName:  "mcp/analyze.output.schema.json",
+			payload:     `{"total_units": 1, "waves": [{"wave": 0, "units": ["auth"]}]}`,
+			expectError: false,
+		},
+		{
+			name:        "bridge input schema",
+			schemaName:  "mcp/bridge.input.schema.json",
+			payload:     `{"unit_id": "auth", "target_language": "go"}`,
+			expectError: false,
+		},
+		{
+			name:        "bridge output schema",
+			schemaName:  "mcp/bridge.output.schema.json",
+			payload:     `{"unit_id": "auth", "generated_files": ["sidecar.go", "bridge.py"], "handlers_impl_preserved": true}`,
+			expectError: false,
+		},
+		{
+			name:        "fuzz_bench input schema",
+			schemaName:  "mcp/fuzz_bench.input.schema.json",
+			payload:     `{"unit_id": "auth", "mode": "fuzz", "time": "10s", "iterations": 50}`,
+			expectError: false,
+		},
+		{
+			name:        "fuzz_bench output schema",
+			schemaName:  "mcp/fuzz_bench.output.schema.json",
+			payload:     `{"unit_id": "auth", "mode": "fuzz", "status": "completed", "divergence_count": 0, "speedup_ratio": 2.5}`,
+			expectError: false,
+		},
+		{
+			name:        "hotpath input schema",
+			schemaName:  "mcp/hotpath.input.schema.json",
+			payload:     `{"unit_id": "auth", "auto_advance": true}`,
+			expectError: false,
+		},
+		{
+			name:        "hotpath output schema",
+			schemaName:  "mcp/hotpath.output.schema.json",
+			payload:     `{"unit_id": "auth", "current_step": "record", "status": "in_progress"}`,
+			expectError: false,
+		},
+		{
+			name:        "profile input schema",
+			schemaName:  "mcp/profile.input.schema.json",
+			payload:     `{"unit_id": "auth", "top": 5}`,
+			expectError: false,
+		},
+		{
+			name:        "profile output schema",
+			schemaName:  "mcp/profile.output.schema.json",
+			payload:     `{"unit_id": "auth", "candidates": [{"rank": 1, "function_name": "calc", "self_percent": 60.0, "cumulative_percent": 65.0}]}`,
+			expectError: false,
+		},
+		{
+			name:        "shadow_status input schema",
+			schemaName:  "mcp/shadow_status.input.schema.json",
+			payload:     `{"unit_id": "auth"}`,
+			expectError: false,
+		},
+		{
+			name:        "shadow_status output schema",
+			schemaName:  "mcp/shadow_status.output.schema.json",
+			payload:     `{"shadow_active": true, "units": [{"unit_id": "auth", "status": "active", "requests_count": 100, "mismatches_count": 0}]}`,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2(tt.schemaName, []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateV2_UnknownSchema(t *testing.T) {
 	err := schemas.ValidateV2("does_not_exist.schema.json", []byte(`{}`))
 	require.Error(t, err)

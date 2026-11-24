@@ -102,7 +102,7 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 		cmdErr = runTemplate(global, subArgs, stdout, stderr)
 
 	case "setup":
-		cmdErr = runTemplate(global, subArgs, stdout, stderr)
+		cmdErr = runSetup(global, subArgs, stdout, stderr)
 
 	case "mcp":
 		cmdErr = runMCP(global, subArgs, stdin, stdout, stderr)

@@ -43,7 +43,7 @@
 | `lift` | **Fully Wired** | ✅ Yes | `human-only` (forbidden per Rule 4) | `v0.1.0` (M2) | Remove fallback wrappers and finalize modernization (Rule 4 human-only) |
 | `migrate` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M7) | Upgrade .go-anything/ workspace from v1alpha1 to stable v1 schemas |
 | `template` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M0) | Render agent instruction files (CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md) |
-| `setup` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M0) | Render and install agent instruction files into target workspace (alias for template) |
+| `setup` | **Fully Wired** | ✅ Yes | none | `v2.0.0-beta` (v2.0 / M2) | Configure AI agent tools and MCP server registration for Claude Code, Codex, Cursor, Gemini, OpenCode |
 | `mcp` | **Fully Wired** | ✅ Yes | Hosts all 8 MCP tools | `v0.1.0` (M4) | Run MCP server over stdio for AI agent orchestration |
 | `version` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M0) | Show go-anything version, profile, and jobs configuration |
 | `help` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M0) | Show go-anything usage and available commands |
