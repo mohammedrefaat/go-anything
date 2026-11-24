@@ -7,10 +7,9 @@
   <p>Replace high-risk big-bang rewrites with an incremental strangler migration,<br />backed by recorded behavioral evidence, automated quality gates, and human-in-the-loop control.</p>
 
   <p>
-    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go" alt="Go 1.26+" /></a>
+    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go" alt="Go 1.27+" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-6C7CFF.svg" alt="Apache 2.0" /></a>
     <a href="https://github.com/mohammedrefat/go-anything/releases"><img src="https://img.shields.io/badge/release-v2.0.0-34D399.svg" alt="Release v2.0.0" /></a>
-    <a href="#milestone-roadmap-m0m7"><img src="https://img.shields.io/badge/milestones-M0--M7%20complete-success.svg" alt="Milestones M0-M7 Complete" /></a>
   </p>
 
   <p>
@@ -197,7 +196,7 @@ Move-Item .\go-anything-bin\go-anything.exe "$targetDir\go-anything.exe" -Force
 
 ### Install via Go Toolchain (`go install`)
 
-If Go 1.26+ is installed:
+If Go 1.27+ is installed:
 
 ```bash
 go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
@@ -209,7 +208,7 @@ Verify the CLI binary and check system readiness:
 
 ```bash
 go-anything version
-# Output: go-anything v1.0.0 (profile: full, jobs: 8)
+# Output: go-anything v2.0.0 (profile: full, jobs: 8)
 
 go-anything doctor
 # Output: [PASS] workspace clean, tools available, no stale leases
@@ -223,7 +222,7 @@ Follow this self-contained walkthrough from a clean machine to initializing a pr
 
 ### Prerequisites
 
-- [Go 1.26+](https://go.dev/dl/) installed and available on your `PATH`.
+- [Go 1.27+](https://go.dev/dl/) installed and available on your `PATH`.
 - Git.
 
 ### Step 1: Install `go-anything`

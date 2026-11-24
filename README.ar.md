@@ -7,10 +7,9 @@
   <p>استبدل عمليات إعادة الكتابة الشاملة وعالية المخاطر بنمط الهجرة التدريجي (Strangler Fig)،<br />المعزز بأدلة سلوكية مسجلة، وبوابات جودة مؤتمتة، مع إشراف وتحكم بشري مباشر.</p>
 
   <p>
-    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go" alt="Go 1.26+" /></a>
+    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go" alt="Go 1.27+" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D8%AA%D8%B1%D8%AE%D9%8A%D8%B5-Apache--2.0-6C7CFF.svg" alt="Apache 2.0" /></a>
     <a href="https://github.com/mohammedrefat/go-anything/releases"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1-v2.0.0-34D399.svg" alt="الإصدار v2.0.0" /></a>
-    <a href="#خارطة-طريق-المراحل-الرئيسية-m0m7"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D9%85%D8%B1%D8%A7%D8%AD%D9%84-M0--M7%20%D9%85%D9%83%D8%AA%D9%85%D9%84%D8%A9-success.svg" alt="المراحل M0-M7 مكتملة" /></a>
   </p>
 
   <p>
@@ -198,7 +197,7 @@ Move-Item .\go-anything-bin\go-anything.exe "$targetDir\go-anything.exe" -Force
 
 ### التثبيت عبر سلسلة أدوات Go (`go install`)
 
-في حال تثبيت بيئة Go 1.26+:
+في حال تثبيت بيئة Go 1.27+:
 
 ```bash
 go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
@@ -224,7 +223,7 @@ go-anything doctor
 
 ### المتطلبات الأساسية
 
-- تثبيت [Go 1.26+](https://go.dev/dl/) وإتاحته في مسار النظام `PATH`.
+- تثبيت [Go 1.27+](https://go.dev/dl/) وإتاحته في مسار النظام `PATH`.
 - تثبيت Git.
 
 ### الخطوة 1: تثبيت `go-anything`

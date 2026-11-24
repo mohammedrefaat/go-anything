@@ -118,7 +118,7 @@ go-anything version
 
 ## 2. Install via Go Toolchain (`go install`)
 
-If you have Go 1.26+ installed:
+If you have Go 1.27+ installed:
 
 ```bash
 # Install latest release binary into $GOPATH/bin
