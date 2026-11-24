@@ -196,6 +196,12 @@ func DefaultAgentTemplates() []Template {
 			Description: "Google Gemini project instructions.",
 			Body:        agentInstructions("Gemini", "GEMINI.md"),
 		},
+		{
+			Name:        "opencode",
+			FileName:    "AGENTS.md",
+			Description: "OpenCode project instructions.",
+			Body:        agentInstructions("OpenCode", "AGENTS.md"),
+		},
 	}
 }
 
@@ -208,39 +214,77 @@ re-running the command overwrites it only when ` + "`--force`" + ` is passed.
 ## What this repository is
 
 ` + "`{{.ProjectName}}`" + ` is being migrated to {{.TargetLanguage}} with go-anything.
-go-anything does not translate code. It orders the migration into dependency
-waves, records the original's behavior, replays it against the port, and enforces
-quality gates. The evidence profile for this workspace is ` + "`{{.Profile}}`" + `.
+go-anything does not translate code automatically. It organizes the migration into
+dependency waves, records the original's behavioral evidence, replays it against the port,
+and enforces quality gates. The evidence profile for this workspace is ` + "`{{.Profile}}`" + `.
 
 **Parity is limited.** Passing recorded cases is evidence for those cases only.
 Never claim the port is equivalent for behavior that was not observed.
 
 ## Standard agent loop
 
-1. ` + "`status`" + ` — read progress, active leases, and the next unit.
+1. ` + "`status`" + ` — inspect migration progress, active leases, blockers, and next unit in wave order.
 2. ` + "`claim_unit`" + ` — take a Ready unit with a time-bounded local lease.
-3. ` + "`inspect_unit`" + ` — read the original source, sample cases, and traps.
-4. Write the port — stay inside the unit's declared scope.
-5. ` + "`verify_diff`" + ` — build and replay; fix until it returns PASS.
-6. ` + "`run_gate`" + ` — run formatting, vet, race, vulnerability, replay,
-   error-path, and API-compatibility checks.
-7. ` + "`mark_verified`" + ` — advance the unit. This is rejected unless
-   commit-tied evidence exists for HEAD.
-8. ` + "`handoff`" + ` — write HANDOFF.md for the next session or reviewer.
+3. ` + "`inspect_unit`" + ` — read original source, sample cases, detected traps, and constraints.
+4. Write Go port — implement the unit cleanly inside its declared scope. Scaffolds return ` + "`ErrNotPorted`" + ` and never generate business logic.
+5. ` + "`verify_diff`" + ` — build and replay; fix until it returns PASS (0 mismatches).
+6. ` + "`run_gate`" + ` — run full quality checks (build, format, vet, race, vulnerability, replay, error-paths, api-compat).
+7. ` + "`mark_verified`" + ` — advance the unit to Verified. This is rejected unless commit-tied evidence exists for HEAD.
+8. ` + "`handoff`" + ` — write HANDOFF.md with state, progress, and next steps for the next session or reviewer.
+
+For hot-path optimizations and strangler sidecars:
+` + "`profile`" + ` → ` + "`bridge`" + ` → ` + "`go`" + ` → verify diff → ` + "`gate`" + ` → ` + "`shadow`" + ` → human approve.
 
 Do not skip steps. Do not edit ` + "`.go-anything/units/`" + ` or evidence files by
 hand; the state machine must advance through the tools.
 
-## Human-only controls
+## How to claim a unit
 
-These are CLI-only and must never be automated or approximated:
+To claim work on a unit:
+1. Run ` + "`status`" + ` to view the migration progress and find the next available unit in dependency wave order.
+2. Ensure all dependency units are in ` + "`Verified`" + `, ` + "`Shadow`" + `, ` + "`Approved`" + `, ` + "`Cutover`" + `, or ` + "`Completed`" + ` state. Units can only be claimed when in ` + "`Ready`" + ` state.
+3. Call ` + "`claim_unit`" + ` with ` + "`unit_id`" + ` and ` + "`actor`" + ` (your agent or developer ID).
+4. This acquires a time-bounded local lease in ` + "`.go-anything/local/<id>.lease`" + ` under OS file lock.
+5. If dependencies are not met or another lease is active, claiming is rejected fail-closed.
 
-- ` + "`approve`" + ` — human sign-off.
-- ` + "`promote`" + ` — routing change for a unit.
-- ` + "`lift`" + ` — removal of the bridge and the original.
+## Human-only controls (Rule R-1)
+
+These controls are CLI-only and must NEVER be automated or approximated via MCP:
+
+- ` + "`approve`" + ` — human operator sign-off.
+- ` + "`promote`" + ` — routing change switching primary traffic to the Go port.
+- ` + "`lift`" + ` — permanent removal of the bridge and the original.
 - Any routing change, shadow toggle, or kill-switch override.
 
-If a task needs one of these, stop and ask a human.
+If a task reaches a human-only boundary, STOP immediately, print the exact CLI command for the human operator, and exit cleanly.
+
+## How to read a gate scorecard
+
+Running ` + "`run_gate`" + ` evaluates the port across all mandatory dimensions and generates a scorecard at ` + "`.go-anything/reports/scorecard.md`" + `:
+
+| Check | What It Validates | Pass Condition |
+| :--- | :--- | :--- |
+| ` + "`build`" + ` | Clean compilation under target toolchain | Exit code 0, no compiler errors |
+| ` + "`format`" + ` | Go code formatting standard | Matches ` + "`gofmt -s -w`" + ` |
+| ` + "`vet`" + ` | Static analysis and correctness | Exit code 0, zero ` + "`go vet`" + ` issues |
+| ` + "`race`" + ` | Concurrency race condition detection | Zero data races detected via ` + "`go test -race`" + ` |
+| ` + "`govulncheck`" + ` | Dependency vulnerability audit | Zero known CVE vulnerabilities reported |
+| ` + "`replay`" + ` | Behavioral equivalence on recorded cases | 100% match on recorded cases (0 mismatches) |
+| ` + "`error_paths`" + ` | Negative and malformed input scenarios | Correct error types and exit codes |
+| ` + "`api_compat`" + ` | Exported symbol & signature parity | Exact match on public types, functions, and interfaces |
+
+Under the ` + "`full`" + ` profile, all required checks must report ` + "`PASS`" + ` (fail-closed). Any skipped or failed check blocks evidence generation.
+
+## What "done" means
+
+A unit or task is "done" only when all of the following conditions are met:
+1. **Zero Divergence:** ` + "`verify_diff`" + ` confirms 100% passing cases with 0 mismatches across recorded and fuzzed inputs.
+2. **Quality Gate Clean:** ` + "`run_gate`" + ` passes all required checks (` + "`build`" + `, ` + "`format`" + `, ` + "`vet`" + `, ` + "`race`" + `, ` + "`govulncheck`" + `, ` + "`replay`" + `, ` + "`error_paths`" + `, ` + "`api_compat`" + `).
+3. **Commit-Tied Evidence:** Evidence JSON is saved to ` + "`.go-anything/evidence/`" + ` cryptographically tied to the HEAD git commit SHA.
+4. **State Advanced:** Unit is transitioned to ` + "`Verified`" + ` (via ` + "`mark_verified`" + `) or ` + "`Completed`" + ` (after human cutover and zero fallback traffic).
+5. **Clean Verification:** ` + "`gofmt -s -w .`" + `, ` + "`go vet ./...`" + `, and ` + "`go test -race ./...`" + ` pass with zero warnings or errors.
+6. **Handoff Written:** ` + "`HANDOFF.md`" + ` documents what was ported, verified, and what the next legal human action is.
+7. **No Over-Claiming:** Parity is claimed strictly for observed and fuzzed cases (Rule R-6).
 
 ## Unit lifecycle (10 states)
 

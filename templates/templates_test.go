@@ -1,6 +1,8 @@
 package templates
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -19,6 +21,7 @@ func TestDefaultAgentTemplates_RegisterAndRender(t *testing.T) {
 		{name: "cursor", wantFileName: ".cursorrules"},
 		{name: "codex", wantFileName: "AGENTS.md"},
 		{name: "gemini", wantFileName: "GEMINI.md"},
+		{name: "opencode", wantFileName: "AGENTS.md"},
 	}
 
 	for _, tt := range tests {
@@ -38,7 +41,7 @@ func TestDefaultAgentTemplates_RegisterAndRender(t *testing.T) {
 			assert.Contains(t, body, "payments")
 			assert.Contains(t, body, "full")
 			// Every agent file must enforce the agent loop, human-only controls,
-			// lifecycle/layout, and semantic traps checklist.
+			// lifecycle/layout, scorecard reading, claim process, and semantic traps checklist.
 			for _, marker := range []string{
 				"status", "claim_unit", "inspect_unit", "verify_diff",
 				"run_gate", "mark_verified", "handoff",
@@ -49,6 +52,11 @@ func TestDefaultAgentTemplates_RegisterAndRender(t *testing.T) {
 				"Key semantic traps",
 				"Empty collections",
 				"HTML escaping",
+				"How to claim a unit",
+				"How to read a gate scorecard",
+				`What "done" means`,
+				"Human-only controls (Rule R-1)",
+				"build", "format", "vet", "race", "govulncheck", "replay", "error_paths", "api_compat",
 			} {
 				assert.Contains(t, body, marker, "agent file should mention %q", marker)
 			}
@@ -64,11 +72,11 @@ func TestRegistry_RenderAllIsDeterministic(t *testing.T) {
 	second, err := registry.RenderAll(Vars{ProjectName: "svc"})
 	require.NoError(t, err)
 
-	require.Len(t, first, 4)
+	require.Len(t, first, 5)
 	assert.Equal(t, first, second, "rendering must be deterministic")
 
 	names := registry.Names()
-	assert.Equal(t, []string{"claude", "codex", "cursor", "gemini"}, names)
+	assert.Equal(t, []string{"claude", "codex", "cursor", "gemini", "opencode"}, names)
 }
 
 func TestVars_Defaults(t *testing.T) {
@@ -147,4 +155,32 @@ func TestRender_TrimsTrailingNewlines(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "line\n", string(file.Content))
 	assert.False(t, strings.HasSuffix(string(file.Content), "\n\n"))
+}
+
+func TestTemplates_GoldenOutput(t *testing.T) {
+	registry := DefaultRegistry()
+	goldenDir := filepath.Join("testdata", "golden")
+	require.NoError(t, os.MkdirAll(goldenDir, 0755))
+
+	vars := Vars{
+		ProjectName:    "payments",
+		ModulePath:     "github.com/example/payments",
+		TargetLanguage: "go",
+		Profile:        "full",
+	}
+
+	for _, name := range registry.Names() {
+		file, err := registry.Render(name, vars)
+		require.NoError(t, err)
+
+		goldenFile := filepath.Join(goldenDir, name+".golden.md")
+		if _, err := os.Stat(goldenFile); os.IsNotExist(err) {
+			// Initialize golden file if missing
+			require.NoError(t, os.WriteFile(goldenFile, file.Content, 0644))
+		}
+
+		expected, err := os.ReadFile(goldenFile)
+		require.NoError(t, err)
+		assert.Equal(t, string(expected), string(file.Content), "rendered template %q must match golden file %q", name, goldenFile)
+	}
 }
