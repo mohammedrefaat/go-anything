@@ -14,7 +14,7 @@
 
 **Module:** `github.com/mohammedrefat/go-anything`
 **License:** Apache-2.0
-**Go:** 1.26+ (see `go.mod`)
+**Go:** 1.27+ (see `go.mod`)
 **Status:** Early development — foundational packages and schemas exist; end-to-end migration commands are not yet wired into the CLI.
 
 ---

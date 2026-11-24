@@ -7,10 +7,9 @@
   <p>Replace high-risk big-bang rewrites with an incremental strangler migration,<br />backed by recorded behavioral evidence, automated quality gates, and human-in-the-loop control.</p>
 
   <p>
-    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go" alt="Go 1.26+" /></a>
+    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go" alt="Go 1.27+" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-6C7CFF.svg" alt="Apache 2.0" /></a>
     <a href="https://github.com/mohammedrefat/go-anything/releases"><img src="https://img.shields.io/badge/release-v2.0.0-34D399.svg" alt="Release v2.0.0" /></a>
-    <a href="#milestone-roadmap-m0m7"><img src="https://img.shields.io/badge/milestones-M0--M7%20complete-success.svg" alt="Milestones M0-M7 Complete" /></a>
   </p>
 
   <p>
@@ -25,20 +24,10 @@
   </p>
 
   <p>
-    <strong>Translations:</strong><br />
+    <strong>Languages:</strong><br />
     <a href="README.md">English</a> ·
-    <a href="README.es.md">Español</a> ·
-    <a href="README.zh-CN.md">简体中文</a> ·
-    <a href="README.ja.md">日本語</a> ·
-    <a href="README.de.md">Deutsch</a> ·
-    <a href="README.fr.md">Français</a> ·
-    <a href="README.pt-BR.md">Português (Brasil)</a> ·
-    <a href="README.ru.md">Русский</a> ·
-    <a href="README.ar.md">العربية</a> ·
-    <a href="README.hi.md">हिन्दी</a> ·
-    <a href="README.ko.md">한국어</a>
+    <a href="README.ar.md">العربية</a>
   </p>
-  <p><em>Note: Localized documentation files (<code>README.&lt;lang&gt;.md</code>) correspond to release <strong>v1.0.0</strong> and may lag the canonical English specification (v1.0.1+).</em></p>
 
 </div>
 
@@ -107,7 +96,28 @@ flowchart LR
 
 ## Installation & Verification
 
-`go-anything` is distributed as signed, zero-dependency standalone binaries, as well as via the Go toolchain. Full platform matrix, checksums, and keyless Sigstore Cosign verification instructions are documented in [Docs/install.md](Docs/install.md).
+`go-anything` is distributed as signed, zero-dependency standalone binaries, through major package managers, as well as via the Go toolchain. Full platform matrix, checksums, and keyless Sigstore Cosign verification instructions are documented in [Docs/install.md](Docs/install.md) and [Docs/packaging.md](Docs/packaging.md).
+
+### Package Managers
+
+Install `go-anything` using your preferred system package manager:
+
+#### Homebrew (macOS & Linux)
+```bash
+brew tap mohammedrefat/tap
+brew install go-anything
+```
+
+#### Scoop (Windows)
+```powershell
+scoop bucket add go-anything https://github.com/mohammedrefat/scoop-bucket.git
+scoop install go-anything
+```
+
+#### npm (Node.js)
+```bash
+npm install -g @mohammedrefat/go-anything
+```
 
 ### Prebuilt Binaries
 
@@ -122,7 +132,7 @@ Download prebuilt binaries for your platform from [GitHub Releases](https://gith
 #### Linux & macOS (Bash / Zsh)
 
 ```bash
-VERSION="1.0.0"
+VERSION="2.0.0"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 RELEASE_URL="https://github.com/mohammedrefat/go-anything/releases/download/v${VERSION}"
@@ -155,7 +165,7 @@ sudo install -m 0755 go-anything /usr/local/bin/go-anything
 #### Windows (PowerShell)
 
 ```powershell
-$Version = "1.0.0"
+$Version = "2.0.0"
 $ReleaseUrl = "https://github.com/mohammedrefat/go-anything/releases/download/v$Version"
 $Artifact = "go-anything_${Version}_windows_amd64.zip"
 
@@ -186,7 +196,7 @@ Move-Item .\go-anything-bin\go-anything.exe "$targetDir\go-anything.exe" -Force
 
 ### Install via Go Toolchain (`go install`)
 
-If Go 1.26+ is installed:
+If Go 1.27+ is installed:
 
 ```bash
 go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
@@ -198,7 +208,7 @@ Verify the CLI binary and check system readiness:
 
 ```bash
 go-anything version
-# Output: go-anything v1.0.0 (profile: full, jobs: 8)
+# Output: go-anything v2.0.0 (profile: full, jobs: 8)
 
 go-anything doctor
 # Output: [PASS] workspace clean, tools available, no stale leases
@@ -212,7 +222,7 @@ Follow this self-contained walkthrough from a clean machine to initializing a pr
 
 ### Prerequisites
 
-- [Go 1.26+](https://go.dev/dl/) installed and available on your `PATH`.
+- [Go 1.27+](https://go.dev/dl/) installed and available on your `PATH`.
 - Git.
 
 ### Step 1: Install `go-anything`
@@ -425,10 +435,11 @@ All core milestones from initial architecture through v1.0.0 have been fully imp
 go-anything mcp
 ```
 
-### The 8 Standard MCP Tools
+### The Standard & Companion MCP Tools
 
 The MCP server enforces the 10-state unit lifecycle server-side. Agents cannot forge gate results or skip steps:
 
+#### Core Lifecycle Tools (8 standard)
 1. `status` — Show progress, next unit in dependency wave order, active leases, and blockers.
 2. `claim_unit` — Take a Ready unit with a time-bounded local lease in `.go-anything/local/`.
 3. `inspect_unit` — View original source code, sanitized sample cases, detected traps, and constraints.
@@ -438,7 +449,15 @@ The MCP server enforces the 10-state unit lifecycle server-side. Agents cannot f
 7. `mark_verified` — Advance unit to Verified (rejected unless evidence exists for HEAD).
 8. `handoff` — Write `HANDOFF.md` with progress and next steps for subsequent sessions.
 
-> **Human-Only Boundary:** The MCP server **never** exposes `approve`, `promote`, `lift`, or routing changes. These remain human-only CLI commands.
+#### Companion & Hot-Path Tools (v2.0)
+- `analyze` — Analyze legacy codebase and output dependency wave plan.
+- `profile` — Profile legacy execution hotspots and rank candidate functions for migration.
+- `bridge` — Scaffold strangler sidecar bridge, manifest, and client wrappers.
+- `hotpath` — Execute guided hot-path porting pipeline up to the human approval boundary.
+- `fuzz_bench` — Run differential fuzz testing or performance benchmarks.
+- `shadow_status` — Inspect front-door shadow mode execution metrics and mismatch logs.
+
+> **Human-Only Boundary:** The MCP server **never** exposes `approve`, `promote`, `lift`, or live routing changes. These remain human-only CLI operations (Execution Rule 4).
 
 ---
 
@@ -474,14 +493,19 @@ internal/               Core migration engine:
   ├── shadow/           Live shadow mode engine with bounded worker pools
   └── state/            10-state unit lifecycle, atomic I/O & file locks
 adapters/               Language and runtime adapters:
-  ├── source/           Source adapters (Go, Python, TypeScript)
+  ├── source/           Source adapters (Go, Python, TypeScript, JavaScript)
   └── application/      Runtime adapters (CLI, HTTP, Foreign Library, Worker)
+packaging/              Package manager wrappers (npm, Homebrew, Scoop)
+demo/                   Real-world migration benchmarks (Node REST API, Python Worker)
 schemas/                Versioned JSON Schemas:
   ├── v1/               Stable frozen schemas (manifest, units, rules, cases, etc.)
+  ├── v2/               Command output schemas (analyze, diff, gate, shadow, cutover)
   └── v1alpha1/         Legacy schemas (supported via go-anything migrate)
-Docs/                   Architecture, decisions, and case studies:
-  ├── decisions/        Architecture Decision Records (ADR-001, ADR-002)
-  └── case-studies/     Public dogfooding case studies (M3, M4, M5, M6, M7)
+Docs/                   Architecture, guides, and documentation:
+  ├── decisions/        Architecture Decision Records (ADR-001, ADR-002, ADR-005)
+  ├── case-studies/     Public dogfooding case studies (M3, M4, M5, M6, M7)
+  ├── USER_GUIDE.md     Comprehensive user guide and CLI reference
+  └── install.md        Platform matrix, checksums, and Cosign verification
 GOVERNANCE.md           Maintainer roles, consensus, RFCs, and adapter certification
 SECURITY.md             Threat model, sandboxing, and vulnerability disclosure policy
 CONTRIBUTING.md         Development prerequisites, coding standards, and verification
