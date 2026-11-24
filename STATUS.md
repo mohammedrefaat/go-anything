@@ -6,10 +6,10 @@
 
 ## Summary
 
-- **Total Commands:** 25
-- **Wiring Status:** 25 / 25 Fully Wired (100%)
+- **Total Commands:** 26
+- **Wiring Status:** 26 / 26 Fully Wired (100%)
 - **Stubbed Commands:** 0 (0%)
-- **E2E Test Coverage:** 25 / 25 Commands Covered (100%)
+- **E2E Test Coverage:** 26 / 26 Commands Covered (100%)
 
 ## Command Traceability Matrix
 
@@ -30,6 +30,7 @@
 | `bench` | **Fully Wired** | ✅ Yes | `fuzz_bench` | `v2.0.0-alpha` (v2.0 / R2) | Execute comparative latency and memory allocation benchmarks |
 | `profile` | **Fully Wired** | ✅ Yes | `profile` | `v2.0.0-alpha` (v2.0 / R3) | Profile legacy execution and rank candidate hot functions for migration |
 | `bridge` | **Fully Wired** | ✅ Yes | `bridge` | `v2.0.0-beta` (v2.0 / B2) | Generate and manage hot-path strangler sidecar bridges |
+| `go` | **Fully Wired** | ✅ Yes | `hotpath` | `v2.0.0-beta` (v2.0 / B4) | Execute guided end-to-end hot-path porting pipeline |
 | `gate` | **Fully Wired** | ✅ Yes | `run_gate` | `v0.1.0` (M4 / H1) | Execute Quality Gate pipeline (linters, race detector, replay) |
 | `shadow` | **Fully Wired** | ✅ Yes | `human-only` (forbidden per Rule 4) | `v0.1.0` (M5 / H1) | Manage and run front door in shadow mode on real traffic |
 | `cutover` | **Fully Wired** | ✅ Yes | `human-only` (forbidden per Rule 4) | `v0.1.0` (M2 / H1) | Switch primary traffic to verified Go unit and manage kill switch (Rule R-1) |

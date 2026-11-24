@@ -33,6 +33,7 @@ func TestAllRegisteredCommandsHaveHandlers(t *testing.T) {
 		"bench",
 		"profile",
 		"bridge",
+		"go",
 		"gate",
 		"shadow",
 		"cutover",

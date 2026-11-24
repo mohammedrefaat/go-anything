@@ -173,6 +173,16 @@ var AllRegisteredCommands = []CommandMetadata{
 		Description:    "Generate and manage hot-path strangler sidecar bridges",
 	},
 	{
+		Name:           "go",
+		WiringStatus:   "Fully Wired",
+		E2ECovered:     true,
+		E2ETestFiles:   "cmd/go-anything/go_test.go",
+		MCPCounterpart: "`hotpath`",
+		SinceVersion:   "v2.0.0-beta",
+		Milestone:      "v2.0 / B4",
+		Description:    "Execute guided end-to-end hot-path porting pipeline",
+	},
+	{
 		Name:           "gate",
 		WiringStatus:   "Fully Wired",
 		E2ECovered:     true,
