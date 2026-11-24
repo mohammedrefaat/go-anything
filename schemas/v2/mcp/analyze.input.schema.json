@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPAnalyzeInput",
+  "type": "object",
+  "properties": {
+    "dir": { "type": "string", "description": "Workspace directory root." },
+    "unit_id": { "type": "string", "description": "Optional unit to focus analysis on." }
+  }
+}

@@ -42,6 +42,11 @@
 
 ---
 
+> [!NOTE]
+> Cette documentation localisée correspond à la version **v1.0.0** et peut accuser un retard par rapport à la spécification canonique en anglais disponible dans [README.md](README.md) (v1.0.1+).
+
+---
+
 ## Sur cette page
 
 - [Comment ça fonctionne](#comment-ça-fonctionne)

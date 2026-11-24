@@ -36,7 +36,8 @@
         "edge",
         "trap",
         "fuzz",
-        "captured"
+        "captured",
+        "from-test"
       ],
       "description": "Source category of the test case."
     },

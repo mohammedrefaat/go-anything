@@ -194,6 +194,9 @@ func TestM6_ExitGate_HTTPTransport_FastAPI(t *testing.T) {
 	defer func() {
 		cancel()
 		_ = cmd.Wait()
+		if t.Failed() {
+			t.Logf("Python HTTP server stderr: %s", stderrBuf.String())
+		}
 	}()
 
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
@@ -207,7 +210,7 @@ func TestM6_ExitGate_HTTPTransport_FastAPI(t *testing.T) {
 		}
 		defer resp.Body.Close()
 		return resp.StatusCode == http.StatusOK
-	}, 10*time.Second, 100*time.Millisecond, "python http server did not become healthy: %s", stderrBuf.String())
+	}, 10*time.Second, 100*time.Millisecond, "python http server did not become healthy")
 
 	comp := comparator.New()
 	red := redactor.New()

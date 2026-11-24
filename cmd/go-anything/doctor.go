@@ -10,6 +10,17 @@ import (
 )
 
 func runDoctor(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
+	for _, a := range args {
+		if a == "--help" || a == "-h" {
+			fmt.Fprintf(stdout, `Usage:
+  go-anything doctor [directory]
+
+Diagnose workspace health, check .gitignore, and scan for leaked secrets.
+`)
+			return nil
+		}
+	}
+
 	var targetDir string
 	var activeFlags []string
 
@@ -35,7 +46,7 @@ func runDoctor(global *GlobalFlags, args []string, stdout, stderr io.Writer) err
 	engine := adapterhost.NewDoctorEngine(absPath)
 	report := engine.RunAllChecks(activeFlags)
 
-	checkNames := []string{"gitignore", "committed_secrets", "unsafe_flags"}
+	checkNames := []string{"gitignore", "committed_secrets", "unsafe_flags", "language_runtimes"}
 	checkPassed := make(map[string]bool)
 	for _, name := range checkNames {
 		checkPassed[name] = true
@@ -62,6 +73,9 @@ func runDoctor(global *GlobalFlags, args []string, stdout, stderr io.Writer) err
 	}
 	if checkPassed["unsafe_flags"] {
 		fmt.Fprintf(stdout, "[PASS] unsafe_flags: fail-closed safety defaults active\n")
+	}
+	if checkPassed["language_runtimes"] {
+		fmt.Fprintf(stdout, "[PASS] language_runtimes: required language runtimes (node, python, go) accessible on PATH\n")
 	}
 
 	if !report.Healthy {

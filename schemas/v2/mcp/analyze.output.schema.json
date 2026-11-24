@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPAnalyzeOutput",
+  "type": "object",
+  "required": ["total_units", "waves"],
+  "properties": {
+    "total_units": { "type": "integer" },
+    "waves": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["wave", "units"],
+        "properties": {
+          "wave": { "type": "integer" },
+          "units": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/shadow.output.schema.json",
+  "title": "ShadowOutput",
+  "description": "Output schema for the go-anything shadow command.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "action",
+    "active",
+    "port",
+    "sample_rate"
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "requests_total",
+        "requests_shadowed",
+        "overflow_dropped",
+        "mismatches_count"
+      ]
+    },
+    {
+      "required": [
+        "total_requests",
+        "shadowed",
+        "overflow_dropped",
+        "mismatches"
+      ]
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Target migration unit for shadow testing."
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "start",
+        "status",
+        "stop"
+      ],
+      "description": "Shadow action performed or queried."
+    },
+    "active": {
+      "type": "boolean",
+      "description": "Whether live traffic shadowing is currently active for this unit."
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "TCP port on which the shadow listener or target proxy is bound."
+    },
+    "sample_rate": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Fraction of incoming traffic sampled for shadow execution (0.0 to 1.0)."
+    },
+    "requests_total": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of incoming requests intercepted by the front door."
+    },
+    "total_requests": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of incoming requests intercepted by the front door (alias)."
+    },
+    "requests_shadowed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of requests asynchronously mirrored to the ported unit."
+    },
+    "shadowed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of requests asynchronously mirrored to the ported unit (alias)."
+    },
+    "overflow_dropped": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Requests discarded due to bounded worker queue saturation."
+    },
+    "mismatches_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of behavioral discrepancies detected during shadow execution."
+    },
+    "mismatches": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of behavioral discrepancies detected during shadow execution (alias)."
+    },
+    "reports_path": {
+      "type": "string",
+      "description": "Directory or file where shadow mismatch logs are persisted."
+    },
+    "message": {
+      "type": "string",
+      "description": "Status message or outcome description."
+    }
+  }
+}

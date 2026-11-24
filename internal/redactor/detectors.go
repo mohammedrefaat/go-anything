@@ -19,6 +19,9 @@ var (
 	// regexStripeKey matches Stripe secret and publishable keys.
 	regexStripeKey = regexp.MustCompile(`\b(?:sk|pk)_(?:live|test)_[0-9a-zA-Z]{24,}\b`)
 
+	// regexAnthropicKey matches Anthropic / OpenAI style secret keys (e.g. sk-ant-live-..., sk-proj-...).
+	regexAnthropicKey = regexp.MustCompile(`\bsk-(?:ant|proj|live|test)?[A-Za-z0-9_-]{12,}\b`)
+
 	// regexSlackToken matches Slack user and bot tokens.
 	regexSlackToken = regexp.MustCompile(`\bxox[baprs]-[0-9a-zA-Z-]{10,}\b`)
 

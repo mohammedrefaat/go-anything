@@ -12,10 +12,6 @@ import (
 	"github.com/mohammedrefat/go-anything/templates"
 )
 
-func runSetup(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
-	return runTemplateNamed("setup", global, args, stdout, stderr)
-}
-
 func runTemplate(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
 	return runTemplateNamed("template", global, args, stdout, stderr)
 }

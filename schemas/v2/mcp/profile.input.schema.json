@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPProfileInput",
+  "type": "object",
+  "required": ["unit_id"],
+  "properties": {
+    "unit_id": { "type": "string", "description": "Unit identifier to profile." },
+    "top": { "type": "integer", "description": "Maximum number of candidate functions to return (default: 10)." },
+    "dir": { "type": "string", "description": "Workspace directory path." }
+  }
+}

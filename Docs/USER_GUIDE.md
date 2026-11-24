@@ -22,11 +22,17 @@ Welcome to the definitive user and operator guide for **go-anything**. This docu
    - [Evidence Profiles (`replay` vs. `full`)](#evidence-profiles-replay-vs-full)
    - [The Human-Only Control Boundary](#the-human-only-control-boundary)
 4. [CLI Command Reference](#4-cli-command-reference)
+   - [Standard Exit Codes](#standard-exit-codes)
    - [`init` & `modernize`](#go-anything-init--modernize)
    - [`status`](#go-anything-status)
    - [`doctor`](#go-anything-doctor)
+   - [`analyze`](#go-anything-analyze)
    - [`record`](#go-anything-record)
    - [`replay`](#go-anything-replay)
+   - [`diff`](#go-anything-diff)
+   - [`gate`](#go-anything-gate)
+   - [`shadow`](#go-anything-shadow)
+   - [`cutover`](#go-anything-cutover)
    - [`verify`](#go-anything-verify)
    - [`approve`](#go-anything-approve)
    - [`promote`](#go-anything-promote)
@@ -229,6 +235,19 @@ This boundary is hard-coded into the MCP server architecture.
 
 ## 4. CLI Command Reference
 
+### Standard Exit Codes
+
+All `go-anything` CLI commands adhere to consistent UNIX exit code conventions:
+
+| Exit Code | Name | Description |
+| :---: | :--- | :--- |
+| **`0`** | `ExitSuccess` | Command succeeded; all gate checks passed; zero diff mismatches detected. |
+| **`1`** | `ExitCheckFailed` | Quality gate failure; behavioral diff mismatches found; doctor checks failed. |
+| **`2`** | `ExitUsageError` | Invalid command syntax, unrecognized flags, or missing required arguments. |
+| **`3`** | `ExitInternalError` | Internal system error, unhandled I/O exception, or corrupted repository state. |
+
+---
+
 ### `go-anything init` & `modernize`
 
 Initializes a migration workspace inside the target project directory.
@@ -295,6 +314,36 @@ go-anything doctor [--dir <path>]
 
 ---
 
+### `go-anything analyze`
+
+Scans and analyzes project source code to construct an AST-backed dependency graph, organize units into topological migration waves, score complexity and risk, and catalog bounded migration units.
+
+```bash
+go-anything analyze [directory] [--source <go|python|typescript>] [--json] [--output <file>]
+```
+
+**Flags:**
+- `directory`: Path to source project directory (Default: `.`).
+- `--source, -s <string>`: Source language adapter (`go`, `python`, `typescript`). Default: `go`.
+- `--json`: Output analysis results formatted as structured JSON.
+- `--output, -o <file>`: Write results to a file instead of standard output.
+
+**Example:**
+```bash
+# Analyze a Python service and output JSON report
+go-anything analyze ./services/auth --source python --json --output analysis.json
+
+# Analyze current Go project
+go-anything analyze . --source go
+```
+
+**Exit Codes:**
+- `0`: Analysis completed successfully.
+- `2`: Invalid CLI syntax or unsupported language adapter.
+- `3`: Source parsing or AST inspection failed.
+
+---
+
 ### `go-anything record`
 
 Executes the original application in a sandboxed environment, detects volatile fields via dual-run execution, applies fail-closed redaction, and saves sanitized JSONL fixtures.
@@ -341,6 +390,155 @@ go-anything replay --unit <unit-id> --target <binary-or-url> [--jobs <N>] [--mod
 ```bash
 go-anything replay --unit unit-calc --target ./bin/modern-calc --jobs 4
 ```
+
+---
+
+### `go-anything diff`
+
+Replays recorded behavioral cases against the target Go port or running service, running differential comparison to detect output mismatches, field-level discrepancies, and exit code drifts.
+
+```bash
+go-anything diff --unit <unit-id> --target <binary-or-url> [--mode <comparator-mode>] [--jobs <N>] [--case <case-id>] [--json]
+```
+
+**Flags:**
+- `--unit, -u <string>`: Unit ID to compare (*required*).
+- `--target, -t <string>`: Ported Go executable or HTTP service base URL (*required*).
+- `--mode, -m <string>`: Comparator mode: `exact`, `structural_json`, `numeric_tolerance`, `http_contract`, `regex`. Default: `exact`.
+- `--jobs, -j <int>`: Parallel worker goroutines (Default: `runtime.NumCPU()`).
+- `--case, -c <string>`: Replay only a specific case ID for pinpoint debugging.
+- `--json`: Output differential comparison results as JSON.
+- `--dir, -d <string>`: Workspace directory (Default: `.`).
+
+**Example:**
+```bash
+# Compare ported currency service against recorded cases
+go-anything diff --unit pkg/currency --target http://localhost:8080 --mode structural_json
+
+# Run diff on a specific case with JSON output
+go-anything diff --unit pkg/calc --target ./bin/modern-calc --case case_001 --json
+```
+
+**Exit Codes:**
+- `0`: All recorded test cases matched the target output perfectly (0 mismatches).
+- `1`: Behavioral diff detected one or more output mismatches.
+- `2`: Invalid flag arguments or missing required `--unit`/`--target`.
+- `3`: Target execution error or failed case loading.
+
+---
+
+### `go-anything gate`
+
+Executes the formal quality gate against a unit's ported Go implementation. Enforces compilation (`go build`), static analysis (`go vet`, `staticcheck`), concurrency hygiene (`go test -race`), vulnerability scanning (`govulncheck`), behavioral replay, error path parity, and API signature compatibility.
+
+```bash
+go-anything gate --unit <unit-id> [--profile <replay|full>] [--allow-missing-tools] [--scorecard] [--json]
+```
+
+**Flags:**
+- `--unit, -u <string>`: Target unit identifier (*required*).
+- `--profile, -p <string>`: Evidence profile (`replay` or `full`). Default: `full`.
+- `--allow-missing-tools`: Best-effort mode that skips optional linters (`staticcheck`, `govulncheck`) if not installed on the host while enforcing mandatory checks.
+- `--scorecard, -s`: Render visual ASCII scorecard table with weighted scores.
+- `--json`: Output gate report and check results in structured JSON.
+- `--dir, -d <string>`: Workspace directory (Default: `.`).
+
+**Example:**
+```bash
+# Run full quality gate with scorecard display
+go-anything gate --unit pkg/fraud --profile full --scorecard
+
+# Run replay-only gate in lightweight CI environment
+go-anything gate --unit pkg/fraud --profile replay --allow-missing-tools --json
+```
+
+**Exit Codes:**
+- `0`: Quality gate passed; all required checks clean and evidence persisted.
+- `1`: One or more gate checks failed.
+- `2`: Invalid profile or unrecognized flags.
+- `3`: Build or runner execution failure.
+
+---
+
+### `go-anything shadow`
+
+Manages non-blocking production traffic mirroring (shadow mode) between legacy and modern Go units to validate real-world equivalence and latency before cutover.
+
+```bash
+go-anything shadow <start|status|stop> --unit <unit-id> [--port <N>] [--sample-rate <float>] [--json]
+```
+
+**Subcommands:**
+- `start`: Launches the asynchronous shadow proxy, mirroring incoming requests to both systems.
+- `status`: Displays live traffic volume, mirror latency, and real-time mismatch counters.
+- `stop`: Gracefully terminates shadow mirroring for the unit.
+
+**Flags:**
+- `--unit, -u <string>`: Unit ID to shadow (*required*).
+- `--port, -p <int>`: Port for the shadow proxy listener (Default: `8080`).
+- `--sample-rate, -r <float>`: Sampling rate between `0.0` and `1.0` (Default: `1.0` / 100%).
+- `--json`: Output status or result in structured JSON.
+- `--dir, -d <string>`: Workspace directory (Default: `.`).
+
+**Example:**
+```bash
+# Start shadow mode on port 8080 with 50% sample rate
+go-anything shadow start --unit pkg/pricing --port 8080 --sample-rate 0.5
+
+# Inspect active shadow statistics
+go-anything shadow status --unit pkg/pricing --json
+
+# Stop shadow mode
+go-anything shadow stop --unit pkg/pricing
+```
+
+**Exit Codes:**
+- `0`: Shadow operation completed successfully.
+- `1`: Shadow verification detected active mismatches.
+- `2`: Invalid subcommand or arguments.
+- `3`: Port collision or internal daemon failure.
+
+---
+
+### `go-anything cutover`
+
+Plans and executes progressive strangler traffic switching, monitors canary routing, and controls the emergency kill-switch.
+
+```bash
+go-anything cutover <plan|status|kill> --unit <unit-id> [--json]
+```
+
+**Subcommands:**
+- `plan`: Generates a stepped cutover schedule (e.g. 5% -> 25% -> 100%) and verifies rollback readiness.
+- `status`: Displays current routing split percentage, fallback error rates, and canary health.
+- `kill`: Activates the emergency kill-switch, immediately reverting 100% of traffic back to the legacy original without code redeployment.
+
+**Flags:**
+- `--unit, -u <string>`: Target unit identifier (*required*).
+- `--json`: Output cutover data in structured JSON format.
+- `--dir, -d <string>`: Workspace directory (Default: `.`).
+
+> [!CAUTION]
+> **Rule R-1 Enforcement: Cutover Never Performs Lift.**
+> The `cutover` command is strictly restricted to traffic routing and emergency kill-switch controls. It is architecturally prevented from calling `internal/lift` or deleting legacy code. Code retirement is exclusively governed by `go-anything lift` under explicit human sign-off.
+
+**Example:**
+```bash
+# Generate canary cutover plan
+go-anything cutover plan --unit pkg/billing
+
+# Check active routing and fallback error rates
+go-anything cutover status --unit pkg/billing
+
+# Emergency: trip kill-switch to revert to legacy implementation
+go-anything cutover kill --unit pkg/billing
+```
+
+**Exit Codes:**
+- `0`: Cutover plan or status succeeded; kill switch successfully engaged.
+- `1`: Cutover validation failed (e.g., canary health check failure).
+- `2`: Invalid subcommand or missing `--unit`.
+- `3`: Routing reconfiguration error.
 
 ---
 
@@ -754,4 +952,4 @@ When rewriting code into Go, watch out for these subtle language-level semantic 
 
 ---
 
-*For further architectural details, refer to the [Architecture & Implementation Plan](go-anything%20Architecture%20%26%20Implementation%20Plan%20(v3)%20(1).md) and [SECURITY.md](../SECURITY.md).*
+*For further architectural details, refer to the [Architecture & Implementation Plan](go-anything%20Architecture%20%26%20Implementation%20Plan%20%28v3%29%20%281%29.md) and [SECURITY.md](../SECURITY.md).*

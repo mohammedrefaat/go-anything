@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/profile.report.schema.json",
+  "title": "ProfileReport",
+  "description": "Profiling report identifying CPU-heavy hotspot candidates for migration and assessing purity heuristics.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "language",
+    "profiler",
+    "total_duration_ms",
+    "top",
+    "candidates",
+    "summary",
+    "timestamp"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Migration unit identifier being profiled."
+    },
+    "language": {
+      "type": "string",
+      "description": "Source programming language profiled (e.g. 'python', 'typescript', 'go')."
+    },
+    "profiler": {
+      "type": "string",
+      "description": "Underlying profiler engine (e.g. 'cProfile', 'v8_cpuprofile', 'pprof')."
+    },
+    "total_duration_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total profiling session duration in milliseconds."
+    },
+    "top": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of top hotspot candidates requested/evaluated."
+    },
+    "candidates": {
+      "type": "array",
+      "description": "Hotspot candidates ranked by execution time.",
+      "items": {
+        "type": "object",
+        "required": [
+          "rank",
+          "function_name",
+          "file",
+          "self_percent",
+          "cumulative_percent",
+          "call_count",
+          "is_pure_heuristic",
+          "purity_reason"
+        ],
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based hotspot rank based on self or cumulative CPU time."
+          },
+          "function_name": {
+            "type": "string",
+            "description": "Name or identifier of the profiled function."
+          },
+          "file": {
+            "type": "string",
+            "description": "Source file containing the function."
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Line number where the function definition starts."
+          },
+          "self_percent": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Percentage of total time spent directly within this function."
+          },
+          "cumulative_percent": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Percentage of total time spent in this function and its callees."
+          },
+          "call_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total invocation count during the profiling session."
+          },
+          "is_pure_heuristic": {
+            "type": "boolean",
+            "description": "Heuristic assessment of whether the function is side-effect-free (pure)."
+          },
+          "purity_reason": {
+            "type": "string",
+            "description": "Explanation supporting the purity heuristic determination."
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "description": "Human-readable summary of profiling hotspots."
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 or RFC-3339 timestamp of the profiling session."
+    }
+  }
+}

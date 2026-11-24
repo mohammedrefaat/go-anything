@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/go.output.schema.json",
+  "title": "GoHotpathPipelineOutput",
+  "description": "Output schema for the go-anything go hot-path end-to-end porting pipeline.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "function",
+    "current_step",
+    "status",
+    "steps"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Migration unit identifier."
+    },
+    "function": {
+      "type": "string",
+      "description": "Hot-path function name selected for porting."
+    },
+    "unit_state": {
+      "type": "string",
+      "description": "Current lifecycle state of the unit (e.g. 'Planned', 'Ready', 'In progress', 'Verified', 'Shadow')."
+    },
+    "current_step": {
+      "type": "string",
+      "description": "The active or last executed pipeline step name."
+    },
+    "status": {
+      "type": "string",
+      "description": "Pipeline execution status.",
+      "enum": ["in_progress", "paused_for_implementation", "ready_for_approval", "completed", "failed"]
+    },
+    "steps": {
+      "type": "array",
+      "description": "Ordered record of pipeline step results.",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Step name (e.g. 'target', 'record', 'bridge', 'implement', 'replay_diff', 'fuzz_bench', 'gate', 'shadow')."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "skipped", "waiting", "failed"]
+          },
+          "summary": {
+            "type": "string",
+            "description": "Summary description of the step outcome."
+          },
+          "artifacts": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of artifacts or reports produced by this step."
+          }
+        }
+      }
+    },
+    "human_action_required": {
+      "type": "string",
+      "description": "Exact human CLI command required when human gate is reached (e.g. 'go-anything approve --unit <unit>')."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp of the pipeline run."
+    }
+  }
+}

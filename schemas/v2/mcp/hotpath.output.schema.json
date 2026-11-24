@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPHotpathOutput",
+  "type": "object",
+  "required": ["unit_id", "status", "current_step"],
+  "properties": {
+    "unit_id": { "type": "string" },
+    "function": { "type": "string" },
+    "unit_state": { "type": "string" },
+    "current_step": { "type": "string" },
+    "status": { "type": "string" },
+    "human_action_required": { "type": "string" }
+  }
+}

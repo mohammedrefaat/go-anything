@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -23,8 +24,9 @@ type GlobalFlags struct {
 
 func main() {
 	if err := runCLI(os.Args[1:], os.Stdout, os.Stderr); err != nil {
+		code := GetExitCode(err)
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		os.Exit(code)
 	}
 }
 
@@ -52,6 +54,7 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	subcommand := cmdArgs[0]
 	subArgs := cmdArgs[1:]
 
+	var cmdErr error
 	switch subcommand {
 	case "version", "--version", "-v":
 		fmt.Fprintf(stdout, "go-anything %s (profile: %s, jobs: %d)\n", Version, global.Profile, global.Jobs)
@@ -62,55 +65,104 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 		return nil
 
 	case "init":
-		return runInit(global, subArgs, stdout, stderr)
+		cmdErr = runInit(global, subArgs, stdout, stderr)
 
 	case "modernize":
 		// Modernize is an alias for init --source=go
-		return runModernize(global, subArgs, stdout, stderr)
+		cmdErr = runModernize(global, subArgs, stdout, stderr)
 
 	case "status":
-		return runStatus(global, subArgs, stdout, stderr)
+		cmdErr = runStatus(global, subArgs, stdout, stderr)
 
 	case "doctor":
-		return runDoctor(global, subArgs, stdout, stderr)
+		cmdErr = runDoctor(global, subArgs, stdout, stderr)
 
 	case "record":
-		return runRecord(global, subArgs, stdout, stderr)
+		cmdErr = runRecord(global, subArgs, stdout, stderr)
 
 	case "replay":
-		return runReplay(global, subArgs, stdout, stderr)
+		cmdErr = runReplay(global, subArgs, stdout, stderr)
 
 	case "verify":
-		return runVerify(global, subArgs, stdout, stderr)
+		cmdErr = runVerify(global, subArgs, stdout, stderr)
 
 	case "approve":
-		return runApprove(global, subArgs, stdout, stderr)
+		cmdErr = runApprove(global, subArgs, stdout, stderr)
 
 	case "promote":
-		return runPromote(global, subArgs, stdout, stderr)
+		cmdErr = runPromote(global, subArgs, stdout, stderr)
 
 	case "lift":
-		return runLift(global, subArgs, stdout, stderr)
+		cmdErr = runLift(global, subArgs, stdout, stderr)
 
 	case "migrate":
-		return runMigrate(global, subArgs, stdout, stderr)
+		cmdErr = runMigrate(global, subArgs, stdout, stderr)
 
 	case "template":
-		return runTemplate(global, subArgs, stdout, stderr)
+		cmdErr = runTemplate(global, subArgs, stdout, stderr)
 
 	case "setup":
-		return runTemplate(global, subArgs, stdout, stderr)
+		cmdErr = runSetup(global, subArgs, stdout, stderr)
 
 	case "mcp":
-		return runMCP(global, subArgs, stdin, stdout, stderr)
+		cmdErr = runMCP(global, subArgs, stdin, stdout, stderr)
 
-	case "analyze", "diff", "gate", "shadow", "cutover":
-		fmt.Fprintf(stdout, "go-anything: command '%s' is registered and will be wired in milestone M1-M4.\n", subcommand)
-		return nil
+	case "analyze":
+		cmdErr = runAnalyze(global, subArgs, stdout, stderr)
+
+	case "diff":
+		cmdErr = runDiff(global, subArgs, stdout, stderr)
+
+	case "gate":
+		cmdErr = runGate(global, subArgs, stdout, stderr)
+
+	case "shadow":
+		cmdErr = runShadow(global, subArgs, stdout, stderr)
+
+	case "cutover":
+		cmdErr = runCutover(global, subArgs, stdout, stderr)
+
+	case "fuzz":
+		cmdErr = runFuzz(global, subArgs, stdout, stderr)
+
+	case "bench":
+		cmdErr = runBench(global, subArgs, stdout, stderr)
+
+	case "profile":
+		cmdErr = runProfile(global, subArgs, stdout, stderr)
+
+	case "bridge":
+		cmdErr = runBridge(global, subArgs, stdout, stderr)
+
+	case "go":
+		cmdErr = runGo(global, subArgs, stdout, stderr)
+
+	case "enable":
+		cmdErr = runEnable(global, subArgs, stdout, stderr)
+
+	case "disable":
+		cmdErr = runDisable(global, subArgs, stdout, stderr)
+
+	case "refresh":
+		cmdErr = runRefresh(global, subArgs, stdout, stderr)
+
+	case "clean":
+		cmdErr = runClean(global, subArgs, stdout, stderr)
+
+	case "report":
+		cmdErr = runReport(global, subArgs, stdout, stderr)
+
+	case "map":
+		cmdErr = runMap(global, subArgs, stdout, stderr)
 
 	default:
-		return fmt.Errorf("unknown command %q. Run 'go-anything --help' for usage", subcommand)
+		cmdErr = exitErrorf(ExitCodeUsage, "unknown command %q. Run 'go-anything --help' for usage", subcommand)
 	}
+
+	if errors.Is(cmdErr, flag.ErrHelp) {
+		return nil
+	}
+	return cmdErr
 }
 
 func parseGlobalFlags(args []string, global *GlobalFlags) ([]string, error) {
@@ -121,24 +173,24 @@ func parseGlobalFlags(args []string, global *GlobalFlags) ([]string, error) {
 		switch {
 		case arg == "--jobs" || arg == "-j":
 			if i+1 >= len(args) {
-				return nil, fmt.Errorf("flag %s requires an integer argument", arg)
+				return nil, exitErrorf(ExitCodeUsage, "flag %s requires an integer argument", arg)
 			}
 			var j int
 			if _, err := fmt.Sscanf(args[i+1], "%d", &j); err != nil || j <= 0 {
-				return nil, fmt.Errorf("invalid value for --jobs: %s", args[i+1])
+				return nil, exitErrorf(ExitCodeUsage, "invalid value for --jobs: %s", args[i+1])
 			}
 			global.Jobs = j
 			i += 2
 		case len(arg) > 7 && arg[:7] == "--jobs=":
 			var j int
 			if _, err := fmt.Sscanf(arg[7:], "%d", &j); err != nil || j <= 0 {
-				return nil, fmt.Errorf("invalid value for %s", arg)
+				return nil, exitErrorf(ExitCodeUsage, "invalid value for %s", arg)
 			}
 			global.Jobs = j
 			i++
 		case arg == "--profile" || arg == "-p":
 			if i+1 >= len(args) {
-				return nil, fmt.Errorf("flag %s requires an argument", arg)
+				return nil, exitErrorf(ExitCodeUsage, "flag %s requires an argument", arg)
 			}
 			global.Profile = args[i+1]
 			global.ProfileExplicit = true
@@ -181,6 +233,17 @@ Available Commands:
   approve     Record human sign-off and advance state to Approved (--skip-shadow)
   promote     Switch front door routing to Go, test kill switch, and advance state to Cutover
   diff        Replay cases against Go implementation and show structural diffs
+  fuzz        Execute differential fuzzing against recorded cases and target
+  bench       Execute latency and throughput benchmarks between original and Go
+  profile     Profile legacy execution and rank candidate hot functions for migration
+  bridge      Generate and manage hot-path strangler sidecar bridges
+  go          Execute guided end-to-end hot-path porting pipeline
+  enable      Enable Go strangler bridge routing for a unit or function
+  disable     Disable Go strangler bridge routing for a unit or function
+  refresh     Re-record behavioral cases and evaluate updated diffs
+  clean       Remove generated bridge artifacts while preserving developer logic
+  report      Generate comprehensive Markdown/JSON scorecard report for a unit
+  map         List functions in a unit and display porting and routing status
   gate        Execute Quality Gate pipeline
   shadow      Run front door in shadow mode on real traffic
   cutover     Switch primary traffic to verified Go unit
@@ -189,7 +252,13 @@ Available Commands:
   template    Render agent instruction files (CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md)
   setup       Render and install agent instruction files into target workspace (alias for template)
   version     Show go-anything version
-  help        Show command usage`)
+  help        Show command usage
+
+Exit Codes:
+  0   Success / OK
+  1   Failed verification check, gate failure, or diff mismatch
+  2   Usage error (invalid flags, missing arguments)
+  3   Internal error`)
 }
 
 // reorderArgs places flags and flag values before positional arguments so that

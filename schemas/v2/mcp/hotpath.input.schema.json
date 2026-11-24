@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPHotpathInput",
+  "type": "object",
+  "required": ["unit_id"],
+  "properties": {
+    "unit_id": { "type": "string", "description": "Unit identifier." },
+    "function": { "type": "string", "description": "Function name." },
+    "dir": { "type": "string" },
+    "force": { "type": "boolean" }
+  }
+}

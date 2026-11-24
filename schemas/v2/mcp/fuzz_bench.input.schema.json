@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPFuzzBenchInput",
+  "type": "object",
+  "required": ["unit_id", "mode"],
+  "properties": {
+    "unit_id": { "type": "string", "description": "Unit identifier." },
+    "mode": { "type": "string", "enum": ["fuzz", "bench"], "description": "Execution mode: 'fuzz' or 'bench'." },
+    "time": { "type": "string", "description": "Fuzz duration budget (e.g. '10s')." },
+    "iterations": { "type": "integer", "description": "Benchmark iterations count." },
+    "dir": { "type": "string" }
+  }
+}

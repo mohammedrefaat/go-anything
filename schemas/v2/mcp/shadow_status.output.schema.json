@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPShadowStatusOutput",
+  "type": "object",
+  "required": ["shadow_active", "units"],
+  "properties": {
+    "shadow_active": { "type": "boolean" },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["unit_id", "status"],
+        "properties": {
+          "unit_id": { "type": "string" },
+          "status": { "type": "string" },
+          "requests_count": { "type": "integer" },
+          "mismatches_count": { "type": "integer" }
+        }
+      }
+    }
+  }
+}
