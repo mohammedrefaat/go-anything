@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -204,12 +205,64 @@ func (d *DoctorEngine) CheckUnsafeFlags(flags []string) []CheckIssue {
 	return issues
 }
 
+// CheckLanguageRuntimes inspects repository project files and verifies required runtime compilers/interpreters.
+func (d *DoctorEngine) CheckLanguageRuntimes() []CheckIssue {
+	var issues []CheckIssue
+
+	// Check for JavaScript / TypeScript
+	if _, err := os.Stat(filepath.Join(d.RepoPath, "package.json")); err == nil {
+		if _, err := exec.LookPath("node"); err != nil {
+			issues = append(issues, CheckIssue{
+				CheckName: "language_runtimes",
+				Severity:  StatusWarning,
+				Message:   "Node.js runtime ('node') not found on PATH (required for JavaScript/TypeScript migration)",
+				Path:      filepath.Join(d.RepoPath, "package.json"),
+			})
+		}
+	}
+
+	// Check for Python
+	hasPy := false
+	for _, pyFile := range []string{"requirements.txt", "pyproject.toml", "setup.py"} {
+		if _, err := os.Stat(filepath.Join(d.RepoPath, pyFile)); err == nil {
+			hasPy = true
+			break
+		}
+	}
+	if hasPy {
+		_, errPy := exec.LookPath("python")
+		_, errPy3 := exec.LookPath("python3")
+		if errPy != nil && errPy3 != nil {
+			issues = append(issues, CheckIssue{
+				CheckName: "language_runtimes",
+				Severity:  StatusWarning,
+				Message:   "Python runtime ('python' or 'python3') not found on PATH (required for Python migration)",
+			})
+		}
+	}
+
+	// Check for Go
+	if _, err := os.Stat(filepath.Join(d.RepoPath, "go.mod")); err == nil {
+		if _, err := exec.LookPath("go"); err != nil {
+			issues = append(issues, CheckIssue{
+				CheckName: "language_runtimes",
+				Severity:  StatusError,
+				Message:   "Go toolchain ('go') not found on PATH (required for Go migration target)",
+				Path:      filepath.Join(d.RepoPath, "go.mod"),
+			})
+		}
+	}
+
+	return issues
+}
+
 // RunAllChecks runs all diagnostic checks and compiles a DoctorReport.
 func (d *DoctorEngine) RunAllChecks(flags ...[]string) *DoctorReport {
 	report := &DoctorReport{Healthy: true}
 
 	report.Issues = append(report.Issues, d.CheckGitignore()...)
 	report.Issues = append(report.Issues, d.CheckCommittedSecrets()...)
+	report.Issues = append(report.Issues, d.CheckLanguageRuntimes()...)
 
 	var activeFlags []string
 	if len(flags) > 0 {

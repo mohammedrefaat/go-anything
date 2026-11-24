@@ -1,0 +1,10 @@
+{
+  "name": "javascript-fixture-service",
+  "version": "1.0.0",
+  "description": "JavaScript fixture service for go-anything migration testing",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  }
+}
