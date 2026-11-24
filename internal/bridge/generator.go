@@ -81,6 +81,7 @@ func (g *Generator) Generate(m *Manifest, outputDir string) (*GenerateResult, er
 		"toCamel":      toCamelCase,
 		"toLowerCamel": toLowerCamelCase,
 		"toGoType":     toGoType,
+		"toTSType":     toTSType,
 		"toEnvVar":     toEnvVar,
 		"toTitle":      toCamelCase,
 	}
@@ -96,6 +97,9 @@ func (g *Generator) Generate(m *Manifest, outputDir string) (*GenerateResult, er
 		{"templates/sidecar_handlers.go.tmpl", "handlers.go", false, true},
 		{"templates/sidecar_handlers_impl.go.tmpl", "handlers_impl.go", true, true},
 		{"templates/sidecar_test.go.tmpl", "bridge_test.go", false, true},
+		{"templates/wrapper_python.py.tmpl", "wrappers/bridge.py", false, false},
+		{"templates/wrapper_typescript.ts.tmpl", "wrappers/bridge.ts", false, false},
+		{"templates/wrapper_typescript.d.ts.tmpl", "wrappers/bridge.d.ts", false, false},
 		{"templates/wrapper_python.py.tmpl", "wrapper.py", false, false},
 		{"templates/wrapper_typescript.ts.tmpl", "wrapper.ts", false, false},
 	}
@@ -112,6 +116,10 @@ func (g *Generator) Generate(m *Manifest, outputDir string) (*GenerateResult, er
 				res.PreservedFiles = append(res.PreservedFiles, spec.outName)
 				continue
 			}
+		}
+
+		if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create directory for %q: %w", outPath, err)
 		}
 
 		tmplContent, err := g.fs.ReadFile(spec.tmplName)
@@ -268,4 +276,30 @@ func toEnvVar(s string) string {
 		}
 	}
 	return sb.String()
+}
+
+func toTSType(t string) string {
+	t = strings.TrimSpace(t)
+	switch strings.ToLower(t) {
+	case "string":
+		return "string"
+	case "int", "integer", "int32", "float", "float64", "double", "number":
+		return "number"
+	case "int64", "long":
+		return "bigint | number"
+	case "bool", "boolean":
+		return "boolean"
+	case "bytes", "binary":
+		return "Uint8Array | string"
+	case "object":
+		return "Record<string, any>"
+	case "[]string":
+		return "string[]"
+	case "[]int":
+		return "number[]"
+	case "[]float64":
+		return "number[]"
+	default:
+		return "any"
+	}
 }
