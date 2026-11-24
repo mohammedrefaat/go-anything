@@ -48,16 +48,31 @@ func setupRecordWorkspace(t *testing.T, unitID string) string {
 	return tempDir
 }
 
+// TestCopyRecordObservation runs as the recorder's test command in these fixtures.
+func TestCopyRecordObservation(t *testing.T) {
+	args := os.Args
+	if len(args) != 4 || args[2] != "--" {
+		t.Skip("only run as a recording subprocess")
+	}
+	captureDir := os.Getenv("GO_ANYTHING_RECORD")
+	require.NotEmpty(t, captureDir)
+	content, err := os.ReadFile(args[3])
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(captureDir, filepath.Base(args[3])), content, 0600))
+}
+
+func copyRecordObservationCommand(t *testing.T, observedFile string) []string {
+	t.Helper()
+	exe, err := os.Executable()
+	require.NoError(t, err)
+	return []string{exe, "-test.run=^TestCopyRecordObservation$", "--", observedFile}
+}
+
 func TestCLI_RecordFromTests_GoObservation(t *testing.T) {
 	unitID := "pkg/currency"
 	tempDir := setupRecordWorkspace(t, unitID)
 
-	// Subprocess or in-process observation hook test:
-	// We simulate running a test command by writing observation records to the capture directory
-	// via pkg/recorder.Observe while GO_ANYTHING_RECORD is set.
 	var stdout, stderr bytes.Buffer
-
-	// We'll run a helper command (or simulate via test runner)
 	captureDir := filepath.Join(tempDir, ".capture_test")
 	require.NoError(t, os.MkdirAll(captureDir, 0755))
 
@@ -71,25 +86,18 @@ func TestCLI_RecordFromTests_GoObservation(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Now run the CLI command: record --unit pkg/currency --from-tests -- ...
-	// Since we pass a dummy command that exits 0 (e.g. echo or true),
-	// the CLI sets up a capture dir and runs the command.
-	// To test the end-to-end CLI with command execution:
-	// On Windows, 'cmd /c exit 0' or 'powershell -Command exit 0'
-	err = runCLI([]string{
+	observedFile := filepath.Join(captureDir, "pkg_currency_observed.jsonl")
+	err = runCLI(append([]string{
 		"record",
 		"--unit=" + unitID,
 		"--from-tests",
 		"--dir=" + tempDir,
 		"--",
-		"powershell",
-		"-Command",
-		"[System.Environment]::SetEnvironmentVariable('TEST_RAN', '1')",
-	}, &stdout, &stderr)
+	}, copyRecordObservationCommand(t, observedFile)...), &stdout, &stderr)
 	require.NoError(t, err)
 
 	out := stdout.String()
-	assert.Contains(t, out, "Recorded")
+	assert.Contains(t, out, "Recorded 1 case(s) from tests")
 }
 
 func TestCLI_RecordFromTests_SecretRedaction(t *testing.T) {
@@ -115,25 +123,17 @@ func TestCLI_RecordFromTests_SecretRedaction(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Move the captured file into the directory that record --from-tests will ingest,
-	// or invoke ingester directly through the CLI flow.
-	// We simulate the test command copying our capture file into the CLI's capture directory:
 	observedFile := filepath.Join(captureDir, "pkg_auth_observed.jsonl")
 	require.FileExists(t, observedFile)
 
 	var stdout, stderr bytes.Buffer
-	// We run record with a command that copies the observed file into the active capture dir
-	script := `Copy-Item '` + observedFile + `' $env:GO_ANYTHING_RECORD`
-	err = runCLI([]string{
+	err = runCLI(append([]string{
 		"record",
 		"--unit=" + unitID,
 		"--from-tests",
 		"--dir=" + tempDir,
 		"--",
-		"powershell",
-		"-Command",
-		script,
-	}, &stdout, &stderr)
+	}, copyRecordObservationCommand(t, observedFile)...), &stdout, &stderr)
 	require.NoError(t, err)
 
 	casesFile := filepath.Join(tempDir, ".go-anything", "cases", "pkg", "auth.jsonl")
@@ -188,18 +188,14 @@ func TestCLI_RecordFromTests_DeduplicationAndCapping(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	// Set max-cases to 3
-	script := `Copy-Item '` + observedFile + `' $env:GO_ANYTHING_RECORD`
-	err := runCLI([]string{
+	err := runCLI(append([]string{
 		"record",
 		"--unit=" + unitID,
 		"--from-tests",
 		"--max-cases=3",
 		"--dir=" + tempDir,
 		"--",
-		"powershell",
-		"-Command",
-		script,
-	}, &stdout, &stderr)
+	}, copyRecordObservationCommand(t, observedFile)...), &stdout, &stderr)
 	require.NoError(t, err)
 
 	casesFile := filepath.Join(tempDir, ".go-anything", "cases", "pkg", "dedup.jsonl")
@@ -242,17 +238,13 @@ func TestCLI_RecordFromTests_Python(t *testing.T) {
 	require.FileExists(t, observedFile)
 
 	var stdout, stderr bytes.Buffer
-	script := `Copy-Item '` + observedFile + `' $env:GO_ANYTHING_RECORD`
-	err := runCLI([]string{
+	err := runCLI(append([]string{
 		"record",
 		"--unit=" + unitID,
 		"--from-tests",
 		"--dir=" + tempDir,
 		"--",
-		"powershell",
-		"-Command",
-		script,
-	}, &stdout, &stderr)
+	}, copyRecordObservationCommand(t, observedFile)...), &stdout, &stderr)
 	require.NoError(t, err)
 
 	casesFile := filepath.Join(tempDir, ".go-anything", "cases", "core", "validator.jsonl")

@@ -170,8 +170,8 @@ func startAcceptanceService(t *testing.T, dir string) string {
 }
 
 func TestM4_AgentAcceptanceRun(t *testing.T) {
-	// Require race detector capability for full profile verification
-	if out, err := exec.Command("go", "test", "-race", ".").CombinedOutput(); err != nil && strings.Contains(string(out), "requires cgo") {
+	// Probe race detector support without recursively running this test.
+	if out, err := exec.Command("go", "test", "-race", "-run", "^$", ".").CombinedOutput(); err != nil && strings.Contains(string(out), "requires cgo") {
 		t.Skip("skipping TestM4_AgentAcceptanceRun: race detector requires cgo/gcc")
 	}
 

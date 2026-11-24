@@ -2,6 +2,7 @@ package parity_test
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -114,17 +115,18 @@ func TestDeepCopy_ProtectsMutableInputsAcrossVersions(t *testing.T) {
 
 func TestGoroutineTracker_SynchronizationAndPanicCapture(t *testing.T) {
 	gt := parity.NewGoroutineTracker()
-	counter := 0
+	var counter atomic.Int32
 
 	for i := 0; i < 5; i++ {
 		gt.Go(func() {
 			time.Sleep(5 * time.Millisecond)
-			counter++
+			counter.Add(1)
 		})
 	}
 
 	err := gt.Wait()
 	require.NoError(t, err)
+	assert.Equal(t, int32(5), counter.Load())
 	assert.Equal(t, int64(0), gt.Active())
 
 	// Test panic capture
