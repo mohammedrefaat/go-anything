@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPProfileOutput",
+  "type": "object",
+  "required": ["unit_id", "candidates"],
+  "properties": {
+    "unit_id": { "type": "string" },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rank", "function_name", "self_percent", "cumulative_percent"],
+        "properties": {
+          "rank": { "type": "integer" },
+          "function_name": { "type": "string" },
+          "self_percent": { "type": "number" },
+          "cumulative_percent": { "type": "number" },
+          "is_pure_heuristic": { "type": "boolean" },
+          "purity_reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

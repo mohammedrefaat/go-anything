@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPBridgeOutput",
+  "type": "object",
+  "required": ["unit_id", "generated_files"],
+  "properties": {
+    "unit_id": { "type": "string" },
+    "generated_files": { "type": "array", "items": { "type": "string" } },
+    "handlers_impl_preserved": { "type": "boolean" }
+  }
+}

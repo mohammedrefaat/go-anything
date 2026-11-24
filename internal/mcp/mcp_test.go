@@ -97,7 +97,7 @@ func TestMCP_ToolListExact8(t *testing.T) {
 	rawTools, ok := resultMap["tools"].([]any)
 	require.True(t, ok)
 
-	assert.Len(t, rawTools, 8, "MCP server must expose exactly 8 tools")
+	assert.Len(t, rawTools, 14, "MCP server must expose exactly 14 tools")
 
 	var toolNames []string
 	for _, raw := range rawTools {
@@ -107,16 +107,49 @@ func TestMCP_ToolListExact8(t *testing.T) {
 	sort.Strings(toolNames)
 
 	expectedTools := []string{
+		"analyze",
+		"bridge",
 		"claim_unit",
+		"fuzz_bench",
 		"handoff",
+		"hotpath",
 		"inspect_unit",
 		"mark_verified",
+		"profile",
 		"record_cases",
 		"run_gate",
+		"shadow_status",
 		"status",
 		"verify_diff",
 	}
 	assert.Equal(t, expectedTools, toolNames)
+}
+
+func TestMCPDoesNotExposeHumanOnlyTools(t *testing.T) {
+	humanOnlyForbidden := []string{
+		"approve",
+		"promote",
+		"lift",
+		"cutover",
+		"cutover_kill",
+		"kill_switch",
+		"routing",
+		"toggle_shadow",
+	}
+
+	defs := mcp.GetToolDefinitions()
+	for _, tool := range defs {
+		for _, forbidden := range humanOnlyForbidden {
+			assert.NotEqual(t, forbidden, tool.Name, "MCP tool %q violates Rule R-1 (human-only command exposed via MCP)", tool.Name)
+			assert.False(t, strings.HasPrefix(tool.Name, forbidden), "MCP tool %q starts with forbidden prefix %q", tool.Name, forbidden)
+		}
+	}
+
+	for _, toolName := range mcp.StandardToolNames {
+		for _, forbidden := range humanOnlyForbidden {
+			assert.NotEqual(t, forbidden, toolName, "StandardToolNames contains forbidden human-only tool %q", toolName)
+		}
+	}
 }
 
 func TestMCP_Rule4_HumanOnlyControlsForbidden(t *testing.T) {
@@ -476,4 +509,99 @@ func TestMCP_Protocol_InitializeAndPing(t *testing.T) {
 	}
 	pingResp := sendMCPRequest(t, server, pingReq)
 	assert.Nil(t, pingResp.Error)
+}
+
+func TestMCP_NewV2Tools_EndToEnd(t *testing.T) {
+	tempDir, _ := setupTestMCPWorkspace(t)
+	server := mcp.NewServer()
+	server.WorkspaceRoot = tempDir
+
+	// 1. analyze
+	t.Run("tool_analyze", func(t *testing.T) {
+		args, _ := json.Marshal(map[string]any{"dir": tempDir})
+		params, _ := json.Marshal(mcp.ToolCallParams{Name: "analyze", Arguments: args})
+		resp := sendMCPRequest(t, server, &mcp.JSONRPCRequest{JSONRPC: "2.0", ID: 10, Method: "tools/call", Params: params})
+
+		resBytes, _ := json.Marshal(resp.Result)
+		var res mcp.ToolCallResult
+		_ = json.Unmarshal(resBytes, &res)
+		assert.False(t, res.IsError)
+		assert.Contains(t, res.Content[0].Text, "total_units")
+	})
+
+	// 2. profile
+	t.Run("tool_profile", func(t *testing.T) {
+		args, _ := json.Marshal(map[string]any{"unit_id": "pkg/auth", "dir": tempDir, "top": 3})
+		params, _ := json.Marshal(mcp.ToolCallParams{Name: "profile", Arguments: args})
+		resp := sendMCPRequest(t, server, &mcp.JSONRPCRequest{JSONRPC: "2.0", ID: 11, Method: "tools/call", Params: params})
+
+		resBytes, _ := json.Marshal(resp.Result)
+		var res mcp.ToolCallResult
+		_ = json.Unmarshal(resBytes, &res)
+		assert.False(t, res.IsError)
+		assert.Contains(t, res.Content[0].Text, "candidates")
+	})
+
+	// 3. bridge
+	t.Run("tool_bridge", func(t *testing.T) {
+		args, _ := json.Marshal(map[string]any{"unit_id": "pkg/auth", "function": "login", "dir": tempDir})
+		params, _ := json.Marshal(mcp.ToolCallParams{Name: "bridge", Arguments: args})
+		resp := sendMCPRequest(t, server, &mcp.JSONRPCRequest{JSONRPC: "2.0", ID: 12, Method: "tools/call", Params: params})
+
+		resBytes, _ := json.Marshal(resp.Result)
+		var res mcp.ToolCallResult
+		_ = json.Unmarshal(resBytes, &res)
+		assert.False(t, res.IsError)
+		assert.Contains(t, res.Content[0].Text, "generated_files")
+	})
+
+	// 4. hotpath
+	t.Run("tool_hotpath", func(t *testing.T) {
+		args, _ := json.Marshal(map[string]any{"unit_id": "pkg/auth", "function": "login", "dir": tempDir})
+		params, _ := json.Marshal(mcp.ToolCallParams{Name: "hotpath", Arguments: args})
+		resp := sendMCPRequest(t, server, &mcp.JSONRPCRequest{JSONRPC: "2.0", ID: 13, Method: "tools/call", Params: params})
+
+		resBytes, _ := json.Marshal(resp.Result)
+		var res mcp.ToolCallResult
+		_ = json.Unmarshal(resBytes, &res)
+		assert.False(t, res.IsError)
+		assert.Contains(t, res.Content[0].Text, "paused_for_implementation")
+		assert.Contains(t, res.Content[0].Text, "human_action_required")
+	})
+
+	// 5. fuzz_bench
+	t.Run("tool_fuzz_bench", func(t *testing.T) {
+		args, _ := json.Marshal(map[string]any{"unit_id": "pkg/auth", "mode": "fuzz", "time": "1s", "dir": tempDir})
+		params, _ := json.Marshal(mcp.ToolCallParams{Name: "fuzz_bench", Arguments: args})
+		resp := sendMCPRequest(t, server, &mcp.JSONRPCRequest{JSONRPC: "2.0", ID: 14, Method: "tools/call", Params: params})
+
+		resBytes, _ := json.Marshal(resp.Result)
+		var res mcp.ToolCallResult
+		_ = json.Unmarshal(resBytes, &res)
+		assert.False(t, res.IsError)
+		assert.Contains(t, res.Content[0].Text, "fuzz")
+
+		benchArgs, _ := json.Marshal(map[string]any{"unit_id": "pkg/auth", "mode": "bench", "iterations": 5, "dir": tempDir})
+		benchParams, _ := json.Marshal(mcp.ToolCallParams{Name: "fuzz_bench", Arguments: benchArgs})
+		benchResp := sendMCPRequest(t, server, &mcp.JSONRPCRequest{JSONRPC: "2.0", ID: 15, Method: "tools/call", Params: benchParams})
+
+		benchBytes, _ := json.Marshal(benchResp.Result)
+		var benchRes mcp.ToolCallResult
+		_ = json.Unmarshal(benchBytes, &benchRes)
+		assert.False(t, benchRes.IsError)
+		assert.Contains(t, benchRes.Content[0].Text, "bench")
+	})
+
+	// 6. shadow_status
+	t.Run("tool_shadow_status", func(t *testing.T) {
+		args, _ := json.Marshal(map[string]any{"unit_id": "pkg/auth", "dir": tempDir})
+		params, _ := json.Marshal(mcp.ToolCallParams{Name: "shadow_status", Arguments: args})
+		resp := sendMCPRequest(t, server, &mcp.JSONRPCRequest{JSONRPC: "2.0", ID: 16, Method: "tools/call", Params: params})
+
+		resBytes, _ := json.Marshal(resp.Result)
+		var res mcp.ToolCallResult
+		_ = json.Unmarshal(resBytes, &res)
+		assert.False(t, res.IsError)
+		assert.Contains(t, res.Content[0].Text, "shadow_active")
+	})
 }

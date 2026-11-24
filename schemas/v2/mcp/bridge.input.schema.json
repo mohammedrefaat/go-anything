@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPBridgeInput",
+  "type": "object",
+  "required": ["unit_id"],
+  "properties": {
+    "unit_id": { "type": "string", "description": "Unit identifier." },
+    "function": { "type": "string", "description": "Function name to bridge." },
+    "transport": { "type": "string", "enum": ["stdio", "unix", "grpc"] },
+    "dir": { "type": "string" }
+  }
+}
