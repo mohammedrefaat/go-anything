@@ -137,6 +137,24 @@ func runCLIWithIO(stdin io.Reader, stdout, stderr io.Writer, args []string) erro
 	case "go":
 		cmdErr = runGo(global, subArgs, stdout, stderr)
 
+	case "enable":
+		cmdErr = runEnable(global, subArgs, stdout, stderr)
+
+	case "disable":
+		cmdErr = runDisable(global, subArgs, stdout, stderr)
+
+	case "refresh":
+		cmdErr = runRefresh(global, subArgs, stdout, stderr)
+
+	case "clean":
+		cmdErr = runClean(global, subArgs, stdout, stderr)
+
+	case "report":
+		cmdErr = runReport(global, subArgs, stdout, stderr)
+
+	case "map":
+		cmdErr = runMap(global, subArgs, stdout, stderr)
+
 	default:
 		cmdErr = exitErrorf(ExitCodeUsage, "unknown command %q. Run 'go-anything --help' for usage", subcommand)
 	}
@@ -220,6 +238,12 @@ Available Commands:
   profile     Profile legacy execution and rank candidate hot functions for migration
   bridge      Generate and manage hot-path strangler sidecar bridges
   go          Execute guided end-to-end hot-path porting pipeline
+  enable      Enable Go strangler bridge routing for a unit or function
+  disable     Disable Go strangler bridge routing for a unit or function
+  refresh     Re-record behavioral cases and evaluate updated diffs
+  clean       Remove generated bridge artifacts while preserving developer logic
+  report      Generate comprehensive Markdown/JSON scorecard report for a unit
+  map         List functions in a unit and display porting and routing status
   gate        Execute Quality Gate pipeline
   shadow      Run front door in shadow mode on real traffic
   cutover     Switch primary traffic to verified Go unit

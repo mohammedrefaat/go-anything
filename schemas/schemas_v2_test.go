@@ -1135,6 +1135,274 @@ func TestValidateV2_Effects(t *testing.T) {
 	}
 }
 
+func TestValidateV2_GoOutput(t *testing.T) {
+	tests := []struct {
+		name        string
+		schemaName  string
+		payload     string
+		expectError bool
+	}{
+		{
+			name:       "valid go hotpath pipeline output with full filename",
+			schemaName: "go.output.schema.json",
+			payload: `{
+				"schema_version": "v2",
+				"unit_id": "unit_billing",
+				"function": "calculate_tax",
+				"unit_state": "In progress",
+				"current_step": "implement",
+				"status": "paused_for_implementation",
+				"steps": [
+					{
+						"name": "target",
+						"status": "completed",
+						"summary": "found candidate calculate_tax"
+					},
+					{
+						"name": "record",
+						"status": "completed",
+						"artifacts": [".go-anything/cases/unit_billing.jsonl"]
+					},
+					{
+						"name": "implement",
+						"status": "waiting",
+						"summary": "implement calculate_tax in handlers_impl.go"
+					}
+				],
+				"human_action_required": "go-anything approve --unit unit_billing",
+				"timestamp": "2026-11-24T10:00:00Z"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "valid go pipeline output with shorthand",
+			schemaName: "go.output",
+			payload: `{
+				"unit_id": "unit_auth",
+				"function": "hash_password",
+				"current_step": "completed",
+				"status": "completed",
+				"steps": []
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "missing function",
+			schemaName: "go.output.schema.json",
+			payload: `{
+				"unit_id": "unit_auth",
+				"current_step": "target",
+				"status": "in_progress",
+				"steps": []
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "invalid pipeline status",
+			schemaName: "go.output.schema.json",
+			payload: `{
+				"unit_id": "unit_auth",
+				"function": "hash_password",
+				"current_step": "target",
+				"status": "unknown_status",
+				"steps": []
+			}`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2(tt.schemaName, []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateV2_ReportOutput(t *testing.T) {
+	tests := []struct {
+		name        string
+		schemaName  string
+		payload     string
+		expectError bool
+	}{
+		{
+			name:       "valid unit migration report output with full filename",
+			schemaName: "report.output.schema.json",
+			payload: `{
+				"schema_version": "v2",
+				"unit_id": "unit_billing",
+				"state": "Verified",
+				"evidence_profile": "full",
+				"cases_count": 42,
+				"replay_pass_rate": 100.0,
+				"diff_status": "clean",
+				"gate_status": "passed",
+				"benchmark": {
+					"speedup_ratio": 3.5,
+					"original_p50_ms": 12.0,
+					"go_p50_ms": 3.4,
+					"allocs_per_op": 2
+				},
+				"markdown": "# Migration Report\n\nAll checks passed.",
+				"generated_at": "2026-11-24T10:30:00Z"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "valid unit migration report output with shorthand",
+			schemaName: "report.output",
+			payload: `{
+				"unit_id": "unit_auth",
+				"state": "Planned",
+				"cases_count": 0,
+				"generated_at": "2026-11-24T10:30:00Z"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "missing state",
+			schemaName: "report.output.schema.json",
+			payload: `{
+				"unit_id": "unit_auth",
+				"cases_count": 10,
+				"generated_at": "2026-11-24T10:30:00Z"
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "missing generated_at",
+			schemaName: "report.output.schema.json",
+			payload: `{
+				"unit_id": "unit_auth",
+				"state": "Verified",
+				"cases_count": 10
+			}`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2(tt.schemaName, []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateV2_MapOutput(t *testing.T) {
+	tests := []struct {
+		name        string
+		schemaName  string
+		payload     string
+		expectError bool
+	}{
+		{
+			name:       "valid unit function map output with full filename",
+			schemaName: "map.output.schema.json",
+			payload: `{
+				"schema_version": "v2",
+				"unit_id": "unit_billing",
+				"total_functions": 2,
+				"functions": [
+					{
+						"name": "calculate_tax",
+						"status": "scaffolded",
+						"routing": "go",
+						"idempotent": true,
+						"cases_count": 5
+					},
+					{
+						"name": "apply_discount",
+						"status": "original",
+						"routing": "original",
+						"idempotent": true,
+						"cases_count": 2
+					}
+				],
+				"timestamp": "2026-11-24T11:00:00Z"
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "valid unit function map output with shorthand",
+			schemaName: "map.output",
+			payload: `{
+				"unit_id": "unit_auth",
+				"total_functions": 0,
+				"functions": []
+			}`,
+			expectError: false,
+		},
+		{
+			name:       "missing unit_id",
+			schemaName: "map.output.schema.json",
+			payload: `{
+				"total_functions": 0,
+				"functions": []
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "missing functions",
+			schemaName: "map.output.schema.json",
+			payload: `{
+				"unit_id": "unit_auth",
+				"total_functions": 0
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "function item missing required status",
+			schemaName: "map.output.schema.json",
+			payload: `{
+				"unit_id": "unit_auth",
+				"total_functions": 1,
+				"functions": [
+					{
+						"name": "login"
+					}
+				]
+			}`,
+			expectError: true,
+		},
+		{
+			name:       "invalid function status enum",
+			schemaName: "map.output.schema.json",
+			payload: `{
+				"unit_id": "unit_auth",
+				"total_functions": 1,
+				"functions": [
+					{
+						"name": "login",
+						"status": "unknown_state"
+					}
+				]
+			}`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2(tt.schemaName, []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateV2_UnknownSchema(t *testing.T) {
 	err := schemas.ValidateV2("does_not_exist.schema.json", []byte(`{}`))
 	require.Error(t, err)

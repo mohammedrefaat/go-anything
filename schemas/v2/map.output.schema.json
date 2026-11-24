@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/map.output.schema.json",
+  "title": "UnitFunctionMapOutput",
+  "description": "Output schema for the go-anything map command.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "functions",
+    "total_functions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Migration unit identifier."
+    },
+    "total_functions": {
+      "type": "integer",
+      "description": "Total number of functions mapped."
+    },
+    "functions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["original", "scaffolded", "implemented", "verified", "shadow", "cutover"]
+          },
+          "routing": {
+            "type": "string",
+            "enum": ["go", "original", "shadow", "unknown"]
+          },
+          "idempotent": { "type": "boolean" },
+          "cases_count": { "type": "integer" }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

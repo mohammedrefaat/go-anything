@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.go-anything.dev/v2/report.output.schema.json",
+  "title": "UnitMigrationReportOutput",
+  "description": "Output schema for the go-anything report command.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "state",
+    "cases_count",
+    "generated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier (e.g. 'v2')."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Migration unit identifier."
+    },
+    "state": {
+      "type": "string",
+      "description": "Current 10-state lifecycle state (e.g. 'Planned', 'Verified', 'Shadow', 'Cutover')."
+    },
+    "evidence_profile": {
+      "type": "string",
+      "description": "Evidence profile ('replay' or 'full')."
+    },
+    "cases_count": {
+      "type": "integer",
+      "description": "Number of recorded behavioral test cases."
+    },
+    "replay_pass_rate": {
+      "type": "number",
+      "description": "Replay pass rate percentage (0.0 to 100.0)."
+    },
+    "diff_status": {
+      "type": "string",
+      "description": "Diff summary ('clean', 'diverged', or 'not_compared')."
+    },
+    "gate_status": {
+      "type": "string",
+      "description": "Quality Gate scorecard summary ('passed', 'failed', or 'pending')."
+    },
+    "benchmark": {
+      "type": "object",
+      "properties": {
+        "speedup_ratio": { "type": "number" },
+        "original_p50_ms": { "type": "number" },
+        "go_p50_ms": { "type": "number" },
+        "allocs_per_op": { "type": "integer" }
+      }
+    },
+    "markdown": {
+      "type": "string",
+      "description": "Rendered Markdown report text."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
