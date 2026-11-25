@@ -16,11 +16,32 @@ func createFullProfileChecks() []adapterkit.GateCheck {
 		{Name: "build", Status: adapterkit.StatusPass, Output: "build clean"},
 		{Name: "format", Status: adapterkit.StatusPass, Output: "format clean"},
 		{Name: "vet", Status: adapterkit.StatusPass, Output: "vet clean"},
+		{Name: "staticcheck", Status: adapterkit.StatusPass, Output: "staticcheck clean"},
 		{Name: "race", Status: adapterkit.StatusPass, Output: "race clean"},
 		{Name: "govulncheck", Status: adapterkit.StatusPass, Output: "no vulnerabilities"},
 		{Name: "replay", Status: adapterkit.StatusPass, Output: "100% replay matched"},
 		{Name: "error_paths", Status: adapterkit.StatusPass, Output: "error paths clean"},
 		{Name: "api_compat", Status: adapterkit.StatusPass, Output: "api compat clean"},
+	}
+}
+
+func fullProfileCheckNames() []string {
+	return []string{"build", "format", "vet", "staticcheck", "race", "govulncheck", "replay", "error_paths", "api_compat"}
+}
+
+func newValidFullEvidence(id, unitID, commitSHA string, checks []adapterkit.GateCheck) *adapterkit.Evidence {
+	return &adapterkit.Evidence{
+		SchemaVersion:   adapterkit.SchemaVersionV2,
+		EvidenceID:      id,
+		UnitID:          unitID,
+		CommitSHA:       commitSHA,
+		Profile:         adapterkit.ProfileFull,
+		ProfileVersion:  adapterkit.FullProfileVersionV201,
+		ProfileChecks:   fullProfileCheckNames(),
+		VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
+		VerifiedBy:      "agent-test",
+		Checks:          checks,
+		MismatchesCount: 0,
 	}
 }
 
@@ -117,14 +138,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 			}
 		}
 
-		ev := &adapterkit.Evidence{
-			EvidenceID:      "evi-missing-api",
-			UnitID:          "unit-core",
-			CommitSHA:       validCommitSHA,
-			Profile:         adapterkit.ProfileFull,
-			Checks:          filtered,
-			MismatchesCount: 0,
-		}
+		ev := newValidFullEvidence("evi-missing-api", "unit-core", validCommitSHA, filtered)
 		_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
 			Actor:    "agent-test",
 			Evidence: ev,
@@ -142,14 +156,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 			}
 		}
 
-		ev := &adapterkit.Evidence{
-			EvidenceID:      "evi-failed-api",
-			UnitID:          "unit-core",
-			CommitSHA:       validCommitSHA,
-			Profile:         adapterkit.ProfileFull,
-			Checks:          checks,
-			MismatchesCount: 0,
-		}
+		ev := newValidFullEvidence("evi-failed-api", "unit-core", validCommitSHA, checks)
 		_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
 			Actor:    "agent-test",
 			Evidence: ev,
@@ -167,14 +174,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 			}
 		}
 
-		ev := &adapterkit.Evidence{
-			EvidenceID:      "evi-missing-err",
-			UnitID:          "unit-core",
-			CommitSHA:       validCommitSHA,
-			Profile:         adapterkit.ProfileFull,
-			Checks:          filtered,
-			MismatchesCount: 0,
-		}
+		ev := newValidFullEvidence("evi-missing-err", "unit-core", validCommitSHA, filtered)
 		_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
 			Actor:    "agent-test",
 			Evidence: ev,
@@ -251,16 +251,8 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 			}
 		}
 		checks = append(checks, adapterkit.GateCheck{Name: "vulncheck", Status: adapterkit.StatusPass})
-		cleanEvidence := &adapterkit.Evidence{
-			EvidenceID:      fmt.Sprintf("evi-core-%s", validCommitSHA[:8]),
-			UnitID:          "unit-core",
-			CommitSHA:       validCommitSHA,
-			Profile:         adapterkit.ProfileFull,
-			VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
-			VerifiedBy:      "agent-test",
-			Checks:          checks,
-			MismatchesCount: 0,
-		}
+		cleanEvidence := newValidFullEvidence(fmt.Sprintf("evi-core-%s", validCommitSHA[:8]), "unit-core", validCommitSHA, checks)
+		cleanEvidence.ProfileChecks = append(fullProfileCheckNames(), "vulncheck")
 
 		verifiedUnit, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
 			Actor:    "agent-test",
@@ -275,11 +267,96 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 		assert.Equal(t, cleanEvidence.EvidenceID, retrievedByCommit.EvidenceID)
 		assert.Equal(t, validCommitSHA, retrievedByCommit.CommitSHA)
 		assert.Equal(t, adapterkit.ProfileFull, retrievedByCommit.Profile)
+		assert.Equal(t, adapterkit.SchemaVersionV2, retrievedByCommit.SchemaVersion)
+		assert.Equal(t, adapterkit.FullProfileVersionV201, retrievedByCommit.ProfileVersion)
 
 		// Verify latest evidence lookup
 		latest, err := store.GetLatestEvidenceForUnit("unit-core")
 		require.NoError(t, err)
 		assert.Equal(t, cleanEvidence.EvidenceID, latest.EvidenceID)
+	})
+
+	t.Run("rejects stale evidence profile definitions fail-closed", func(t *testing.T) {
+		staleUnit := &adapterkit.Unit{
+			ID:              "unit-stale-check",
+			Name:            "Stale Check Unit",
+			State:           adapterkit.StateInProgress,
+			EvidenceProfile: adapterkit.ProfileFull,
+		}
+		require.NoError(t, store.SaveUnit(staleUnit))
+		_, err := store.AcquireLease("unit-stale-check", "agent-test", time.Hour)
+		require.NoError(t, err)
+
+		tests := []struct {
+			name   string
+			mutate func(ev *adapterkit.Evidence)
+			errSub string
+		}{
+			{
+				name:   "empty schema_version",
+				mutate: func(ev *adapterkit.Evidence) { ev.SchemaVersion = "" },
+				errSub: "stale evidence schema_version",
+			},
+			{
+				name:   "v1alpha1 schema_version",
+				mutate: func(ev *adapterkit.Evidence) { ev.SchemaVersion = adapterkit.SchemaVersionV1Alpha1 },
+				errSub: "stale evidence schema_version",
+			},
+			{
+				name:   "v1 schema_version",
+				mutate: func(ev *adapterkit.Evidence) { ev.SchemaVersion = adapterkit.SchemaVersionV1 },
+				errSub: "stale evidence schema_version",
+			},
+			{
+				name:   "missing profile_version",
+				mutate: func(ev *adapterkit.Evidence) { ev.ProfileVersion = "" },
+				errSub: "stale or missing profile_version",
+			},
+			{
+				name:   "older profile_version",
+				mutate: func(ev *adapterkit.Evidence) { ev.ProfileVersion = "2.0.0" },
+				errSub: "stale or missing profile_version",
+			},
+			{
+				name:   "missing profile_checks",
+				mutate: func(ev *adapterkit.Evidence) { ev.ProfileChecks = nil },
+				errSub: "missing profile_checks",
+			},
+			{
+				name: "profile_checks missing staticcheck",
+				mutate: func(ev *adapterkit.Evidence) {
+					ev.ProfileChecks = []string{"build", "format", "vet", "race", "govulncheck", "replay", "error_paths", "api_compat"}
+				},
+				errSub: "missing required check \"staticcheck\"",
+			},
+			{
+				name: "checks missing staticcheck",
+				mutate: func(ev *adapterkit.Evidence) {
+					var filtered []adapterkit.GateCheck
+					for _, c := range ev.Checks {
+						if c.Name != "staticcheck" {
+							filtered = append(filtered, c)
+						}
+					}
+					ev.Checks = filtered
+				},
+				errSub: "requires check \"staticcheck\"",
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				ev := newValidFullEvidence("evi-stale-"+tc.name, "unit-stale-check", validCommitSHA, createFullProfileChecks())
+				tc.mutate(ev)
+				_, err := store.Transition("unit-stale-check", adapterkit.StateVerified, state.TransitionOptions{
+					Actor:    "agent-test",
+					Evidence: ev,
+				})
+				require.Error(t, err)
+				assert.ErrorIs(t, err, state.ErrEvidenceProfileUnsatisfied)
+				assert.Contains(t, err.Error(), tc.errSub)
+			})
+		}
 	})
 
 	t.Run("explicit replay profile override continues to function", func(t *testing.T) {

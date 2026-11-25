@@ -905,12 +905,18 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 		if !requiredChecksPassed(report, profile) {
 			return &ToolCallResult{IsError: true, Content: []ContentItem{{Type: "text", Text: "Required checks were skipped; no passing evidence saved"}}}, nil
 		}
+		profileChecks := []string{gate.CheckReplay}
+		if profile == adapterkit.ProfileFull {
+			profileChecks = gate.FullProfileChecks()
+		}
 		ev := &adapterkit.Evidence{
-			SchemaVersion:   adapterkit.DefaultSchemaVersion,
+			SchemaVersion:   adapterkit.SchemaVersionV2,
 			EvidenceID:      fmt.Sprintf("evi-%s-%s-%d", sanitizeUnitID(unit.ID), commitSHA[:8], time.Now().UnixNano()),
 			UnitID:          unit.ID,
 			CommitSHA:       commitSHA,
 			Profile:         profile,
+			ProfileVersion:  adapterkit.FullProfileVersionV201,
+			ProfileChecks:   profileChecks,
 			VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
 			VerifiedBy:      "mcp-agent",
 			Checks:          report.ToGateChecks(),

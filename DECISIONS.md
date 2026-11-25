@@ -23,6 +23,7 @@ Prior to Milestone 0, key foundational design decisions were settled in the Arch
 | **ADR-002** | Cross-Machine Unit Claims and Coordination | **Resolved** | 2026-11-19 | Pull-request and branch ownership is sufficient through v1.0; local leases in `.go-anything/local/` coordinate agents on a single machine; no shared claim service before v1.0. | [adr-002-cross-machine-claims.md](Docs/decisions/adr-002-cross-machine-claims.md) |
 | **ADR-005** | Hot-Path Sidecar Protocol & IPC Contract | **Resolved** | 2026-11-23 | Use out-of-process sidecar protocol over in-process FFI/CGO (avoids GIL deadlocks, signal collisions, fork hazards). Tier 1: length-prefixed stdio JSON-RPC 2.0; Tier 2: Unix socket/named pipe; Tier 3: gRPC. `bridge.yaml` manifest, precise JSON/Go type mapping, -32000..-32099 error codes, and strangler fallback via `GO_ANYTHING_BRIDGE=off`. | [adr-005-hotpath-sidecar-protocol.md](Docs/decisions/adr-005-hotpath-sidecar-protocol.md) |
 | **ADR-007** | Canonical Owner Identity and Module Path Resolution | **Resolved** | 2026-11-24 | Establish `mohammedrefaat` as canonical GitHub owner and module path (`github.com/mohammedrefaat/go-anything`), fix cosign regex, update all import paths and package manifests. | [adr-007-canonical-owner-identity.md](Docs/decisions/adr-007-canonical-owner-identity.md) |
+| **ADR-008** | Gate Profile Alignment and Staged Security Rollout | **Resolved** | 2026-11-25 | Staged rollout (Option C): v2.0.1 adds `staticcheck` to `full` + bumps evidence to `v2` (`profile_version: "2.0.1"`, fail-closed `mark_verified`); v2.1.0 adds `security` advisory; v2.2.0 makes `security` required. | [adr-008-gate-profile-staging.md](Docs/decisions/adr-008-gate-profile-staging.md) |
 
 ---
 
@@ -76,3 +77,13 @@ Prior to Milestone 0, key foundational design decisions were settled in the Arch
     3. *Cosign Workflow Identity:* Standardize `--certificate-identity-regexp` across all verification documentation and scripts to `^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$`.
     4. *Package Distributions:* Update `.goreleaser.yaml`, Homebrew tap, Scoop bucket, and npm package manifests.
     5. *Regression Test:* Enforce zero legacy occurrences via `cmd/go-anything/owner_test.go`.
+
+### [ADR-008: Gate Profile Alignment and Staged Security Rollout](Docs/decisions/adr-008-gate-profile-staging.md)
+* **Status:** Resolved
+* **Scope:** `internal/gate/`, `internal/state/`, `internal/mcp/`, `schemas/v2/`, `Docs/USER_GUIDE.md` (Task A6, Finding F7)
+* **Summary:**
+  - **Context:** `FullProfileChecks()` omitted `staticcheck` while `AllChecks()` included it, and evidence records lacked `profile_version` / `profile_checks` so `mark_verified` could not reject stale evidence.
+  - **Decision (Option C — Staged Rollout):**
+    1. *v2.0.1:* Add `staticcheck` to `FullProfileChecks()` and `internal/state/machine.go`; bump evidence schema to `schemas/v2/evidence.schema.json` (`schema_version: "v2"`, `profile_version: "2.0.1"`, `profile_checks`); enforce fail-closed rejection in `mark_verified` for stale evidence. Units already `Verified` under the older `full` definition must re-run `gate` before `promote`.
+    2. *v2.1.0:* Run `security` in `gate` and scorecards as **advisory** (reported, non-blocking).
+    3. *v2.2.0:* Promote `security` (and `security_parity` when cases exist) to **required** in `full` with a second evidence-schema bump.

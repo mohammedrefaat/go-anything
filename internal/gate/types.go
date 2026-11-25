@@ -41,6 +41,7 @@ func FullProfileChecks() []string {
 		CheckBuild,
 		CheckFormat,
 		CheckVet,
+		CheckStaticcheck,
 		CheckRace,
 		CheckGovulncheck,
 		CheckReplay,

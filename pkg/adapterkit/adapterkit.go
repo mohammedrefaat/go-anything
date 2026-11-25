@@ -6,13 +6,19 @@ const Version = "v1"
 // SchemaVersionV1 is the constant tag expected in the schema_version field of all v1 records.
 const SchemaVersionV1 = "v1"
 
+// SchemaVersionV2 is the constant tag expected in the schema_version field of v2 records (e.g., evidence v2).
+const SchemaVersionV2 = "v2"
+
 // SchemaVersionV1Alpha1 is the constant tag expected in the schema_version field of all legacy v1alpha1 records.
 const SchemaVersionV1Alpha1 = "v1alpha1"
 
 // DefaultSchemaVersion specifies the active schema version for new workspace files.
 const DefaultSchemaVersion = SchemaVersionV1
 
-// Stable schema $id references for v1 and v1alpha1 JSON schemas.
+// FullProfileVersionV201 is the current version of the 'full' gate profile definition (v2.0.1).
+const FullProfileVersionV201 = "2.0.1"
+
+// Stable schema $id references for v1, v2, and v1alpha1 JSON schemas.
 const (
 	SchemaIDManifestV1 = "https://schemas.go-anything.dev/v1/manifest.schema.json"
 	SchemaIDUnitsV1    = "https://schemas.go-anything.dev/v1/units.schema.json"
@@ -20,6 +26,7 @@ const (
 	SchemaIDCasesV1    = "https://schemas.go-anything.dev/v1/cases.schema.json"
 	SchemaIDReportsV1  = "https://schemas.go-anything.dev/v1/reports.schema.json"
 	SchemaIDEvidenceV1 = "https://schemas.go-anything.dev/v1/evidence.schema.json"
+	SchemaIDEvidenceV2 = "https://schemas.go-anything.dev/v2/evidence.schema.json"
 
 	SchemaIDManifestV1Alpha1 = "https://schemas.go-anything.dev/v1alpha1/manifest.schema.json"
 	SchemaIDUnitsV1Alpha1    = "https://schemas.go-anything.dev/v1alpha1/units.schema.json"

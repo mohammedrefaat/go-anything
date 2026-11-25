@@ -210,6 +210,8 @@ type Evidence struct {
 	UnitID             string          `json:"unit_id"`
 	CommitSHA          string          `json:"commit_sha"`
 	Profile            EvidenceProfile `json:"profile"`
+	ProfileVersion     string          `json:"profile_version,omitempty"`
+	ProfileChecks      []string        `json:"profile_checks,omitempty"`
 	VerifiedAt         string          `json:"verified_at"`
 	VerifiedBy         string          `json:"verified_by"`
 	Checks             []GateCheck     `json:"checks"`

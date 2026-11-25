@@ -118,14 +118,16 @@ func (uc *UseCase) Run(ctx context.Context, in Input) (*Output, error) {
 	evidenceSaved := false
 	if report.Passed {
 		ev := &adapterkit.Evidence{
-			SchemaVersion: adapterkit.SchemaVersionV1Alpha1,
-			EvidenceID:    fmt.Sprintf("ev-%s-%d", in.UnitID, time.Now().UnixNano()),
-			UnitID:        in.UnitID,
-			CommitSHA:     commitSHA,
-			Profile:       adapterkit.EvidenceProfile(profile),
-			VerifiedAt:    time.Now().UTC().Format(time.RFC3339),
-			VerifiedBy:    "agent",
-			Checks:        report.ToGateChecks(),
+			SchemaVersion:  adapterkit.SchemaVersionV2,
+			EvidenceID:     fmt.Sprintf("ev-%s-%d", in.UnitID, time.Now().UnixNano()),
+			UnitID:         in.UnitID,
+			CommitSHA:      commitSHA,
+			Profile:        adapterkit.EvidenceProfile(profile),
+			ProfileVersion: adapterkit.FullProfileVersionV201,
+			ProfileChecks:  checks,
+			VerifiedAt:     time.Now().UTC().Format(time.RFC3339),
+			VerifiedBy:     "agent",
+			Checks:         report.ToGateChecks(),
 		}
 		if err := uc.port.SaveEvidence(ctx, absDir, ev); err == nil {
 			evidenceSaved = true
