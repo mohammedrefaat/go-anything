@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/mohammedrefaat/go-anything/internal/app/profile"
 	"github.com/mohammedrefaat/go-anything/internal/bridge"
+	"github.com/mohammedrefaat/go-anything/internal/sandbox"
 	"github.com/mohammedrefaat/go-anything/internal/state"
 	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
@@ -31,12 +31,23 @@ type HotpathPort interface {
 	SaveUnit(dir string, unit *adapterkit.Unit) error
 }
 
-// DefaultHotpathPort implements HotpathPort using workspace filesystem and subprocesses.
-type DefaultHotpathPort struct{}
+// DefaultHotpathPort implements HotpathPort using workspace filesystem and sandboxed subprocesses.
+type DefaultHotpathPort struct {
+	sandbox sandbox.Runner
+}
 
 // NewDefaultHotpathPort creates a new DefaultHotpathPort.
 func NewDefaultHotpathPort() *DefaultHotpathPort {
-	return &DefaultHotpathPort{}
+	return &DefaultHotpathPort{
+		sandbox: sandbox.New(),
+	}
+}
+
+// NewDefaultHotpathPortWithSandbox creates a DefaultHotpathPort with a custom sandbox Runner.
+func NewDefaultHotpathPortWithSandbox(runner sandbox.Runner) *DefaultHotpathPort {
+	return &DefaultHotpathPort{
+		sandbox: runner,
+	}
 }
 
 func (p *DefaultHotpathPort) DetectOrSelectFunction(ctx context.Context, dir, unitID, requestedFn string) (string, error) {
@@ -166,6 +177,77 @@ func (p *DefaultHotpathPort) CheckImplementation(ctx context.Context, dir, unitI
 	return true, "developer Go implementation detected", nil
 }
 
+func (p *DefaultHotpathPort) sandboxRunner() sandbox.Runner {
+	if p.sandbox != nil {
+		return p.sandbox
+	}
+	return sandbox.New()
+}
+
+// runSandboxedGo runs a Go toolchain subcommand inside internal/sandbox with network disabled
+// and offline/readonly module and toolchain flags. Target projects must vendor dependencies
+// or have a warm module cache and local Go toolchain.
+func (p *DefaultHotpathPort) runSandboxedGo(ctx context.Context, workingDir string, args ...string) (string, error) {
+	cfg := sandbox.Config{
+		Command:      "go",
+		Args:         args,
+		WorkingDir:   workingDir,
+		AllowNetwork: false,
+		EnvAllowlist: []string{
+			"PATH",
+			"HOME",
+			"USERPROFILE",
+			"APPDATA",
+			"LOCALAPPDATA",
+			"HOMEDRIVE",
+			"HOMEPATH",
+			"WINDIR",
+			"COMSPEC",
+			"TMPDIR",
+			"TEMP",
+			"TMP",
+			"GOPATH",
+			"GOMODCACHE",
+			"GOCACHE",
+			"GOROOT",
+			"GOTMPDIR",
+			"CGO_ENABLED",
+			"CC",
+			"CXX",
+			"GOOS",
+			"GOARCH",
+		},
+		CustomEnv: map[string]string{
+			"GOFLAGS":     "-mod=readonly",
+			"GOTOOLCHAIN": "local",
+			"GOPROXY":     "off",
+		},
+	}
+
+	res, err := p.sandboxRunner().Run(ctx, cfg)
+	if res != nil && res.IsolationWarn != "" {
+		fmt.Fprintln(os.Stderr, res.IsolationWarn)
+	}
+	if err != nil {
+		if res != nil {
+			combined := strings.TrimSpace(res.Stdout + "\n" + res.Stderr)
+			if combined != "" {
+				return combined, err
+			}
+		}
+		return "", err
+	}
+	combined := strings.TrimSpace(res.Stdout + "\n" + res.Stderr)
+	if res.ExitCode != 0 {
+		subcmd := "command"
+		if len(args) > 0 {
+			subcmd = args[0]
+		}
+		return combined, fmt.Errorf("go %s exited with status %d", subcmd, res.ExitCode)
+	}
+	return combined, nil
+}
+
 func (p *DefaultHotpathPort) ReplayAndDiff(ctx context.Context, dir, unitID string) (bool, string, error) {
 	outDir := filepath.Join(dir, "bridges", unitID)
 	binName := "sidecar"
@@ -174,10 +256,12 @@ func (p *DefaultHotpathPort) ReplayAndDiff(ctx context.Context, dir, unitID stri
 	}
 	binPath := filepath.Join(outDir, binName)
 
-	buildCmd := exec.CommandContext(ctx, "go", "build", "-o", binPath, "main.go", "types.go", "handlers.go", "handlers_impl.go")
-	buildCmd.Dir = outDir
-	if out, err := buildCmd.CombinedOutput(); err != nil {
-		return false, fmt.Sprintf("sidecar compilation failed: %s", string(out)), nil
+	if out, err := p.runSandboxedGo(ctx, outDir, "build", "-o", binPath, "main.go", "types.go", "handlers.go", "handlers_impl.go"); err != nil {
+		msg := out
+		if msg == "" {
+			msg = err.Error()
+		}
+		return false, fmt.Sprintf("sidecar compilation failed: %s", msg), nil
 	}
 
 	return true, "0 replay mismatches against recorded cases", nil
@@ -191,10 +275,12 @@ func (p *DefaultHotpathPort) FuzzAndBench(ctx context.Context, dir, unitID strin
 func (p *DefaultHotpathPort) RunGate(ctx context.Context, dir, unitID string) (bool, string, error) {
 	outDir := filepath.Join(dir, "bridges", unitID)
 
-	vetCmd := exec.CommandContext(ctx, "go", "vet", "main.go", "types.go", "handlers.go", "handlers_impl.go")
-	vetCmd.Dir = outDir
-	if out, err := vetCmd.CombinedOutput(); err != nil {
-		return false, fmt.Sprintf("go vet failed on sidecar: %s", string(out)), nil
+	if out, err := p.runSandboxedGo(ctx, outDir, "vet", "main.go", "types.go", "handlers.go", "handlers_impl.go"); err != nil {
+		msg := out
+		if msg == "" {
+			msg = err.Error()
+		}
+		return false, fmt.Sprintf("go vet failed on sidecar: %s", msg), nil
 	}
 
 	return true, "Quality Gate passed (build, vet, tests clean)", nil
