@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-11-25
+
+Patch release addressing Part A findings (F1–F4, F7–F11) from `Docs/GO_ANYTHING_FIX_AND_SECURITY_PLAN.md`: canonical owner/module identity, code-derived documentation, CI supply-chain & lint enforcement, expanded redactor coverage, multi-language `inspect_unit`, `staticcheck` in `full` gate profile with fail-closed v2 evidence, and sandboxed sidecar builds.
+
+### Changed
+- **Canonical Module & Owner Identity (A1 / F1)**: Standardized module path and repository owner to `mohammedrefaat` (`github.com/mohammedrefaat/go-anything`) across `go.mod`, all imports, packaging, Cosign identity regexes, and docs; recorded ADR-007 and added `TestCanonicalOwnerIdentity` regression guard.
+- **Code-Derived Documentation (A2 / F2, F3)**: Extended `tools/genstatus` to generate the 14-tool MCP table and human-only controls into `STATUS.md`, `SECURITY.md`, `CLAUDE.md`, `AGENTS.md`, and `templates/mcp_tools.md`, with `--check` and `TestMCPToolNamesMatchDocs` drift guards; updated `CLAUDE.md`, `AGENTS.md`, `README.md`, and templates to reflect Go 1.27+, all 32 wired commands, and 14 MCP tools.
+- **Gate Profiles & Evidence Schema v2 (A6 / F7)**: Added `staticcheck` to `FullProfileChecks()`, introduced `schemas/v2/evidence.schema.json` with `profile_version` (`2.0.1`) and `profile_checks`, and enforced fail-closed validation in `mark_verified` (`internal/state/machine.go`). Recorded ADR-008. **Upgrade note:** Units already `Verified` under the older `full` profile must re-run `gate` before `promote`.
+- **Multi-Language `inspect_unit` (A5 / F9)**: Updated `inspect_unit` to discover source files using registered adapter manifests across Go, Python, TypeScript, and JavaScript, capped at 50 files without leaking file contents, wrapped by the MCP sanitizer.
+- **Sandboxed Sidecar Builds (A7 / F11)**: Routed hot-path `go build` and `go vet` invocations through `internal/sandbox` with network disabled, `GOFLAGS=-mod=readonly`, `GOTOOLCHAIN=local`, and `GOPROXY=off`, preserving tier-2 platform warnings and documenting offline build prerequisites in `Docs/hotpath.md`.
+
+### Security
+- **CI Enforcement & Supply-Chain Hardening (A3 / F4, F10)**: Restored `.github/workflows/ci.yml` with `staticcheck ./...`, `govulncheck ./...`, `go mod verify`, and dogfood `gate`; pinned all third-party GitHub Actions across workflows by 40-char commit SHA; scoped `release.yml` `id-token: write` and `contents: write` permissions strictly to the signing/release job.
+- **Expanded Redactor Coverage (A4 / F8)**: Added detectors for Google API keys (`AIza...`), windowed AWS secret access keys, URL credentials, generic secret assignments, SendGrid, npm, and Twilio tokens; tightened `sk-...` matching; exposed pure `redactor.Detect(string) []Finding` for reuse.
+
 ## [2.0.0] - 2026-11-24
 
 Major release introducing hot-path strangler sidecars, end-to-end porting pipeline, differential fuzzing & benchmarking, expanded MCP agent surface, multi-tool configuration, real-world external ports, and the JavaScript source adapter.
