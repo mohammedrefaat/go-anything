@@ -51,85 +51,76 @@ func (r *Redactor) RedactString(s string) (string, []string, error) {
 		return "", nil, nil
 	}
 
-	var unreplayable []string
+	findings := Detect(s)
+	if len(findings) == 0 {
+		return s, nil, nil
+	}
 
-	// 1. PEM Blocks
-	s = regexPEMBlock.ReplaceAllStringFunc(s, func(m string) string {
-		return SubstitutePEM(m)
-	})
-
-	// 2. JWTs
-	s = regexJWT.ReplaceAllStringFunc(s, func(m string) string {
-		return SubstituteJWT(m)
-	})
-
-	// 3. GitHub Tokens (ghp_, gho_, ghs_, ghr_)
-	s = regexGitHubToken.ReplaceAllStringFunc(s, func(m string) string {
-		prefix := m[:4]
-		return SubstituteToken(m, prefix)
-	})
-
-	// 4. AWS Access Key IDs
-	s = regexAWSAccessKey.ReplaceAllStringFunc(s, func(m string) string {
-		return SubstituteToken(m, "AKIA")
-	})
-
-	// 5. Stripe Keys (sk_live_, sk_test_, pk_live_, pk_test_)
-	s = regexStripeKey.ReplaceAllStringFunc(s, func(m string) string {
-		prefixEnd := strings.Index(m, "_")
-		if prefixEnd != -1 && prefixEnd+5 < len(m) {
-			prefix := m[:prefixEnd+6] // e.g., "sk_live_"
-			return SubstituteToken(m, prefix)
+	var b strings.Builder
+	b.Grow(len(s))
+	last := 0
+	for _, f := range findings {
+		if f.Start < last {
+			continue
 		}
-		return SubstituteToken(m, "sk_")
-	})
+		b.WriteString(s[last:f.Start])
+		b.WriteString(substituteFinding(f.Kind, s[f.Start:f.End]))
+		last = f.End
+	}
+	b.WriteString(s[last:])
 
-	// 5b. Anthropic / LLM Keys (sk-ant-..., sk-proj-...)
-	s = regexAnthropicKey.ReplaceAllStringFunc(s, func(m string) string {
-		return SubstituteToken(m, "sk-")
-	})
+	return b.String(), nil, nil
+}
 
-	// 6. Slack Tokens (xoxb-, xoxp-, etc.)
-	s = regexSlackToken.ReplaceAllStringFunc(s, func(m string) string {
-		prefixEnd := strings.Index(m, "-")
+func substituteFinding(kind Kind, raw string) string {
+	switch kind {
+	case KindPEM:
+		return SubstitutePEM(raw)
+	case KindJWT:
+		return SubstituteJWT(raw)
+	case KindGitHubToken:
+		return SubstituteToken(raw, raw[:4])
+	case KindAWSAccessKey:
+		return SubstituteToken(raw, "AKIA")
+	case KindAWSSecretKey:
+		return SubstituteToken("aws_"+raw, "aws_")[4:]
+	case KindGoogleAPIKey:
+		return SubstituteToken(raw, "AIza")
+	case KindSendGridKey:
+		return SubstituteToken(raw, "SG.")
+	case KindNPMToken:
+		return SubstituteToken(raw, "npm_")
+	case KindTwilioKey:
+		return SubstituteToken(raw, "SK")
+	case KindStripeKey:
+		prefixEnd := strings.Index(raw, "_")
+		if prefixEnd != -1 && prefixEnd+5 < len(raw) {
+			return SubstituteToken(raw, raw[:prefixEnd+6])
+		}
+		return SubstituteToken(raw, "sk_")
+	case KindAnthropicKey:
+		return SubstituteToken(raw, "sk-")
+	case KindSlackToken:
+		prefixEnd := strings.Index(raw, "-")
 		if prefixEnd != -1 {
-			return SubstituteToken(m, m[:prefixEnd+1])
+			return SubstituteToken(raw, raw[:prefixEnd+1])
 		}
-		return SubstituteToken(m, "xox-")
-	})
-
-	// 7. Bearer Tokens
-	s = regexBearerToken.ReplaceAllStringFunc(s, func(m string) string {
-		parts := strings.SplitN(m, " ", 2)
-		if len(parts) == 2 {
-			return parts[0] + " " + SubstituteToken("tok_"+parts[1], "tok_")[4:]
-		}
-		return m
-	})
-
-	// 8. Basic Auth
-	s = regexBasicAuth.ReplaceAllStringFunc(s, func(m string) string {
-		parts := strings.SplitN(m, " ", 2)
-		if len(parts) == 2 {
-			return parts[0] + " " + SubstituteToken("bas_"+parts[1], "bas_")[4:]
-		}
-		return m
-	})
-
-	// 9. Credit Cards with Luhn validation
-	s = regexCardCandidate.ReplaceAllStringFunc(s, func(m string) string {
-		if IsValidLuhn(m) {
-			return SubstituteCreditCard(m)
-		}
-		return m
-	})
-
-	// 10. Email Addresses
-	s = regexEmail.ReplaceAllStringFunc(s, func(m string) string {
-		return SubstituteEmail(m)
-	})
-
-	return s, unreplayable, nil
+		return SubstituteToken(raw, "xox-")
+	case KindURLCredential:
+		return SubstituteToken("pwd_"+raw, "pwd_")[4:]
+	case KindBearerToken:
+		return SubstituteToken("tok_"+raw, "tok_")[4:]
+	case KindBasicAuth:
+		return SubstituteToken("bas_"+raw, "bas_")[4:]
+	case KindCreditCard:
+		return SubstituteCreditCard(raw)
+	case KindGenericAssignment:
+		return SubstituteToken("sec_"+raw, "sec_")[4:]
+	case KindEmail:
+		return SubstituteEmail(raw)
+	default:
+		return SubstituteToken("sec_"+raw, "sec_")[4:]
+	}
 }
 
 // RedactHeaders redacts HTTP headers, substituting credentials and marking signatures as unreplayable.

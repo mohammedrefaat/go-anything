@@ -440,8 +440,11 @@ func TestRedactValueEmbeddedJSON(t *testing.T) {
 		}
 
 		got, err := New(Options{UnsafeAllowUnredacted: true}).RedactCase(&adapterkit.Case{Metadata: meta})
-		if err != nil || got.Metadata["config"] != invalid {
-			t.Fatalf("expected unsafe opt-out to preserve malformed text, got %v, %v", got, err)
+		if err != nil {
+			t.Fatalf("expected unsafe opt-out to succeed on malformed text, got %v", err)
+		}
+		if strings.Contains(got.Metadata["config"].(string), "opaque-password") {
+			t.Fatalf("expected unsafe opt-out to still redact secrets in malformed text, got %v", got.Metadata["config"])
 		}
 	}
 
