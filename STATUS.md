@@ -44,13 +44,33 @@
 | `migrate` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M7) | Upgrade .go-anything/ workspace from v1alpha1 to stable v1 schemas |
 | `template` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M0) | Render agent instruction files (CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md) |
 | `setup` | **Fully Wired** | ✅ Yes | none | `v2.0.0-beta` (v2.0 / M2) | Configure AI agent tools and MCP server registration for Claude Code, Codex, Cursor, Gemini, OpenCode |
-| `mcp` | **Fully Wired** | ✅ Yes | Hosts all 8 MCP tools | `v0.1.0` (M4) | Run MCP server over stdio for AI agent orchestration |
+| `mcp` | **Fully Wired** | ✅ Yes | Hosts all 14 MCP tools | `v0.1.0` (M4) | Run MCP server over stdio for AI agent orchestration |
 | `version` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M0) | Show go-anything version, profile, and jobs configuration |
 | `help` | **Fully Wired** | ✅ Yes | none | `v0.1.0` (M0) | Show go-anything usage and available commands |
 
-## Strict Human-Only Controls (Execution Rule 4)
+## MCP Server Tools & Security Boundary (Execution Rule 4)
 
-In accordance with **Execution Rule 4**, commands altering production traffic routing or retiring legacy code require human judgment and are **never exposed to AI agents via MCP**:
+<!-- BEGIN GENERATED: mcp-tools -->
+The MCP server (`go-anything mcp`, `stdio` only) exposes **14 tools** (agent-accessible):
+
+| Tool | Access | Purpose |
+| :--- | :--- | :--- |
+| `status` | Agent | Show migration progress, next unit in dependency wave order, active leases, and blockers. |
+| `claim_unit` | Agent | Take a Ready migration unit with a time-bounded local lease in .go-anything/local/. |
+| `inspect_unit` | Agent | View original source code, sanitized sample cases, detected traps, and constraints for a unit. |
+| `record_cases` | Agent | Run the original application, apply fail-closed redaction, and save sanitized cases into .go-anything/cases/. |
+| `verify_diff` | Agent | Replay recorded behavioral cases against the ported Go implementation and return PASS or top sanitized mismatches. |
+| `run_gate` | Agent | Run the full quality gate pipeline (toolchain checks, error-paths, and API compatibility) and generate commit-tied evidence. |
+| `mark_verified` | Agent | Advance unit to Verified state. Strictly rejected unless valid commit-tied evidence exists for the target commit SHA. |
+| `handoff` | Agent | Write HANDOFF.md with workspace state, progress, and next steps for the next session or reviewer. |
+| `analyze` | Agent | Analyze codebase dependencies and view topological migration wave ordering (read-only). |
+| `profile` | Agent | Profile legacy execution and rank candidate hot functions for migration (read-only). |
+| `bridge` | Agent | Scaffold strangler sidecar bridge, manifest, and client wrappers (only writes generated scaffold files). |
+| `hotpath` | Agent | Execute guided hot-path porting pipeline up to the human boundary; strictly stops before approval (Rule R-1). |
+| `fuzz_bench` | Agent | Run differential fuzz testing or latency/throughput benchmarking against recorded cases and target. |
+| `shadow_status` | Agent | Inspect front door shadow mode execution metrics, request counts, and mismatch logs (read-only). |
+
+**Not exposed via MCP (CLI-only, Execution Rule 4):**
 
 - `approve`: Human sign-off and state advance to Approved
 - `promote`: Front-door routing table cutover
@@ -58,8 +78,9 @@ In accordance with **Execution Rule 4**, commands altering production traffic ro
 - `routing`: Manual routing overrides
 - `toggle_shadow`: Live traffic shadow activation
 - `kill_switch`: Kill-switch override and emergency fallback engagement
+<!-- END GENERATED: mcp-tools -->
 
-Any invocation of these commands via MCP is rejected fail-closed with code `FORBIDDEN`.
+Any invocation of the human-only commands via MCP is rejected fail-closed with code `FORBIDDEN`.
 
 ## Standard CLI Exit Codes
 

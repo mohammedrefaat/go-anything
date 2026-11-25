@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"sync"
 
 	"github.com/mohammedrefaat/go-anything/internal/mcp/sanitize"
@@ -107,6 +108,18 @@ func NewServer(opts ...sanitize.Option) *Server {
 	}
 	s.registerStandardTools()
 	return s
+}
+
+// RegisteredToolNames returns the sorted list of tool names registered on the server.
+func (s *Server) RegisteredToolNames() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	names := make([]string, 0, len(s.tools))
+	for name := range s.tools {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // Serve reads JSON-RPC 2.0 requests line-by-line from in and writes responses to out.

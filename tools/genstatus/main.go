@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/mohammedrefaat/go-anything/internal/mcp"
 )
 
 // CommandMetadata details the wiring status, testing coverage, and MCP mappings for a CLI command.
@@ -20,7 +23,7 @@ type CommandMetadata struct {
 	Description    string
 }
 
-// AllRegisteredCommands lists all 24 CLI commands in go-anything.
+// AllRegisteredCommands lists all 32 CLI commands in go-anything.
 var AllRegisteredCommands = []CommandMetadata{
 	{
 		Name:           "init",
@@ -317,7 +320,7 @@ var AllRegisteredCommands = []CommandMetadata{
 		WiringStatus:   "Fully Wired",
 		E2ECovered:     true,
 		E2ETestFiles:   "cmd/go-anything/mcp_test.go",
-		MCPCounterpart: "Hosts all 8 MCP tools",
+		MCPCounterpart: fmt.Sprintf("Hosts all %d MCP tools", len(mcp.StandardToolNames)),
 		SinceVersion:   "v0.1.0",
 		Milestone:      "M4",
 		Description:    "Run MCP server over stdio for AI agent orchestration",
@@ -384,15 +387,9 @@ func GenerateStatusMarkdown() string {
 			c.Name, statusBadge, e2eStr, c.MCPCounterpart, c.SinceVersion, c.Milestone, c.Description))
 	}
 
-	buf.WriteString("\n## Strict Human-Only Controls (Execution Rule 4)\n\n")
-	buf.WriteString("In accordance with **Execution Rule 4**, commands altering production traffic routing or retiring legacy code require human judgment and are **never exposed to AI agents via MCP**:\n\n")
-	buf.WriteString("- `approve`: Human sign-off and state advance to Approved\n")
-	buf.WriteString("- `promote`: Front-door routing table cutover\n")
-	buf.WriteString("- `lift`: Retirement of original codebase and fallback bridges\n")
-	buf.WriteString("- `routing`: Manual routing overrides\n")
-	buf.WriteString("- `toggle_shadow`: Live traffic shadow activation\n")
-	buf.WriteString("- `kill_switch`: Kill-switch override and emergency fallback engagement\n\n")
-	buf.WriteString("Any invocation of these commands via MCP is rejected fail-closed with code `FORBIDDEN`.\n\n")
+	buf.WriteString("\n## MCP Server Tools & Security Boundary (Execution Rule 4)\n\n")
+	buf.WriteString(GenerateMCPToolsSection())
+	buf.WriteString("\n\nAny invocation of the human-only commands via MCP is rejected fail-closed with code `FORBIDDEN`.\n\n")
 
 	buf.WriteString("## Standard CLI Exit Codes\n\n")
 	buf.WriteString("| Exit Code | Meaning | Description |\n")
@@ -403,6 +400,57 @@ func GenerateStatusMarkdown() string {
 	buf.WriteString("| `3` | Internal Error | Unexpected runtime error, I/O failure, or execution exception. |\n")
 
 	return buf.String()
+}
+
+const (
+	mcpToolsBeginMarker = "<!-- BEGIN GENERATED: mcp-tools -->"
+	mcpToolsEndMarker   = "<!-- END GENERATED: mcp-tools -->"
+)
+
+var mcpToolsTargets = []string{
+	"SECURITY.md",
+	"CLAUDE.md",
+	"AGENTS.md",
+	filepath.Join("templates", "mcp_tools.md"),
+}
+
+// GenerateMCPToolsSection emits the MCP tool table and human-only controls list
+// derived directly from internal/mcp.
+func GenerateMCPToolsSection() string {
+	defs := mcp.GetToolDefinitions()
+	var buf bytes.Buffer
+
+	buf.WriteString(mcpToolsBeginMarker + "\n")
+	buf.WriteString(fmt.Sprintf("The MCP server (`go-anything mcp`, `stdio` only) exposes **%d tools** (agent-accessible):\n\n", len(defs)))
+	buf.WriteString("| Tool | Access | Purpose |\n")
+	buf.WriteString("| :--- | :--- | :--- |\n")
+	for _, def := range defs {
+		purpose := strings.ReplaceAll(def.Description, "|", "\\|")
+		buf.WriteString(fmt.Sprintf("| `%s` | Agent | %s |\n", def.Name, purpose))
+	}
+
+	buf.WriteString("\n**Not exposed via MCP (CLI-only, Execution Rule 4):**\n\n")
+	for _, ctrl := range mcp.HumanOnlyControls {
+		buf.WriteString(fmt.Sprintf("- `%s`: %s\n", ctrl.Name, ctrl.Description))
+	}
+	buf.WriteString(mcpToolsEndMarker)
+
+	return buf.String()
+}
+
+// ReplaceMCPToolsBlock replaces the content between BEGIN/END GENERATED: mcp-tools markers.
+func ReplaceMCPToolsBlock(content, generated string) (string, error) {
+	normalized := strings.ReplaceAll(content, "\r\n", "\n")
+	startIdx := strings.Index(normalized, mcpToolsBeginMarker)
+	if startIdx < 0 {
+		return "", fmt.Errorf("missing marker %q", mcpToolsBeginMarker)
+	}
+	endIdx := strings.Index(normalized[startIdx:], mcpToolsEndMarker)
+	if endIdx < 0 {
+		return "", fmt.Errorf("missing marker %q", mcpToolsEndMarker)
+	}
+	endIdx += startIdx + len(mcpToolsEndMarker)
+	return normalized[:startIdx] + generated + normalized[endIdx:], nil
 }
 
 func findRepoRoot() (string, error) {
@@ -424,8 +472,8 @@ func findRepoRoot() (string, error) {
 }
 
 func main() {
-	checkMode := flag.Bool("check", false, "Verify that STATUS.md is up to date without modifying it")
-	flag.BoolVar(checkMode, "c", false, "Verify that STATUS.md is up to date (shorthand)")
+	checkMode := flag.Bool("check", false, "Verify that generated docs are up to date without modifying them")
+	flag.BoolVar(checkMode, "c", false, "Verify that generated docs are up to date (shorthand)")
 	flag.Parse()
 
 	repoRoot, err := findRepoRoot()
@@ -435,7 +483,8 @@ func main() {
 	}
 
 	statusPath := filepath.Join(repoRoot, "STATUS.md")
-	expectedContent := GenerateStatusMarkdown()
+	expectedStatus := GenerateStatusMarkdown()
+	mcpSection := GenerateMCPToolsSection()
 
 	if *checkMode {
 		existing, err := os.ReadFile(statusPath)
@@ -443,18 +492,57 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error reading %s: %v\n", statusPath, err)
 			os.Exit(1)
 		}
-		if string(existing) != expectedContent {
+		if strings.ReplaceAll(string(existing), "\r\n", "\n") != expectedStatus {
 			fmt.Fprintf(os.Stderr, "error: STATUS.md is out of date. Run 'go run ./tools/genstatus' to regenerate.\n")
 			os.Exit(1)
 		}
-		fmt.Println("STATUS.md is up to date.")
+
+		for _, rel := range mcpToolsTargets {
+			targetPath := filepath.Join(repoRoot, rel)
+			raw, err := os.ReadFile(targetPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error reading %s: %v\n", targetPath, err)
+				os.Exit(1)
+			}
+			normalized := strings.ReplaceAll(string(raw), "\r\n", "\n")
+			updated, err := ReplaceMCPToolsBlock(normalized, mcpSection)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error in %s: %v\n", rel, err)
+				os.Exit(1)
+			}
+			if normalized != updated {
+				fmt.Fprintf(os.Stderr, "error: %s is out of date. Run 'go run ./tools/genstatus' to regenerate.\n", rel)
+				os.Exit(1)
+			}
+		}
+
+		fmt.Println("STATUS.md and MCP tool docs are up to date.")
 		return
 	}
 
-	if err := os.WriteFile(statusPath, []byte(expectedContent), 0644); err != nil {
+	if err := os.WriteFile(statusPath, []byte(expectedStatus), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "error writing %s: %v\n", statusPath, err)
 		os.Exit(3)
 	}
 
-	fmt.Printf("Successfully generated %s (%d commands documented).\n", statusPath, len(AllRegisteredCommands))
+	for _, rel := range mcpToolsTargets {
+		targetPath := filepath.Join(repoRoot, rel)
+		raw, err := os.ReadFile(targetPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading %s: %v\n", targetPath, err)
+			os.Exit(3)
+		}
+		updated, err := ReplaceMCPToolsBlock(string(raw), mcpSection)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error updating %s: %v\n", rel, err)
+			os.Exit(3)
+		}
+		if err := os.WriteFile(targetPath, []byte(updated), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "error writing %s: %v\n", targetPath, err)
+			os.Exit(3)
+		}
+	}
+
+	fmt.Printf("Successfully generated %s (%d commands, %d MCP tools) and updated %d MCP tool doc targets.\n",
+		statusPath, len(AllRegisteredCommands), len(mcp.StandardToolNames), len(mcpToolsTargets))
 }

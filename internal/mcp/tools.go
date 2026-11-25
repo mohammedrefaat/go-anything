@@ -54,7 +54,23 @@ var StandardToolNames = []string{
 	"shadow_status",
 }
 
-// GetToolDefinitions returns the schema for all 8 standard MCP tools.
+// HumanOnlyControl describes a CLI-only privileged command never exposed via MCP (Execution Rule 4).
+type HumanOnlyControl struct {
+	Name        string
+	Description string
+}
+
+// HumanOnlyControls lists the privileged commands forbidden over MCP per Execution Rule 4.
+var HumanOnlyControls = []HumanOnlyControl{
+	{Name: "approve", Description: "Human sign-off and state advance to Approved"},
+	{Name: "promote", Description: "Front-door routing table cutover"},
+	{Name: "lift", Description: "Retirement of original codebase and fallback bridges"},
+	{Name: "routing", Description: "Manual routing overrides"},
+	{Name: "toggle_shadow", Description: "Live traffic shadow activation"},
+	{Name: "kill_switch", Description: "Kill-switch override and emergency fallback engagement"},
+}
+
+// GetToolDefinitions returns the schema for all 14 standard MCP tools.
 func GetToolDefinitions() []Tool {
 	return []Tool{
 		{

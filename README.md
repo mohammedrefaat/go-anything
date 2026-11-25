@@ -364,7 +364,7 @@ Replay complete: 10/10 passed (0 mismatches, 0 errors).
 
 ### Step 7: Verification & Quality Gate
 
-Verify the unit against the full quality gate (`build`, `vet`, `test -race`, `govulncheck`, `error_paths`, `api_compat`):
+Verify the unit against the full quality gate (`build`, `format`, `vet`, `race`, `govulncheck`, `replay`, `error_paths`, `api_compat`):
 
 ```bash
 # Verify behavioral equivalence against recorded cases
@@ -405,7 +405,7 @@ All core milestones from initial architecture through v1.0.0 have been fully imp
 | **M1: Sandboxed Replay** | `v0.0.x` | [`record`](cmd/go-anything/record.go), [`replay`](cmd/go-anything/replay.go), [`diff`](cmd/go-anything/diff.go) | [`cmd/go-anything/e2e_m1_test.go`](cmd/go-anything/e2e_m1_test.go) | Dual-run volatility detection, multi-mode comparator (exact, json, numeric, regex), concurrent replay engine. | ✅ **Passed:** 100% replay across 3 identical consecutive runs. |
 | **M2: Front Door & Lift** | `v0.0.x` | [`verify`](cmd/go-anything/verify.go), [`approve`](cmd/go-anything/approve.go), [`promote`](cmd/go-anything/promote.go), [`cutover`](cmd/go-anything/cutover.go), [`lift`](cmd/go-anything/lift.go) | [`cmd/go-anything/e2e_m2_test.go`](cmd/go-anything/e2e_m2_test.go), [`cmd/go-anything/verify_approve_promote_test.go`](cmd/go-anything/verify_approve_promote_test.go) | Reverse proxy front door, emergency kill-switch (`KILL_SWITCH=1`), fallback monitoring, and `lift` command. | ✅ **Passed:** Full strangler lifecycle on demo CLI & HTTP applications. |
 | **M3: Go Source Adapter** | `v0.1.0` | [`modernize`](cmd/go-anything/init.go), [`analyze`](cmd/go-anything/analyze.go) | [`cmd/go-anything/modernize_test.go`](cmd/go-anything/modernize_test.go), [`cmd/go-anything/dogfood_test.go`](cmd/go-anything/dogfood_test.go) | Go AST analyzer, type resolution, call graph dependency wave planner, `go-anything modernize` workflow. | ✅ **Passed:** Real Go service ported with 0 mismatches. |
-| **M4: Quality Gate & MCP** | `v0.1.0` | [`gate`](cmd/go-anything/gate.go), [`mcp`](cmd/go-anything/mcp.go) | [`cmd/go-anything/m4_acceptance_test.go`](cmd/go-anything/m4_acceptance_test.go), [`cmd/go-anything/mcp_test.go`](cmd/go-anything/mcp_test.go) | 6-check toolchain quality gate runner, scorecard engine, stdio MCP server (8 tools) with payload sanitization. | ✅ **Passed:** Autonomous AI agent ports a complete unit unaided. |
+| **M4: Quality Gate & MCP** | `v0.1.0` | [`gate`](cmd/go-anything/gate.go), [`mcp`](cmd/go-anything/mcp.go) | [`cmd/go-anything/m4_acceptance_test.go`](cmd/go-anything/m4_acceptance_test.go), [`cmd/go-anything/mcp_test.go`](cmd/go-anything/mcp_test.go) | Multi-check toolchain quality gate runner (`AllChecks` / `FullProfileChecks`), scorecard engine, stdio MCP server (M4 shipped 8; now 14, see [STATUS.md](STATUS.md)) with payload sanitization. | ✅ **Passed:** Autonomous AI agent ports a complete unit unaided. |
 | **M5: Shadow & Capture** | `v0.1.0` | [`shadow`](cmd/go-anything/shadow.go) | [`cmd/go-anything/m5_acceptance_test.go`](cmd/go-anything/m5_acceptance_test.go) | Real-time traffic shadowing, bounded pool with overflow counters, idempotent-only GET/HEAD default, capture ingestion. | ✅ **Passed:** Clean shadow log on live traffic + dogfood case study. |
 | **M6: Python Adapter** | `v0.2.0` | [`init --source=python`](cmd/go-anything/init.go) | [`cmd/go-anything/m6_acceptance_test.go`](cmd/go-anything/m6_acceptance_test.go) | Python source adapter (AST import analysis, pytest discovery, Subprocess, HTTP, C-Shared transports, foreign library wrappers). | ✅ **Passed:** Python CLI and FastAPI HTTP service ported + conformance suite pass. |
 | **M7: TypeScript & Freeze** | `v1.0.0` | [`migrate`](cmd/go-anything/migrate.go), [`init --source=typescript`](cmd/go-anything/init.go) | [`cmd/go-anything/m7_acceptance_test.go`](cmd/go-anything/m7_acceptance_test.go), [`cmd/go-anything/migrate_test.go`](cmd/go-anything/migrate_test.go) | TypeScript/Node adapter (ESM/CommonJS, Jest/Vitest), `schemas/v1/` freeze, `go-anything migrate`, `GOVERNANCE.md`. | ✅ **Passed:** Multi-unit open-source project fully lifted with zero fallback traffic. |
@@ -439,7 +439,7 @@ go-anything mcp
 
 The MCP server enforces the 10-state unit lifecycle server-side. Agents cannot forge gate results or skip steps:
 
-#### Core Lifecycle Tools (8 standard)
+#### Core Lifecycle Tools (8 of 14 total)
 1. `status` — Show progress, next unit in dependency wave order, active leases, and blockers.
 2. `claim_unit` — Take a Ready unit with a time-bounded local lease in `.go-anything/local/`.
 3. `inspect_unit` — View original source code, sanitized sample cases, detected traps, and constraints.

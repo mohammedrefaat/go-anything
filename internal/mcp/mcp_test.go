@@ -80,7 +80,7 @@ func sendMCPRequest(t *testing.T, s *mcp.Server, req *mcp.JSONRPCRequest) *mcp.J
 	return &resp
 }
 
-func TestMCP_ToolListExact8(t *testing.T) {
+func TestMCP_ToolListExact14(t *testing.T) {
 	server := mcp.NewServer()
 
 	req := &mcp.JSONRPCRequest{
@@ -107,23 +107,11 @@ func TestMCP_ToolListExact8(t *testing.T) {
 	}
 	sort.Strings(toolNames)
 
-	expectedTools := []string{
-		"analyze",
-		"bridge",
-		"claim_unit",
-		"fuzz_bench",
-		"handoff",
-		"hotpath",
-		"inspect_unit",
-		"mark_verified",
-		"profile",
-		"record_cases",
-		"run_gate",
-		"shadow_status",
-		"status",
-		"verify_diff",
-	}
-	assert.Equal(t, expectedTools, toolNames)
+	standard := append([]string(nil), mcp.StandardToolNames...)
+	sort.Strings(standard)
+
+	assert.Equal(t, standard, toolNames, "tools/list must match StandardToolNames")
+	assert.Equal(t, standard, server.RegisteredToolNames(), "registered server tools must match StandardToolNames")
 }
 
 func TestMCPDoesNotExposeHumanOnlyTools(t *testing.T) {

@@ -7,12 +7,16 @@ package templates
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"sort"
 	"strings"
 	"sync"
 	"text/template"
 )
+
+//go:embed mcp_tools.md
+var mcpToolsSection string
 
 // Vars carries the values available to every template.
 type Vars struct {
@@ -233,10 +237,16 @@ Never claim the port is equivalent for behavior that was not observed.
 8. ` + "`handoff`" + ` — write HANDOFF.md with state, progress, and next steps for the next session or reviewer.
 
 For hot-path optimizations and strangler sidecars:
-` + "`profile`" + ` → ` + "`bridge`" + ` → ` + "`go`" + ` → verify diff → ` + "`gate`" + ` → ` + "`shadow`" + ` → human approve.
+` + "`profile`" + ` → ` + "`bridge`" + ` → ` + "`go`" + ` (` + "`hotpath`" + `) → ` + "`verify_diff`" + ` → ` + "`run_gate`" + ` → ` + "`shadow`" + ` → human ` + "`approve`" + `/` + "`promote`" + `/` + "`lift`" + `.
 
 Do not skip steps. Do not edit ` + "`.go-anything/units/`" + ` or evidence files by
 hand; the state machine must advance through the tools.
+
+## MCP server tools
+
+All 32 CLI commands are wired and Go 1.27+ is targeted. Over ` + "`go-anything mcp`" + ` (` + "`stdio`" + `), only the generated tools below are exposed:
+
+` + strings.TrimSpace(mcpToolsSection) + `
 
 ## How to claim a unit
 
