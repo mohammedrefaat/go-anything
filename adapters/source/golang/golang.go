@@ -36,6 +36,15 @@ func (a *Adapter) Version() string { return adapterkit.Version }
 // SourceLanguage returns the handled programming language.
 func (a *Adapter) SourceLanguage() string { return "go" }
 
+// AdapterManifest returns the static adapter manifest including handled file extensions.
+func (a *Adapter) AdapterManifest() adapterkit.AdapterManifest {
+	return adapterkit.AdapterManifest{
+		Name:           a.Name(),
+		SourceLanguage: a.SourceLanguage(),
+		Extensions:     []string{".go"},
+	}
+}
+
 // SupportedTransports returns the transport mechanisms supported by this adapter.
 func (a *Adapter) SupportedTransports() []adapterkit.TransportType {
 	return []adapterkit.TransportType{

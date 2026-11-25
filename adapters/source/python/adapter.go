@@ -57,6 +57,15 @@ func (a *Adapter) SourceLanguage() string {
 	return "python"
 }
 
+// AdapterManifest returns the static adapter manifest including handled file extensions.
+func (a *Adapter) AdapterManifest() adapterkit.AdapterManifest {
+	return adapterkit.AdapterManifest{
+		Name:           a.Name(),
+		SourceLanguage: a.SourceLanguage(),
+		Extensions:     []string{".py", ".pyi"},
+	}
+}
+
 // SupportedTransports returns the list of transports supported by this adapter.
 func (a *Adapter) SupportedTransports() []adapterkit.TransportType {
 	return []adapterkit.TransportType{

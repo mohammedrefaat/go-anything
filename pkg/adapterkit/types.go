@@ -217,3 +217,11 @@ type Evidence struct {
 	UnreplayableFields []string        `json:"unreplayable_fields,omitempty"`
 	Metadata           map[string]any  `json:"metadata,omitempty"`
 }
+
+// AdapterManifest describes static metadata declared by a language adapter,
+// including the source language and file extensions it handles.
+type AdapterManifest struct {
+	Name           string   `json:"name"`
+	SourceLanguage string   `json:"source_language"`
+	Extensions     []string `json:"extensions"`
+}

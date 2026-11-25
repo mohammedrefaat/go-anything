@@ -63,6 +63,12 @@ type LanguageAdapter interface {
 	CreateReplayDriver(ctx context.Context, unitID string) (Replay, error)
 }
 
+// ManifestProvider is an optional interface that a LanguageAdapter may implement
+// to expose its static adapter manifest (including handled file extensions).
+type ManifestProvider interface {
+	AdapterManifest() AdapterManifest
+}
+
 // Replay defines the transport-agnostic replay execution interface.
 // Replay executes recorded test cases against target ported implementations.
 type Replay interface {

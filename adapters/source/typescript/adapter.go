@@ -89,6 +89,15 @@ func (a *Adapter) SourceLanguage() string {
 	return "typescript"
 }
 
+// AdapterManifest returns the static adapter manifest including handled file extensions.
+func (a *Adapter) AdapterManifest() adapterkit.AdapterManifest {
+	return adapterkit.AdapterManifest{
+		Name:           a.Name(),
+		SourceLanguage: a.SourceLanguage(),
+		Extensions:     []string{".ts", ".tsx", ".mts", ".cts"},
+	}
+}
+
 // SupportedTransports returns the transport mechanisms supported by this adapter.
 func (a *Adapter) SupportedTransports() []adapterkit.TransportType {
 	return []adapterkit.TransportType{
