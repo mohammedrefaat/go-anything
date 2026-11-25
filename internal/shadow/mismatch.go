@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/redactor"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/redactor"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // MismatchRecord represents a behavioral discrepancy logged to shadow_mismatches.jsonl.

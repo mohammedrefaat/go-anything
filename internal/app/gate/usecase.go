@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // UseCase coordinates quality gate check execution, scorecard generation, and evidence storage.

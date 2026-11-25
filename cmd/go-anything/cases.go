@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 func loadCasesForUnit(workspaceRoot, unitID string) ([]*adapterkit.Case, error) {

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/adapters/source/python"
-	"github.com/mohammedrefat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/adapters/source/python"
+	"github.com/mohammedrefaat/go-anything/internal/state"
 )
 
 // ProfileExecutionResult holds raw profiling results for a unit.

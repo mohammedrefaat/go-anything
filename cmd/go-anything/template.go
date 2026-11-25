@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/skills"
-	"github.com/mohammedrefat/go-anything/templates"
+	"github.com/mohammedrefaat/go-anything/skills"
+	"github.com/mohammedrefaat/go-anything/templates"
 )
 
 func runTemplate(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

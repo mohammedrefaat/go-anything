@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/bench"
-	"github.com/mohammedrefat/go-anything/internal/gate/scorecard"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/bench"
+	"github.com/mohammedrefaat/go-anything/internal/gate/scorecard"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

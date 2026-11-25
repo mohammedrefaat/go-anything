@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/app/gate"
-	internalgate "github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/schemas"
+	"github.com/mohammedrefaat/go-anything/internal/app/gate"
+	internalgate "github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/schemas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

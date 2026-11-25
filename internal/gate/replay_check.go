@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/mohammedrefat/go-anything/internal/replay"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/replay"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // ReplayChecker executes deterministic case replay and enforces zero mismatches.

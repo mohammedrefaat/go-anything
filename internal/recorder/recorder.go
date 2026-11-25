@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/redactor"
-	"github.com/mohammedrefat/go-anything/internal/sandbox"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/redactor"
+	"github.com/mohammedrefaat/go-anything/internal/sandbox"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // ExecutionFunc defines the function that executes an application or unit given an input.

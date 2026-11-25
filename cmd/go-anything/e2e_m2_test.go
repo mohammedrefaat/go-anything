@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
-	clifrontdoor "github.com/mohammedrefat/go-anything/adapters/application/cli/frontdoor"
-	httpfrontdoor "github.com/mohammedrefat/go-anything/adapters/application/http/frontdoor"
-	"github.com/mohammedrefat/go-anything/internal/frontdoor"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	clifrontdoor "github.com/mohammedrefaat/go-anything/adapters/application/cli/frontdoor"
+	httpfrontdoor "github.com/mohammedrefaat/go-anything/adapters/application/http/frontdoor"
+	"github.com/mohammedrefaat/go-anything/internal/frontdoor"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

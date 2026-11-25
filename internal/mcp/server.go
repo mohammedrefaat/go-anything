@@ -9,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/mohammedrefat/go-anything/internal/mcp/sanitize"
+	"github.com/mohammedrefaat/go-anything/internal/mcp/sanitize"
 )
 
 // Standard JSON-RPC 2.0 error codes.

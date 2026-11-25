@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const VERSION = "2.0.0";
-const REPO = "mohammedrefat/go-anything";
+const REPO = "mohammedrefaat/go-anything";
 const BIN_DIR = path.join(__dirname, "..", "bin");
 
 const PLATFORM_MAP = {

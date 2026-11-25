@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 var shaRegex = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)

@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/lift"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/lift"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 func runLift(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

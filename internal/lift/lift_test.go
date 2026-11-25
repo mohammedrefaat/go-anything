@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/frontdoor"
-	"github.com/mohammedrefat/go-anything/internal/lift"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/frontdoor"
+	"github.com/mohammedrefaat/go-anything/internal/lift"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

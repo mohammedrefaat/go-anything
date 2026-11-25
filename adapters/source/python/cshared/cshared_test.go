@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/adapters/source/python/cshared"
+	"github.com/mohammedrefaat/go-anything/adapters/source/python/cshared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

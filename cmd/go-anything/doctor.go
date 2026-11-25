@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/adapterhost"
+	"github.com/mohammedrefaat/go-anything/internal/adapterhost"
 )
 
 func runDoctor(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

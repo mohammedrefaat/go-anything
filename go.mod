@@ -1,4 +1,4 @@
-module github.com/mohammedrefat/go-anything
+module github.com/mohammedrefaat/go-anything
 
 go 1.27.0
 

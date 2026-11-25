@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/app/hotpath"
+	"github.com/mohammedrefaat/go-anything/internal/app/hotpath"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

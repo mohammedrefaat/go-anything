@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/app/hotpath"
+	"github.com/mohammedrefaat/go-anything/internal/app/hotpath"
 )
 
 func runGo(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

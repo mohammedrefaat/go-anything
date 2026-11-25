@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mohammedrefat/go-anything/internal/frontdoor"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/frontdoor"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // CutoverPort abstracts unit inspection, kill switch management, and fallback counts.

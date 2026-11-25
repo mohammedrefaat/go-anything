@@ -97,7 +97,7 @@ Task T0 verified that the foundational architecture, 40 packages, schemas, and M
 #### [ADJUSTED] Task T5.6: Package Distribution Automation (Homebrew & Scoop)
 - **Problem Discovered:** `.goreleaser.yaml` currently builds standalone tar.gz and zip archives, but lacks Homebrew and Scoop integration.
 - **Adjustment:**
-  - Add Homebrew tap configuration block to `.goreleaser.yaml` targeting a dedicated repository (e.g., `mohammedrefat/homebrew-tap`).
+  - Add Homebrew tap configuration block to `.goreleaser.yaml` targeting a dedicated repository (e.g., `mohammedrefaat/homebrew-tap`).
   - Add Scoop bucket configuration block to `.goreleaser.yaml` for Windows package management.
 - **Exit Gate:** `goreleaser check` validates syntax and configuration for brew and scoop blocks.
 

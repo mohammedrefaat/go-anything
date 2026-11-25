@@ -10,7 +10,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/mohammedrefat/go-anything/internal/app/bench"
+	"github.com/mohammedrefaat/go-anything/internal/app/bench"
 )
 
 func runBench(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

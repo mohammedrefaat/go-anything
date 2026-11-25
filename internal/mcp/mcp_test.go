@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/internal/mcp"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/internal/mcp"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,10 +41,11 @@ func setupTestMCPWorkspace(t *testing.T) (string, *state.Store) {
 	require.NoError(t, os.WriteFile(filepath.Join(pkgDir, "auth.go"), []byte("package auth\n\n// Login authenticates user.\nfunc Login() bool {\n\treturn true\n}\n"), 0644))
 
 	unit := &adapterkit.Unit{
-		ID:    "pkg/auth",
-		Name:  "Authentication Service",
-		Wave:  0,
-		State: adapterkit.StatePlanned,
+		ID:              "pkg/auth",
+		Name:            "Authentication Service",
+		Wave:            0,
+		State:           adapterkit.StatePlanned,
+		EvidenceProfile: adapterkit.ProfileReplay,
 	}
 	require.NoError(t, store.SaveUnit(unit))
 

@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/adapters/source/javascript"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit/conformance"
+	"github.com/mohammedrefaat/go-anything/adapters/source/javascript"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit/conformance"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

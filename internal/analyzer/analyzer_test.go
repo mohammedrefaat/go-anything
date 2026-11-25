@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/analyzer"
+	"github.com/mohammedrefaat/go-anything/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,9 +22,9 @@ func TestAnalyzer_AnalyzeCurrentRepo(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	assert.Equal(t, "github.com/mohammedrefat/go-anything", res.ModulePath)
+	assert.Equal(t, "github.com/mohammedrefaat/go-anything", res.ModulePath)
 
-	pkg, ok := res.Packages["github.com/mohammedrefat/go-anything/pkg/adapterkit"]
+	pkg, ok := res.Packages["github.com/mohammedrefaat/go-anything/pkg/adapterkit"]
 	require.True(t, ok, "adapterkit package should be found")
 	assert.Equal(t, "adapterkit", pkg.Name)
 	assert.NotEmpty(t, pkg.Files)

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/app/bench"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/schemas"
+	"github.com/mohammedrefaat/go-anything/internal/app/bench"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/schemas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

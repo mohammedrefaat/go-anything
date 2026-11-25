@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/setup"
+	"github.com/mohammedrefaat/go-anything/internal/setup"
 )
 
 func runSetup(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

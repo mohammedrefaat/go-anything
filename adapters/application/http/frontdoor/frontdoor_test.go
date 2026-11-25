@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/adapters/application/http/frontdoor"
+	"github.com/mohammedrefaat/go-anything/adapters/application/http/frontdoor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

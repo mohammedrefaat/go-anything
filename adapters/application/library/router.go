@@ -10,7 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // UnitMode determines how an individual library unit is routed during migration.

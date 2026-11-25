@@ -18,17 +18,17 @@ import (
 	"strings"
 	"time"
 
-	cliadapter "github.com/mohammedrefat/go-anything/adapters/application/cli"
-	httpadapter "github.com/mohammedrefat/go-anything/adapters/application/http"
-	"github.com/mohammedrefat/go-anything/internal/app/bench"
-	"github.com/mohammedrefat/go-anything/internal/app/fuzz"
-	"github.com/mohammedrefat/go-anything/internal/app/hotpath"
-	"github.com/mohammedrefat/go-anything/internal/app/profile"
-	"github.com/mohammedrefat/go-anything/internal/bridge"
-	"github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/internal/recorder"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	cliadapter "github.com/mohammedrefaat/go-anything/adapters/application/cli"
+	httpadapter "github.com/mohammedrefaat/go-anything/adapters/application/http"
+	"github.com/mohammedrefaat/go-anything/internal/app/bench"
+	"github.com/mohammedrefaat/go-anything/internal/app/fuzz"
+	"github.com/mohammedrefaat/go-anything/internal/app/hotpath"
+	"github.com/mohammedrefaat/go-anything/internal/app/profile"
+	"github.com/mohammedrefaat/go-anything/internal/bridge"
+	"github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/internal/recorder"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // StandardToolNames lists the 14 allowed MCP tools.

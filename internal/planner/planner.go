@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/analyzer"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/analyzer"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // PlanResult contains the planned units organized into topological migration waves.

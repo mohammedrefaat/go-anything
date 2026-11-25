@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/mcp"
-	"github.com/mohammedrefat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/internal/mcp"
+	"github.com/mohammedrefaat/go-anything/internal/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

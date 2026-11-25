@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/bridge"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/bridge"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // UseCase coordinates companion commands for managing unit and bridge lifecycle.

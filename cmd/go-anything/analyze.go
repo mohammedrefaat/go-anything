@@ -13,7 +13,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/mohammedrefat/go-anything/internal/app/analyze"
+	"github.com/mohammedrefaat/go-anything/internal/app/analyze"
 )
 
 func runAnalyze(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

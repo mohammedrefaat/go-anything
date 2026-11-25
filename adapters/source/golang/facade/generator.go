@@ -23,7 +23,7 @@ func GenerateFacadeSource(packageName, unitID, legacyImport, modernImport string
 	sb.WriteString("import (\n")
 	sb.WriteString(fmt.Sprintf("\tlegacy %q\n", legacyImport))
 	sb.WriteString(fmt.Sprintf("\tmodern %q\n", modernImport))
-	sb.WriteString("\t\"github.com/mohammedrefat/go-anything/adapters/source/golang/facade\"\n")
+	sb.WriteString("\t\"github.com/mohammedrefaat/go-anything/adapters/source/golang/facade\"\n")
 	sb.WriteString(")\n\n")
 
 	for _, f := range funcs {

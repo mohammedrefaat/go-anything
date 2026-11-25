@@ -3,7 +3,7 @@ package schemas_test
 import (
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/schemas"
+	"github.com/mohammedrefaat/go-anything/schemas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

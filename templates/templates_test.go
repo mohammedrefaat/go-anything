@@ -181,6 +181,6 @@ func TestTemplates_GoldenOutput(t *testing.T) {
 
 		expected, err := os.ReadFile(goldenFile)
 		require.NoError(t, err)
-		assert.Equal(t, string(expected), string(file.Content), "rendered template %q must match golden file %q", name, goldenFile)
+		assert.Equal(t, strings.ReplaceAll(string(expected), "\r\n", "\n"), strings.ReplaceAll(string(file.Content), "\r\n", "\n"), "rendered template %q must match golden file %q", name, goldenFile)
 	}
 }

@@ -95,7 +95,7 @@ Shadow mode (`GO_ANYTHING_MODE=shadow`) runs the Go handler beside the original 
 We take the security of `go-anything` seriously. If you discover a vulnerability or potential security concern:
 
 1. **Do not disclose the issue publicly** via GitHub issues, discussions, or social media.
-2. Send an email with details and reproduction steps to the maintainers or open a private security advisory through [GitHub Security Advisories](https://github.com/mohammedrefat/go-anything/security/advisories).
+2. Send an email with details and reproduction steps to the maintainers or open a private security advisory through [GitHub Security Advisories](https://github.com/mohammedrefaat/go-anything/security/advisories).
 3. Include:
    - A description of the issue and potential impact
    - Minimal steps or fixtures to reproduce

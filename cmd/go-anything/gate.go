@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/mohammedrefat/go-anything/internal/app/gate"
+	"github.com/mohammedrefaat/go-anything/internal/app/gate"
 )
 
 func runGate(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

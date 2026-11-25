@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mohammedrefat/go-anything/internal/analyzer"
-	"github.com/mohammedrefat/go-anything/internal/planner"
+	"github.com/mohammedrefaat/go-anything/internal/analyzer"
+	"github.com/mohammedrefaat/go-anything/internal/planner"
 )
 
 // AnalyzerPort abstracts the static analysis and dependency planning capabilities.

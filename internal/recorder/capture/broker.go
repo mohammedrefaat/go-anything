@@ -3,7 +3,7 @@ package capture
 import (
 	"context"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // BrokerConsumerSource consumes messages from event and message brokers (e.g. Kafka, RabbitMQ, SQS, NATS).

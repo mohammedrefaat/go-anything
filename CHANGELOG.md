@@ -72,7 +72,7 @@ commands analyze, diff, gate, shadow, cutover are now wired
 ### Security
 - **Rule R-1 Strict Boundary**: Enforced that `cutover` does not import `internal/lift` or perform code lift operations. Strangler retirement remains human-governed via `go-anything lift`.
 - **Fail-Closed Redaction**: Ensured redaction remains core-owned and applied before writing fixtures to disk.
-- **Keyless Sigstore Cosign Verification**: Documented exact certificate identity regex (`^https://github\\.com/mohammedrefat/go-anything/\\.github/workflows/release\\.yml@refs/tags/v.*$`) and OIDC issuer (`https://token.actions.githubusercontent.com`) for all release artifacts.
+- **Keyless Sigstore Cosign Verification**: Documented exact certificate identity regex (`^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$`) and OIDC issuer (`https://token.actions.githubusercontent.com`) for all release artifacts.
 
 ## [1.0.0] - 2026-11-20
 

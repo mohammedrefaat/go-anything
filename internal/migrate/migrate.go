@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/gofrs/flock"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/schemas"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/schemas"
 )
 
 // MigrationResult summarizes the files and counts upgraded during a workspace migration.

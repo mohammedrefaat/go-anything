@@ -18,25 +18,25 @@ Every official release of `go-anything` is built and published automatically via
 
 ### 1. Homebrew (macOS & Linux)
 ```bash
-brew tap mohammedrefat/tap
+brew tap mohammedrefaat/tap
 brew install go-anything
 ```
 
 ### 2. Scoop (Windows)
 ```powershell
-scoop bucket add go-anything https://github.com/mohammedrefat/scoop-bucket.git
+scoop bucket add go-anything https://github.com/mohammedrefaat/scoop-bucket.git
 scoop install go-anything
 ```
 
 ### 3. Prebuilt GitHub Release Binaries
-Download the matching archive for your operating system from [Releases](https://github.com/mohammedrefat/go-anything/releases):
+Download the matching archive for your operating system from [Releases](https://github.com/mohammedrefaat/go-anything/releases):
 ```bash
 # Verify checksum
 sha256sum -c checksums.txt
 
 # Verify signature with cosign
 cosign verify-blob \
-  --certificate-identity https://github.com/mohammedrefat/go-anything/.github/workflows/release.yml@refs/tags/v2.0.0 \
+  --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --signature go-anything_2.0.0_linux_amd64.tar.gz.sig \
   go-anything_2.0.0_linux_amd64.tar.gz
@@ -44,7 +44,7 @@ cosign verify-blob \
 
 ### 4. Direct Go Install
 ```bash
-go install github.com/mohammedrefat/go-anything/cmd/go-anything@v2.0.0
+go install github.com/mohammedrefaat/go-anything/cmd/go-anything@v2.0.0
 ```
 
 ---

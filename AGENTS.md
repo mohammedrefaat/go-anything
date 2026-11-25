@@ -12,7 +12,7 @@
 - **`go-anything` organizes and verifies:** it orders work by dependency waves, records behavioral evidence, replays cases, enforces quality gates, and persists migration state outside any chat session.
 - **Parity is claimed only for recorded and fuzzed inputs**, never for unobserved behavior.
 
-**Module:** `github.com/mohammedrefat/go-anything`
+**Module:** `github.com/mohammedrefaat/go-anything`
 **License:** Apache-2.0
 **Go:** 1.27+ (see `go.mod`)
 **Status:** Early development — foundational packages and schemas exist; end-to-end migration commands are not yet wired into the CLI.

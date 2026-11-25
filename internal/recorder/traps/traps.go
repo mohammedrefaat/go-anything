@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // TrapCategory defines the known semantic hazard categories when porting to Go.

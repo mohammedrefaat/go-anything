@@ -22,6 +22,7 @@ Prior to Milestone 0, key foundational design decisions were settled in the Arch
 | **ADR-001** | Restricted Execution Sandbox Backend | **Resolved** | 2026-11-19 | Use native Linux namespaces with `bubblewrap` fallback; best-effort isolation with explicit warning and env stripping on macOS/Windows. No mandatory container daemon. | [adr-001-sandbox-backend.md](Docs/decisions/adr-001-sandbox-backend.md) |
 | **ADR-002** | Cross-Machine Unit Claims and Coordination | **Resolved** | 2026-11-19 | Pull-request and branch ownership is sufficient through v1.0; local leases in `.go-anything/local/` coordinate agents on a single machine; no shared claim service before v1.0. | [adr-002-cross-machine-claims.md](Docs/decisions/adr-002-cross-machine-claims.md) |
 | **ADR-005** | Hot-Path Sidecar Protocol & IPC Contract | **Resolved** | 2026-11-23 | Use out-of-process sidecar protocol over in-process FFI/CGO (avoids GIL deadlocks, signal collisions, fork hazards). Tier 1: length-prefixed stdio JSON-RPC 2.0; Tier 2: Unix socket/named pipe; Tier 3: gRPC. `bridge.yaml` manifest, precise JSON/Go type mapping, -32000..-32099 error codes, and strangler fallback via `GO_ANYTHING_BRIDGE=off`. | [adr-005-hotpath-sidecar-protocol.md](Docs/decisions/adr-005-hotpath-sidecar-protocol.md) |
+| **ADR-007** | Canonical Owner Identity and Module Path Resolution | **Resolved** | 2026-11-24 | Establish `mohammedrefaat` as canonical GitHub owner and module path (`github.com/mohammedrefaat/go-anything`), fix cosign regex, update all import paths and package manifests. | [adr-007-canonical-owner-identity.md](Docs/decisions/adr-007-canonical-owner-identity.md) |
 
 ---
 
@@ -63,3 +64,15 @@ Prior to Milestone 0, key foundational design decisions were settled in the Arch
     5. *Error Handling:* Application domain errors map to `-32000`..`-32099` with structured payload `{kind, message, stack}`; host client wrappers catch RPC errors and re-raise native exceptions.
     6. *Resilience & Lifecycle:* Lazy process spawning / pre-warm, `hello` protocol handshake, `ping` health checks, exponential backoff crash recovery, and clean process tree termination.
     7. *Strangler Fallback:* Reversible kill-switch via `GO_ANYTHING_BRIDGE=off` or `GO_ANYTHING_UNIT_<id>=original` falling back to `_original_<name>` and tracking fallback counters for safe lift verification.
+
+### [ADR-007: Canonical Owner Identity and Module Path Resolution](Docs/decisions/adr-007-canonical-owner-identity.md)
+* **Status:** Resolved
+* **Scope:** Repository-wide, Task A1 (Finding F1)
+* **Summary:**
+  - **Context:** The repository was created and hosted under GitHub account `mohammedrefaat` (`github.com/mohammedrefaat/go-anything`), while `go.mod`, package managers, documentation, and Cosign release signing configurations used `mohammedrefat` (single 'a'). This prevented `go install`, broke clone commands, and failed keyless Cosign signature verification against GitHub Actions OIDC workflow identities.
+  - **Decision:**
+    1. *Canonical Identity:* Establish `mohammedrefaat` as the canonical owner identity and module path (`github.com/mohammedrefaat/go-anything`).
+    2. *Module & Imports:* Update `go.mod` and rewrite all Go import paths across the codebase.
+    3. *Cosign Workflow Identity:* Standardize `--certificate-identity-regexp` across all verification documentation and scripts to `^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$`.
+    4. *Package Distributions:* Update `.goreleaser.yaml`, Homebrew tap, Scoop bucket, and npm package manifests.
+    5. *Regression Test:* Enforce zero legacy occurrences via `cmd/go-anything/owner_test.go`.

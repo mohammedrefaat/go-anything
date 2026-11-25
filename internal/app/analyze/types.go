@@ -1,7 +1,7 @@
 package analyze
 
 import (
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // Input defines the parameters for the analyze use-case.

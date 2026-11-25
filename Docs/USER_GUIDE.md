@@ -126,7 +126,7 @@ Clone the repository and install the binary:
 
 ```bash
 # Clone the repository
-git clone https://github.com/mohammedrefat/go-anything.git
+git clone https://github.com/mohammedrefaat/go-anything.git
 cd go-anything
 
 # Install into your $GOPATH/bin (ensure $GOPATH/bin is in your PATH)

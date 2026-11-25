@@ -8,7 +8,7 @@
 
 `go-anything` migrates applications to Go one unit at a time and proves each unit matches the original's recorded behavior before it ships. It is **not** a code translator — the coding agent writes the Go; `go-anything` orders the work, records evidence, replays it, enforces gates, and keeps migration state outside any chat session.
 
-**Module:** `github.com/mohammedrefat/go-anything`
+**Module:** `github.com/mohammedrefaat/go-anything`
 **License:** Apache-2.0
 **Go version:** 1.26+ (see `go.mod`)
 **Status:** Early development — CLI provides `help` and `version`; migration commands are not yet wired.

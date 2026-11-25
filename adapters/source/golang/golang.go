@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/mohammedrefat/go-anything/internal/analyzer"
-	"github.com/mohammedrefat/go-anything/internal/planner"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/analyzer"
+	"github.com/mohammedrefaat/go-anything/internal/planner"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // Adapter implements adapterkit.LanguageAdapter for Go source repositories.

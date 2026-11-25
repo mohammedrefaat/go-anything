@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/adapters/source/golang"
-	"github.com/mohammedrefat/go-anything/internal/planner"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/adapters/source/golang"
+	"github.com/mohammedrefaat/go-anything/internal/planner"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

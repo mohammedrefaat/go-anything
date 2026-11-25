@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit/conformance"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit/conformance"
 )
 
 // Ensure Adapter satisfies all required interfaces.

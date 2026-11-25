@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/adapters/source/typescript"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit/conformance"
+	"github.com/mohammedrefaat/go-anything/adapters/source/typescript"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit/conformance"
 )
 
 // Ensure Adapter implements all required and optional adapterkit interfaces at compile time.

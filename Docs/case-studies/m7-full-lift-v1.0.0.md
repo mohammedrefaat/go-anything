@@ -261,7 +261,7 @@ Every binary and container image in `v1.0.0` is signed with keyless OpenID Conne
 # Verify v1.0.0 binary bundle
 cosign verify-blob \
   --bundle dist/go-anything_1.0.0_linux_amd64.tar.gz.sigstore.json \
-  --certificate-identity-regexp "https://github.com/mohammedrefat/go-anything/.github/workflows/release.yml" \
+  --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   dist/go-anything_1.0.0_linux_amd64.tar.gz
 ```
@@ -269,7 +269,7 @@ cosign verify-blob \
 **Verification Output:**
 ```text
 Verified OK
-Certificate subject: https://github.com/mohammedrefat/go-anything/.github/workflows/release.yml@refs/tags/v1.0.0
+Certificate subject: https://github.com/mohammedrefaat/go-anything/.github/workflows/release.yml@refs/tags/v1.0.0
 Transparency log entry: 18940122 confirmed in Rekor
 SPDX 2.3 Software Bill of Materials (SBOM) attached and verified
 SLSA Level 3 Provenance attestation verified

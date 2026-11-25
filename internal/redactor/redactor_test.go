@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 func TestLuhnValidationAndSubstitution(t *testing.T) {

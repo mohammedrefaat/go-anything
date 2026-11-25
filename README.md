@@ -9,7 +9,7 @@
   <p>
     <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go" alt="Go 1.27+" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-6C7CFF.svg" alt="Apache 2.0" /></a>
-    <a href="https://github.com/mohammedrefat/go-anything/releases"><img src="https://img.shields.io/badge/release-v2.0.0-34D399.svg" alt="Release v2.0.0" /></a>
+    <a href="https://github.com/mohammedrefaat/go-anything/releases"><img src="https://img.shields.io/badge/release-v2.0.0-34D399.svg" alt="Release v2.0.0" /></a>
   </p>
 
   <p>
@@ -104,24 +104,24 @@ Install `go-anything` using your preferred system package manager:
 
 #### Homebrew (macOS & Linux)
 ```bash
-brew tap mohammedrefat/tap
+brew tap mohammedrefaat/tap
 brew install go-anything
 ```
 
 #### Scoop (Windows)
 ```powershell
-scoop bucket add go-anything https://github.com/mohammedrefat/scoop-bucket.git
+scoop bucket add go-anything https://github.com/mohammedrefaat/scoop-bucket.git
 scoop install go-anything
 ```
 
 #### npm (Node.js)
 ```bash
-npm install -g @mohammedrefat/go-anything
+npm install -g @mohammedrefaat/go-anything
 ```
 
 ### Prebuilt Binaries
 
-Download prebuilt binaries for your platform from [GitHub Releases](https://github.com/mohammedrefat/go-anything/releases):
+Download prebuilt binaries for your platform from [GitHub Releases](https://github.com/mohammedrefaat/go-anything/releases):
 
 | Platform | Architecture | Binary / Archive |
 | :--- | :--- | :--- |
@@ -135,7 +135,7 @@ Download prebuilt binaries for your platform from [GitHub Releases](https://gith
 VERSION="2.0.0"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
-RELEASE_URL="https://github.com/mohammedrefat/go-anything/releases/download/v${VERSION}"
+RELEASE_URL="https://github.com/mohammedrefaat/go-anything/releases/download/v${VERSION}"
 ARTIFACT="go-anything_${VERSION}_${OS}_${ARCH}.tar.gz"
 
 # Download archive, checksums, and signature
@@ -146,7 +146,7 @@ curl -fsSL -O "${RELEASE_URL}/checksums.txt.sigstore.json"
 # Verify cryptographic signature via Cosign (Keyless Sigstore)
 cosign verify-blob \
   --bundle checksums.txt.sigstore.json \
-  --certificate-identity-regexp "^https://github\\.com/mohammedrefat/go-anything/\\.github/workflows/release\\.yml@refs/tags/v.*$" \
+  --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
 
@@ -166,7 +166,7 @@ sudo install -m 0755 go-anything /usr/local/bin/go-anything
 
 ```powershell
 $Version = "2.0.0"
-$ReleaseUrl = "https://github.com/mohammedrefat/go-anything/releases/download/v$Version"
+$ReleaseUrl = "https://github.com/mohammedrefaat/go-anything/releases/download/v$Version"
 $Artifact = "go-anything_${Version}_windows_amd64.zip"
 
 Invoke-WebRequest -Uri "$ReleaseUrl/$Artifact" -OutFile $Artifact
@@ -177,7 +177,7 @@ Invoke-WebRequest -Uri "$ReleaseUrl/checksums.txt.sigstore.json" -OutFile "check
 if (Get-Command cosign -ErrorAction SilentlyContinue) {
     cosign verify-blob `
       --bundle checksums.txt.sigstore.json `
-      --certificate-identity-regexp "^https://github\.com/mohammedrefat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" `
+      --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" `
       --certificate-oidc-issuer "https://token.actions.githubusercontent.com" `
       checksums.txt
 }
@@ -199,7 +199,7 @@ Move-Item .\go-anything-bin\go-anything.exe "$targetDir\go-anything.exe" -Force
 If Go 1.27+ is installed:
 
 ```bash
-go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
+go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest
 ```
 
 ### Verification & Health Check
@@ -231,10 +231,10 @@ Install the CLI using prebuilt binaries, `go install`, or from source (see [Inst
 
 ```bash
 # Option A: Go toolchain
-go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
+go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest
 
 # Option B: Clone and install locally
-git clone https://github.com/mohammedrefat/go-anything.git
+git clone https://github.com/mohammedrefaat/go-anything.git
 cd go-anything
 go install ./cmd/go-anything
 

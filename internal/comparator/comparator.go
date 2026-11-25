@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // Supported comparison modes.
