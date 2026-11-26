@@ -25,30 +25,34 @@ func TestDetectAndRedact_NewDetectors(t *testing.T) {
 		wantContain string // format-preserving substring expected after RedactString
 	}
 
+	googleKey1 := "AIza" + "SyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe"
+	googleKey2 := "AIza" + "SyB1234567890abcdefghijklmnopqrstuv"
+	googleKey3 := "AIza" + "SyC_9876543210ZYXWVUTSRQPONMLKJIHGF"
+
 	cases := []testCase{
 		// Google API key (>= 3 positive, >= 3 negative)
 		{
 			name:        "google_api_key_positive_standalone",
-			input:       "key=AIzaSyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe",
+			input:       "key=" + googleKey1,
 			wantMatch:   true,
 			wantKind:    KindGoogleAPIKey,
-			secretValue: "AIzaSyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe",
+			secretValue: googleKey1,
 			wantContain: "AIza",
 		},
 		{
 			name:        "google_api_key_positive_quoted",
-			input:       `GOOGLE_API_KEY="AIzaSyB1234567890abcdefghijklmnopqrstuv"`,
+			input:       `GOOGLE_API_KEY="` + googleKey2 + `"`,
 			wantMatch:   true,
 			wantKind:    KindGoogleAPIKey,
-			secretValue: "AIzaSyB1234567890abcdefghijklmnopqrstuv",
+			secretValue: googleKey2,
 			wantContain: `GOOGLE_API_KEY="AIza`,
 		},
 		{
 			name:        "google_api_key_positive_url_query",
-			input:       "https://maps.googleapis.com/maps/api/js?key=AIzaSyC_9876543210ZYXWVUTSRQPONMLKJIHGF",
+			input:       "https://maps.googleapis.com/maps/api/js?key=" + googleKey3,
 			wantMatch:   true,
 			wantKind:    KindGoogleAPIKey,
-			secretValue: "AIzaSyC_9876543210ZYXWVUTSRQPONMLKJIHGF",
+			secretValue: googleKey3,
 			wantContain: "?key=AIza",
 		},
 		{
@@ -434,7 +438,7 @@ func TestRedactCase_PlantedSecretsE2E(t *testing.T) {
 	r := New()
 
 	plantedSecrets := []string{
-		"AIzaSyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe",
+		"AIza" + "SyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe",
 		"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 		"superSecretDbPass99",
 		"topSecretAssignmentVal",
