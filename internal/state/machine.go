@@ -155,6 +155,12 @@ func (s *Store) checkDependenciesMet(unit *adapterkit.Unit) error {
 }
 
 func validateEvidenceForUnit(unit *adapterkit.Unit, ev *adapterkit.Evidence) error {
+	return ValidateEvidenceForUnit(unit, ev)
+}
+
+// ValidateEvidenceForUnit validates that ev satisfies the unit's declared evidence profile
+// and current schema/profile version requirements.
+func ValidateEvidenceForUnit(unit *adapterkit.Unit, ev *adapterkit.Evidence) error {
 	if ev == nil {
 		return ErrEvidenceMissing
 	}

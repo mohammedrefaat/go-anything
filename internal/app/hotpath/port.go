@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/mohammedrefaat/go-anything/internal/app/profile"
@@ -188,6 +189,21 @@ func (p *DefaultHotpathPort) sandboxRunner() sandbox.Runner {
 // and offline/readonly module and toolchain flags. Target projects must vendor dependencies
 // or have a warm module cache and local Go toolchain.
 func (p *DefaultHotpathPort) runSandboxedGo(ctx context.Context, workingDir string, args ...string) (string, error) {
+	goFlags := "-mod=readonly"
+	if info, statErr := os.Stat(filepath.Join(workingDir, "vendor")); statErr == nil && info.IsDir() {
+		goFlags = "-mod=vendor"
+	}
+
+	customEnv := map[string]string{
+		"GOFLAGS":     goFlags,
+		"GOTOOLCHAIN": "local",
+		"GOPROXY":     "off",
+	}
+	if runtime.GOOS == "linux" {
+		// Bubblewrap mounts a writable tmpfs at /tmp while $HOME may be read-only.
+		customEnv["GOCACHE"] = "/tmp/go-build-cache"
+	}
+
 	cfg := sandbox.Config{
 		Command:      "go",
 		Args:         args,
@@ -217,11 +233,7 @@ func (p *DefaultHotpathPort) runSandboxedGo(ctx context.Context, workingDir stri
 			"GOOS",
 			"GOARCH",
 		},
-		CustomEnv: map[string]string{
-			"GOFLAGS":     "-mod=readonly",
-			"GOTOOLCHAIN": "local",
-			"GOPROXY":     "off",
-		},
+		CustomEnv: customEnv,
 	}
 
 	res, err := p.sandboxRunner().Run(ctx, cfg)

@@ -84,12 +84,8 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 				}
 			}
 			_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
-				Actor: "agent-test",
-				Evidence: &adapterkit.Evidence{
-					EvidenceID: "evi-skipped-" + name,
-					UnitID:     "unit-core", CommitSHA: validCommitSHA,
-					Profile: adapterkit.ProfileFull, Checks: checks,
-				},
+				Actor:    "agent-test",
+				Evidence: newValidFullEvidence("evi-skipped-"+name, "unit-core", validCommitSHA, checks),
 			})
 			assert.ErrorIs(t, err, state.ErrEvidenceProfileUnsatisfied)
 		})
@@ -192,14 +188,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 			}
 		}
 
-		ev := &adapterkit.Evidence{
-			EvidenceID:      "evi-failed-err",
-			UnitID:          "unit-core",
-			CommitSHA:       validCommitSHA,
-			Profile:         adapterkit.ProfileFull,
-			Checks:          checks,
-			MismatchesCount: 0,
-		}
+		ev := newValidFullEvidence("evi-failed-err", "unit-core", validCommitSHA, checks)
 		_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
 			Actor:    "agent-test",
 			Evidence: ev,
@@ -216,14 +205,7 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 			}
 		}
 
-		ev := &adapterkit.Evidence{
-			EvidenceID:      "evi-failed-race",
-			UnitID:          "unit-core",
-			CommitSHA:       validCommitSHA,
-			Profile:         adapterkit.ProfileFull,
-			Checks:          checks,
-			MismatchesCount: 0,
-		}
+		ev := newValidFullEvidence("evi-failed-race", "unit-core", validCommitSHA, checks)
 		_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
 			Actor:    "agent-test",
 			Evidence: ev,
@@ -233,12 +215,11 @@ func TestFullProfile_GuardsAndEvidence(t *testing.T) {
 
 	t.Run("explicit vulnerability failure overrides a passing alias", func(t *testing.T) {
 		checks := append(createFullProfileChecks(), adapterkit.GateCheck{Name: "vulncheck", Status: adapterkit.StatusFail})
+		ev := newValidFullEvidence("evi-failed-vuln-alias", "unit-core", validCommitSHA, checks)
+		ev.ProfileChecks = append(fullProfileCheckNames(), "vulncheck")
 		_, err := store.Transition("unit-core", adapterkit.StateVerified, state.TransitionOptions{
-			Actor: "agent-test",
-			Evidence: &adapterkit.Evidence{
-				EvidenceID: "evi-failed-vuln-alias", UnitID: "unit-core", CommitSHA: validCommitSHA,
-				Profile: adapterkit.ProfileFull, Checks: checks,
-			},
+			Actor:    "agent-test",
+			Evidence: ev,
 		})
 		require.ErrorIs(t, err, state.ErrEvidenceProfileUnsatisfied)
 	})

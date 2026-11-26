@@ -86,7 +86,7 @@ Ship as **v2.0.1**. Order: F1 → F2/F3 → F4 → F8 → F9 → F7/F10/F11.
 | Google API key | `\bAIza[0-9A-Za-z_-]{35}\b` |
 | AWS secret access key | 40-char base64-ish, **only** when within a short window of `AKIA…` or a key name like `aws_secret_access_key` (bare 40-char matching causes false positives) |
 | URL credentials | `\b[a-z][a-z0-9+.-]*://[^/\s:@]+:[^/\s@]+@` — redact the password part, preserve scheme/host/user shape (format-preserving rule) |
-| Generic assignment | key name `(?i)(pass(word|wd)?|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)` followed by `=`/`:` and a quoted value ≥ 8 chars, not a placeholder (`changeme`, `example`, `xxx`, `<…>`, `${…}`, `os.Getenv`) |
+| Generic assignment | key name `(?i)(pass(word\|wd)?\|secret\|token\|api[_-]?key\|private[_-]?key\|client[_-]?secret)` followed by `=`/`:` and a quoted value ≥ 8 chars, not a placeholder (`changeme`, `example`, `xxx`, `<…>`, `${…}`, `os.Getenv`) |
 | Others | SendGrid `SG\.[\w-]{22}\.[\w-]{43}`, npm `npm_[A-Za-z0-9]{36}`, Twilio `SK[0-9a-f]{32}` |
 **Also:** review the broad `sk-…{12,}` detector for false positives on ordinary text; add negative cases.
 **Rules:** substitutions stay format-preserving; a high-confidence hit in an unexpected field still drops the case (existing behavior).
@@ -151,8 +151,8 @@ Ship **8**, not 10. Each rule needs ≥ 3 `bad` and ≥ 3 `good` fixtures before
 | Rule ID | Detects | Technical data |
 |---|---|---|
 | `GA-SQLI` | Query text built from non-constant strings | Calls on `*database/sql.{DB,Tx,Conn}` named `Query/QueryContext/QueryRow/QueryRowContext/Exec/ExecContext/Prepare/PrepareContext` (query arg index 0, or 1 for `*Context`). Flag when arg is `fmt.Sprintf`, a `+` expression with a non-constant operand, or `strings.Builder.String()`. Constant = `types.Info.Types[e].Value != nil`. Also match `gorm.io/gorm` `Raw/Exec` and `sqlx` only if those packages are imported. High confidence |
-| `GA-CMDI` | Command injection | `os/exec.Command/CommandContext` where name is `sh|bash|cmd|powershell` with `-c` and a non-constant script arg |
-| `GA-WEAKRAND` | `math/rand` (v1/v2) used for secrets | Flag in functions/vars whose name matches `(?i)token|secret|password|nonce|salt|session|otp|csrf|key`. **Medium** confidence, hint only |
+| `GA-CMDI` | Command injection | `os/exec.Command/CommandContext` where name is `sh\|bash\|cmd\|powershell` with `-c` and a non-constant script arg |
+| `GA-WEAKRAND` | `math/rand` (v1/v2) used for secrets | Flag in functions/vars whose name matches `(?i)token\|secret\|password\|nonce\|salt\|session\|otp\|csrf\|key`. **Medium** confidence, hint only |
 | `GA-BODYLIMIT` | Unbounded request body read | `io.ReadAll(x)` or `json.NewDecoder(x)` where `x` is `(*net/http.Request).Body` and the function has no `http.MaxBytesReader` assignment/wrap |
 | `GA-TLS` | Insecure TLS | `tls.Config{InsecureSkipVerify: true}` (constant true); `MinVersion` constant below `tls.VersionTLS12` |
 | `GA-SERVER` | `http.Server`/`ListenAndServe` without timeouts | Composite literal missing `ReadHeaderTimeout`; bare `http.ListenAndServe` |

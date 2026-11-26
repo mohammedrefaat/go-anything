@@ -44,8 +44,9 @@ cosign verify-blob \
 
 ### 4. Direct Go Install
 ```bash
-go install github.com/mohammedrefaat/go-anything/cmd/go-anything@v2.0.0
+go install github.com/mohammedrefaat/go-anything/cmd/go-anything@v1.0.1
 ```
+*(Matches the `github.com/mohammedrefaat/go-anything` module path in `go.mod`; v2+ Go module installs require a `/v2` module path suffix.)*
 
 ---
 

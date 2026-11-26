@@ -55,8 +55,8 @@ var (
 	// regexAWSSecretAnchor matches nearby context indicating an AWS secret access key.
 	regexAWSSecretAnchor = regexp.MustCompile(`(?i)(?:\bAKIA[0-9A-Z]{16}\b|\baws[_-]?(?:secret[_-]?(?:access[_-]?)?key)\b|\bsecret_access_key\b)`)
 
-	// regexAWSSecretCandidate matches 40+ char base64-ish runs; callers check exact length == 40.
-	regexAWSSecretCandidate = regexp.MustCompile(`[A-Za-z0-9/+=]{40,}`)
+	// regexAWSSecretCandidate matches 40+ char base64-ish runs after a delimiter or start of string; callers check exact length == 40.
+	regexAWSSecretCandidate = regexp.MustCompile(`(?:^|[=:\s"'` + "`" + `])([A-Za-z0-9/+=]{40,})`)
 
 	// regexGoogleAPIKey matches Google API keys.
 	regexGoogleAPIKey = regexp.MustCompile(`\bAIza[0-9A-Za-z_-]{35}\b`)
@@ -108,15 +108,37 @@ func Detect(s string) []Finding {
 		return nil
 	}
 
+	confidenceRank := func(c string) int {
+		switch c {
+		case "high":
+			return 3
+		case "medium":
+			return 2
+		default:
+			return 1
+		}
+	}
+
 	var accepted []Finding
 	add := func(kind Kind, start, end int, confidence string) {
 		if start >= end {
 			return
 		}
+		var filtered []Finding
+		replaced := false
 		for _, existing := range accepted {
 			if start < existing.End && existing.Start < end {
+				if start <= existing.Start && existing.End <= end && confidenceRank(confidence) > confidenceRank(existing.Confidence) {
+					// Strictly higher-confidence enclosing finding replaces narrower inner finding(s).
+					replaced = true
+					continue
+				}
 				return
 			}
+			filtered = append(filtered, existing)
+		}
+		if replaced {
+			accepted = filtered
 		}
 		accepted = append(accepted, Finding{
 			Kind:       kind,
@@ -146,13 +168,17 @@ func Detect(s string) []Finding {
 	addMatches(regexAWSAccessKey, KindAWSAccessKey, "high")
 
 	if anchors := regexAWSSecretAnchor.FindAllStringIndex(s, -1); len(anchors) > 0 {
-		for _, m := range regexAWSSecretCandidate.FindAllStringIndex(s, -1) {
-			if m[1]-m[0] != 40 {
+		for _, m := range regexAWSSecretCandidate.FindAllStringSubmatchIndex(s, -1) {
+			if len(m) < 4 || m[2] < 0 {
+				continue
+			}
+			start, end := m[2], m[3]
+			if end-start != 40 {
 				continue
 			}
 			for _, a := range anchors {
-				if m[0] <= a[1]+awsSecretWindow && m[1] >= a[0]-awsSecretWindow {
-					add(KindAWSSecretKey, m[0], m[1], "high")
+				if start <= a[1]+awsSecretWindow && end >= a[0]-awsSecretWindow {
+					add(KindAWSSecretKey, start, end, "high")
 					break
 				}
 			}
@@ -205,17 +231,26 @@ func isPlaceholderSecret(val string) bool {
 	if lower == "" {
 		return true
 	}
-	if strings.Contains(lower, "changeme") ||
-		strings.Contains(lower, "change_me") ||
-		strings.Contains(lower, "example") ||
-		strings.Contains(lower, "xxx") ||
-		strings.Contains(lower, "os.getenv") {
+	switch lower {
+	case "changeme", "change_me", "change-me", "example", "placeholder",
+		"your_secret_here", "your-secret-here", "replace_me", "todo", "none", "null", "dummy":
+		return true
+	}
+	if strings.Trim(lower, "x*") == "" {
+		return true
+	}
+	if strings.HasPrefix(lower, "changeme") ||
+		strings.HasPrefix(lower, "change_me") ||
+		strings.HasPrefix(lower, "change-me") ||
+		strings.HasPrefix(lower, "example_") ||
+		strings.HasPrefix(lower, "example-") ||
+		strings.HasPrefix(lower, "os.getenv") {
 		return true
 	}
 	if strings.HasPrefix(lower, "<") && strings.HasSuffix(lower, ">") {
 		return true
 	}
-	if strings.Contains(lower, "${") && strings.Contains(lower, "}") {
+	if strings.HasPrefix(lower, "${") && strings.HasSuffix(lower, "}") {
 		return true
 	}
 	return false

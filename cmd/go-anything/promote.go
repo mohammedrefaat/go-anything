@@ -56,6 +56,15 @@ func runPromote(global *GlobalFlags, args []string, stdout, stderr io.Writer) er
 		return fmt.Errorf("cannot promote unit %q: must be in 'Approved' state (currently %q)", unitID, unit.State)
 	}
 
+	// Guard: Validate current-profile evidence before changing routing (ADR-008).
+	ev, err := store.GetLatestEvidenceForUnit(unitID)
+	if err != nil {
+		return fmt.Errorf("cannot promote unit %q: no valid evidence found (%w); re-run gate", unitID, err)
+	}
+	if err := state.ValidateEvidenceForUnit(unit, ev); err != nil {
+		return fmt.Errorf("cannot promote unit %q: evidence does not satisfy current profile: %w", unitID, err)
+	}
+
 	// 1. Mandatory Kill Switch Test
 	localDir := filepath.Join(absPath, ".go-anything", "local")
 	if err := os.MkdirAll(localDir, 0755); err != nil {

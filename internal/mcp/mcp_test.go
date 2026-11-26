@@ -404,8 +404,13 @@ func TestMCP_All8Tools_EndToEnd(t *testing.T) {
 		assert.Contains(t, res.Content[0].Text, "Commit SHA:")
 	})
 
-	// 7. mark_verified
+	// 7. mark_verified (exercise ProfileFull with valid v2 full-profile evidence)
 	t.Run("tool_7_mark_verified", func(t *testing.T) {
+		uFull, err := store.GetUnit("pkg/auth")
+		require.NoError(t, err)
+		uFull.EvidenceProfile = adapterkit.ProfileFull
+		require.NoError(t, store.SaveUnit(uFull))
+
 		// Provide valid commit evidence first
 		cmd := exec.Command("git", "rev-parse", "HEAD")
 		cmd.Dir = tempDir

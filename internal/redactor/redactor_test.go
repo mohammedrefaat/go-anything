@@ -110,6 +110,24 @@ func TestRedactString_Detectors(t *testing.T) {
 			wantNotMatch: "4000 0012 3456 7899",
 			wantContains: "4242 4242",
 		},
+		{
+			name:         "Unquoted AWS secret assignment",
+			input:        "aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+			wantNotMatch: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+			wantContains: "aws_secret_access_key=",
+		},
+		{
+			name:         "Enclosing password with embedded email",
+			input:        `password="prefix_user@company.internal_suffix"`,
+			wantNotMatch: "prefix_user@company.internal_suffix",
+			wantContains: `password="`,
+		},
+		{
+			name:         "Real secret containing xxx or example substring",
+			input:        `api_key="prod_xxx_example_9a8b7c6d5e"`,
+			wantNotMatch: "prod_xxx_example_9a8b7c6d5e",
+			wantContains: `api_key="`,
+		},
 	}
 
 	for _, tc := range tests {

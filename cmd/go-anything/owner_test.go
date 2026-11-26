@@ -21,21 +21,24 @@ func TestCanonicalOwnerIdentity(t *testing.T) {
 	legacyOwner := "mohammed" + "refat"
 
 	isAllowListed := func(relPath string) bool {
-		norm := filepath.ToSlash(relPath)
-		base := filepath.Base(norm)
-		if strings.EqualFold(base, "DECISIONS.md") {
-			return true
-		}
-		if strings.EqualFold(base, "adr-007-canonical-owner-identity.md") {
-			return true
-		}
-		return false
+		norm := strings.TrimPrefix(filepath.ToSlash(filepath.Clean(relPath)), "./")
+		return strings.EqualFold(norm, "DECISIONS.md") ||
+			strings.EqualFold(norm, "Docs/decisions/adr-007-canonical-owner-identity.md")
 	}
 
 	tests := []struct {
 		name string
 		run  func(t *testing.T)
 	}{
+		{
+			name: "Allow-list matches exact repository-relative paths only",
+			run: func(t *testing.T) {
+				assert.True(t, isAllowListed("DECISIONS.md"))
+				assert.True(t, isAllowListed("Docs/decisions/adr-007-canonical-owner-identity.md"))
+				assert.False(t, isAllowListed("sub/DECISIONS.md"))
+				assert.False(t, isAllowListed("other/adr-007-canonical-owner-identity.md"))
+			},
+		},
 		{
 			name: "Repository files have zero occurrences of legacy owner handle",
 			run: func(t *testing.T) {
