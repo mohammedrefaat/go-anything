@@ -97,14 +97,24 @@ func TestGate_Success_FullProfile(t *testing.T) {
 func TestGate_SkippedCheck_NoEvidenceSaved(t *testing.T) {
 	port := &fakeGatePort{
 		runGateFunc: func(ctx context.Context, cfg internalgate.Config) (*internalgate.GateReport, error) {
+			checks := make([]internalgate.CheckReport, 0, len(cfg.Checks))
+			passedCount := 0
+			skippedCount := 0
+			for _, name := range cfg.Checks {
+				status := internalgate.StatusPass
+				if name == internalgate.CheckStaticcheck {
+					status = internalgate.StatusSkipped
+					skippedCount++
+				} else {
+					passedCount++
+				}
+				checks = append(checks, internalgate.CheckReport{Name: name, Status: status})
+			}
 			return &internalgate.GateReport{
 				Passed:       true,
-				PassedCount:  1,
-				SkippedCount: 1,
-				Checks: []internalgate.CheckReport{
-					{Name: "build", Status: internalgate.StatusPass},
-					{Name: "staticcheck", Status: internalgate.StatusSkipped},
-				},
+				PassedCount:  passedCount,
+				SkippedCount: skippedCount,
+				Checks:       checks,
 			}, nil
 		},
 	}

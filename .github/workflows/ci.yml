@@ -68,15 +68,22 @@ jobs:
           mkdir -p "$TMPDIR/.go-anything/cases/pkg"
           cat <<'EOF' > "$TMPDIR/.go-anything/cases/pkg/currency.jsonl"
           {"schema_version":"v1alpha1","case_id":"case-curr-0001","unit_id":"pkg/currency","kind":"happy","source_revision":"v1.0.0","runtime":"go","captured_at":"2026-01-01T00:00:00Z","input":{},"expected_output":{"exit_code":0}}
+          {"schema_version":"v1alpha1","case_id":"case-curr-0002","unit_id":"pkg/currency","kind":"trap","source_revision":"v1.0.0","runtime":"go","captured_at":"2026-01-01T00:00:00Z","input":{"args":["unsupported currency code"]},"expected_output":{"exit_code":0}}
+          {"schema_version":"v1alpha1","case_id":"case-curr-0003","unit_id":"pkg/currency","kind":"trap","source_revision":"v1.0.0","runtime":"go","captured_at":"2026-01-01T00:00:00Z","input":{"args":["amount cannot be negative"]},"expected_output":{"exit_code":0}}
           EOF
           python3 -c '
-          import glob, json, sys
-          for path in glob.glob(sys.argv[1] + "/.go-anything/units/*.json"):
+          import glob, json, os, sys
+          updated = False
+          pattern = os.path.join(sys.argv[1], ".go-anything", "units", "**", "*.json")
+          for path in glob.glob(pattern, recursive=True):
               with open(path) as f:
                   u = json.load(f)
               if u.get("id") == "pkg/currency":
                   u.setdefault("metadata", {})["target"] = "/bin/true"
                   with open(path, "w") as f:
                       json.dump(u, f, indent=2)
+                  updated = True
+          if not updated:
+              sys.exit("pkg/currency unit file not found")
           ' "$TMPDIR"
           go run ./cmd/go-anything gate --unit=pkg/currency --profile=full --allow-missing-tools --dir="$TMPDIR"

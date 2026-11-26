@@ -124,20 +124,25 @@ func Detect(s string) []Finding {
 		if start >= end {
 			return
 		}
-		var filtered []Finding
-		replaced := false
+		replaceCount := 0
 		for _, existing := range accepted {
 			if start < existing.End && existing.Start < end {
 				if start <= existing.Start && existing.End <= end && confidenceRank(confidence) > confidenceRank(existing.Confidence) {
 					// Strictly higher-confidence enclosing finding replaces narrower inner finding(s).
-					replaced = true
+					replaceCount++
 					continue
 				}
 				return
 			}
-			filtered = append(filtered, existing)
 		}
-		if replaced {
+		if replaceCount > 0 {
+			filtered := make([]Finding, 0, len(accepted)-replaceCount+1)
+			for _, existing := range accepted {
+				if start < existing.End && existing.Start < end {
+					continue
+				}
+				filtered = append(filtered, existing)
+			}
 			accepted = filtered
 		}
 		accepted = append(accepted, Finding{
@@ -232,19 +237,14 @@ func isPlaceholderSecret(val string) bool {
 		return true
 	}
 	switch lower {
-	case "changeme", "change_me", "change-me", "example", "placeholder",
+	case "changeme", "changeme123", "change_me", "change-me", "example", "example_api_key_value", "placeholder",
 		"your_secret_here", "your-secret-here", "replace_me", "todo", "none", "null", "dummy":
 		return true
 	}
 	if strings.Trim(lower, "x*") == "" {
 		return true
 	}
-	if strings.HasPrefix(lower, "changeme") ||
-		strings.HasPrefix(lower, "change_me") ||
-		strings.HasPrefix(lower, "change-me") ||
-		strings.HasPrefix(lower, "example_") ||
-		strings.HasPrefix(lower, "example-") ||
-		strings.HasPrefix(lower, "os.getenv") {
+	if strings.HasPrefix(lower, "os.getenv") {
 		return true
 	}
 	if strings.HasPrefix(lower, "<") && strings.HasSuffix(lower, ">") {

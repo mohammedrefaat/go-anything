@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/mohammedrefaat/go-anything/internal/app/profile"
@@ -190,7 +189,7 @@ func (p *DefaultHotpathPort) sandboxRunner() sandbox.Runner {
 // or have a warm module cache and local Go toolchain.
 func (p *DefaultHotpathPort) runSandboxedGo(ctx context.Context, workingDir string, args ...string) (string, error) {
 	goFlags := "-mod=readonly"
-	if info, statErr := os.Stat(filepath.Join(workingDir, "vendor")); statErr == nil && info.IsDir() {
+	if hasVendorDir(workingDir) {
 		goFlags = "-mod=vendor"
 	}
 
@@ -198,10 +197,6 @@ func (p *DefaultHotpathPort) runSandboxedGo(ctx context.Context, workingDir stri
 		"GOFLAGS":     goFlags,
 		"GOTOOLCHAIN": "local",
 		"GOPROXY":     "off",
-	}
-	if runtime.GOOS == "linux" {
-		// Bubblewrap mounts a writable tmpfs at /tmp while $HOME may be read-only.
-		customEnv["GOCACHE"] = "/tmp/go-build-cache"
 	}
 
 	cfg := sandbox.Config{
@@ -258,6 +253,24 @@ func (p *DefaultHotpathPort) runSandboxedGo(ctx context.Context, workingDir stri
 		return combined, fmt.Errorf("go %s exited with status %d", subcmd, res.ExitCode)
 	}
 	return combined, nil
+}
+
+func hasVendorDir(startDir string) bool {
+	dir := startDir
+	for dir != "" {
+		if info, err := os.Stat(filepath.Join(dir, "vendor")); err == nil && info.IsDir() {
+			return true
+		}
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return false
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return false
 }
 
 func (p *DefaultHotpathPort) ReplayAndDiff(ctx context.Context, dir, unitID string) (bool, string, error) {
