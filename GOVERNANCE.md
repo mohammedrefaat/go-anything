@@ -180,7 +180,7 @@ To be certified as an official or compatible adapter, an implementation must pas
 ```go
 import (
     "testing"
-    "github.com/mohammedrefat/go-anything/pkg/adapterkit/conformance"
+    "github.com/mohammedrefaat/go-anything/pkg/adapterkit/conformance"
 )
 
 func TestMyAdapter_Conformance(t *testing.T) {
@@ -232,7 +232,7 @@ The `go-anything` security model prioritizes safe, local-first execution. Securi
 
 If you identify a security issue, vulnerability, or secret redaction bypass:
 - **Do not open a public issue.**
-- Submit a confidential report via [GitHub Security Advisories](https://github.com/mohammedrefat/go-anything/security/advisories) or email the Core Maintainers directly.
+- Submit a confidential report via [GitHub Security Advisories](https://github.com/mohammedrefaat/go-anything/security/advisories) or email the Core Maintainers directly.
 - Include reproduction steps, affected versions, and sample test fixtures where applicable.
 
 ### 6.2 Response SLA & Disclosure Workflow

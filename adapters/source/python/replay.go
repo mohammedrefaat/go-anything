@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // CaseExecutor is a function that executes a case and returns output.

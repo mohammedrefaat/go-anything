@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit/conformance"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit/conformance"
 )
 
 // Ensure Adapter satisfies all required interfaces.
@@ -55,6 +55,15 @@ func (a *Adapter) Version() string {
 // SourceLanguage returns the primary source language handled.
 func (a *Adapter) SourceLanguage() string {
 	return "python"
+}
+
+// AdapterManifest returns the static adapter manifest including handled file extensions.
+func (a *Adapter) AdapterManifest() adapterkit.AdapterManifest {
+	return adapterkit.AdapterManifest{
+		Name:           a.Name(),
+		SourceLanguage: a.SourceLanguage(),
+		Extensions:     []string{".py", ".pyi"},
+	}
 }
 
 // SupportedTransports returns the list of transports supported by this adapter.

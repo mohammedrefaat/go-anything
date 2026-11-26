@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/redactor"
-	"github.com/mohammedrefat/go-anything/internal/sandbox"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/redactor"
+	"github.com/mohammedrefaat/go-anything/internal/sandbox"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 func TestIngest_ParseCurl(t *testing.T) {

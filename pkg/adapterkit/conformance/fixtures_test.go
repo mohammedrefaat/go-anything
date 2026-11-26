@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit/conformance"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit/conformance"
 )
 
 // mockReplayDriver implements adapterkit.Replay for testing.

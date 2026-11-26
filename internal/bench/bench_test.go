@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/bench"
+	"github.com/mohammedrefaat/go-anything/internal/bench"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,9 +21,9 @@ func TestBenchmark_Measure(t *testing.T) {
 		}
 	}
 
-	metric := b.Measure(workload, 50)
+	metric := b.Measure(workload, 500)
 
-	assert.Equal(t, 50, metric.Iterations)
+	assert.Equal(t, 500, metric.Iterations)
 	assert.Greater(t, metric.TotalDuration, time.Duration(0))
 	assert.Greater(t, metric.DurationPerOpNS, float64(0))
 	assert.Greater(t, metric.TotalAllocBytes, uint64(0))

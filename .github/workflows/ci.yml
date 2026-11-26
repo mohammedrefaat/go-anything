@@ -1,0 +1,89 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Verify Go Modules
+        run: go mod verify
+
+      - name: Verify STATUS.md consistency
+        run: |
+          go run ./tools/genstatus
+          git diff --exit-code STATUS.md
+
+      - name: Verify Go Formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted files detected:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Run Go Vet
+        run: go vet ./...
+
+      - name: Install staticcheck and govulncheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Run staticcheck
+        run: staticcheck ./...
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+      - name: Run Tests
+        run: go test -v -race ./...
+
+      - name: Dogfood go-anything gate on fixture unit
+        run: |
+          TMPDIR=$(mktemp -d)
+          trap 'rm -rf "$TMPDIR"' EXIT
+          cp -r testdata/dogfood_service/. "$TMPDIR/"
+          go run ./cmd/go-anything modernize "$TMPDIR"
+          mkdir -p "$TMPDIR/.go-anything/cases/pkg"
+          cat <<'EOF' > "$TMPDIR/.go-anything/cases/pkg/currency.jsonl"
+          {"schema_version":"v1alpha1","case_id":"case-curr-0001","unit_id":"pkg/currency","kind":"happy","source_revision":"v1.0.0","runtime":"go","captured_at":"2026-01-01T00:00:00Z","input":{},"expected_output":{"exit_code":0}}
+          {"schema_version":"v1alpha1","case_id":"case-curr-0002","unit_id":"pkg/currency","kind":"trap","source_revision":"v1.0.0","runtime":"go","captured_at":"2026-01-01T00:00:00Z","input":{"args":["unsupported currency code"]},"expected_output":{"exit_code":0}}
+          {"schema_version":"v1alpha1","case_id":"case-curr-0003","unit_id":"pkg/currency","kind":"trap","source_revision":"v1.0.0","runtime":"go","captured_at":"2026-01-01T00:00:00Z","input":{"args":["amount cannot be negative"]},"expected_output":{"exit_code":0}}
+          EOF
+          python3 -c '
+          import glob, json, os, sys
+          updated = False
+          pattern = os.path.join(sys.argv[1], ".go-anything", "units", "**", "*.json")
+          for path in glob.glob(pattern, recursive=True):
+              with open(path) as f:
+                  u = json.load(f)
+              if u.get("id") == "pkg/currency":
+                  u.setdefault("metadata", {})["target"] = "/bin/true"
+                  with open(path, "w") as f:
+                      json.dump(u, f, indent=2)
+                  updated = True
+          if not updated:
+              sys.exit("pkg/currency unit file not found")
+          ' "$TMPDIR"
+          go run ./cmd/go-anything gate --unit=pkg/currency --profile=full --allow-missing-tools --dir="$TMPDIR"

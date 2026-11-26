@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/analyzer"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/analyzer"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // --- 1. Go Directive Bump Detection ---

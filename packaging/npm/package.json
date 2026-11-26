@@ -17,10 +17,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mohammedrefat/go-anything.git"
+    "url": "https://github.com/mohammedrefaat/go-anything.git"
   },
   "bugs": {
-    "url": "https://github.com/mohammedrefat/go-anything/issues"
+    "url": "https://github.com/mohammedrefaat/go-anything/issues"
   },
-  "homepage": "https://github.com/mohammedrefat/go-anything"
+  "homepage": "https://github.com/mohammedrefaat/go-anything"
 }

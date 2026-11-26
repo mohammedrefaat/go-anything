@@ -3,7 +3,7 @@ package conformance
 import (
 	"fmt"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // CapabilityGuard enforces declared capability boundaries on adapter operations.

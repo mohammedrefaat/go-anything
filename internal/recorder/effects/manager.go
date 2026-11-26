@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // Manager coordinates mock HTTP and SMTP recording services during test execution.

@@ -1,6 +1,6 @@
 # go-anything: Architecture & Implementation Plan (v3)
 
-Nov 18, 2026 · @mohammed refat
+Nov 18, 2026 · @mohammed refaat
 
 ## Vision and scope
 

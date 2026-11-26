@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	clifrontdoor "github.com/mohammedrefat/go-anything/adapters/application/cli/frontdoor"
-	"github.com/mohammedrefat/go-anything/internal/frontdoor"
+	clifrontdoor "github.com/mohammedrefaat/go-anything/adapters/application/cli/frontdoor"
+	"github.com/mohammedrefaat/go-anything/internal/frontdoor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"

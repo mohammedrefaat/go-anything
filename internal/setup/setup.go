@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/templates"
+	"github.com/mohammedrefaat/go-anything/templates"
 	toml "github.com/pelletier/go-toml/v2"
 )
 

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/recorder/traps"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/recorder/traps"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

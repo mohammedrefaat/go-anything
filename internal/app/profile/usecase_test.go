@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/app/profile"
-	"github.com/mohammedrefat/go-anything/schemas"
+	"github.com/mohammedrefaat/go-anything/internal/app/profile"
+	"github.com/mohammedrefaat/go-anything/schemas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

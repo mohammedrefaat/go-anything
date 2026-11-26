@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/app/companion"
+	"github.com/mohammedrefaat/go-anything/internal/app/companion"
 )
 
 func runReport(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

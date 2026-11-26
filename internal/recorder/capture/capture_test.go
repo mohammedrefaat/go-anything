@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/recorder/capture"
-	"github.com/mohammedrefat/go-anything/internal/redactor"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/recorder/capture"
+	"github.com/mohammedrefaat/go-anything/internal/redactor"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

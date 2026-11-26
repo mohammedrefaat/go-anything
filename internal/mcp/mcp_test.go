@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/internal/mcp"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/internal/mcp"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,10 +41,11 @@ func setupTestMCPWorkspace(t *testing.T) (string, *state.Store) {
 	require.NoError(t, os.WriteFile(filepath.Join(pkgDir, "auth.go"), []byte("package auth\n\n// Login authenticates user.\nfunc Login() bool {\n\treturn true\n}\n"), 0644))
 
 	unit := &adapterkit.Unit{
-		ID:    "pkg/auth",
-		Name:  "Authentication Service",
-		Wave:  0,
-		State: adapterkit.StatePlanned,
+		ID:              "pkg/auth",
+		Name:            "Authentication Service",
+		Wave:            0,
+		State:           adapterkit.StatePlanned,
+		EvidenceProfile: adapterkit.ProfileReplay,
 	}
 	require.NoError(t, store.SaveUnit(unit))
 
@@ -79,7 +80,7 @@ func sendMCPRequest(t *testing.T, s *mcp.Server, req *mcp.JSONRPCRequest) *mcp.J
 	return &resp
 }
 
-func TestMCP_ToolListExact8(t *testing.T) {
+func TestMCP_ToolListExact14(t *testing.T) {
 	server := mcp.NewServer()
 
 	req := &mcp.JSONRPCRequest{
@@ -106,23 +107,11 @@ func TestMCP_ToolListExact8(t *testing.T) {
 	}
 	sort.Strings(toolNames)
 
-	expectedTools := []string{
-		"analyze",
-		"bridge",
-		"claim_unit",
-		"fuzz_bench",
-		"handoff",
-		"hotpath",
-		"inspect_unit",
-		"mark_verified",
-		"profile",
-		"record_cases",
-		"run_gate",
-		"shadow_status",
-		"status",
-		"verify_diff",
-	}
-	assert.Equal(t, expectedTools, toolNames)
+	standard := append([]string(nil), mcp.StandardToolNames...)
+	sort.Strings(standard)
+
+	assert.Equal(t, standard, toolNames, "tools/list must match StandardToolNames")
+	assert.Equal(t, standard, server.RegisteredToolNames(), "registered server tools must match StandardToolNames")
 }
 
 func TestMCPDoesNotExposeHumanOnlyTools(t *testing.T) {
@@ -236,16 +225,20 @@ func TestMCP_MarkVerified_RequiresCommitTiedEvidence(t *testing.T) {
 	t.Run("succeeds with valid commit-tied evidence", func(t *testing.T) {
 		// Save valid evidence
 		validEvidence := &adapterkit.Evidence{
-			EvidenceID: fmt.Sprintf("evi-auth-%s", commitSHA[:8]),
-			UnitID:     "pkg/auth",
-			CommitSHA:  commitSHA,
-			Profile:    adapterkit.ProfileFull,
-			VerifiedAt: time.Now().UTC().Format(time.RFC3339),
-			VerifiedBy: "agent-alice",
+			SchemaVersion:  adapterkit.SchemaVersionV2,
+			EvidenceID:     fmt.Sprintf("evi-auth-%s", commitSHA[:8]),
+			UnitID:         "pkg/auth",
+			CommitSHA:      commitSHA,
+			Profile:        adapterkit.ProfileFull,
+			ProfileVersion: adapterkit.FullProfileVersionV201,
+			ProfileChecks:  gate.FullProfileChecks(),
+			VerifiedAt:     time.Now().UTC().Format(time.RFC3339),
+			VerifiedBy:     "agent-alice",
 			Checks: []adapterkit.GateCheck{
 				{Name: gate.CheckBuild, Status: adapterkit.StatusPass},
 				{Name: gate.CheckFormat, Status: adapterkit.StatusPass},
 				{Name: gate.CheckVet, Status: adapterkit.StatusPass},
+				{Name: gate.CheckStaticcheck, Status: adapterkit.StatusPass},
 				{Name: gate.CheckRace, Status: adapterkit.StatusPass},
 				{Name: gate.CheckGovulncheck, Status: adapterkit.StatusPass},
 				{Name: gate.CheckReplay, Status: adapterkit.StatusPass},
@@ -411,8 +404,13 @@ func TestMCP_All8Tools_EndToEnd(t *testing.T) {
 		assert.Contains(t, res.Content[0].Text, "Commit SHA:")
 	})
 
-	// 7. mark_verified
+	// 7. mark_verified (exercise ProfileFull with valid v2 full-profile evidence)
 	t.Run("tool_7_mark_verified", func(t *testing.T) {
+		uFull, err := store.GetUnit("pkg/auth")
+		require.NoError(t, err)
+		uFull.EvidenceProfile = adapterkit.ProfileFull
+		require.NoError(t, store.SaveUnit(uFull))
+
 		// Provide valid commit evidence first
 		cmd := exec.Command("git", "rev-parse", "HEAD")
 		cmd.Dir = tempDir
@@ -420,16 +418,20 @@ func TestMCP_All8Tools_EndToEnd(t *testing.T) {
 		require.NoError(t, err)
 		validSHA := strings.TrimSpace(string(sha))
 		ev := &adapterkit.Evidence{
-			EvidenceID: "evi-auth-test-verified",
-			UnitID:     "pkg/auth",
-			CommitSHA:  validSHA,
-			Profile:    adapterkit.ProfileFull,
-			VerifiedAt: time.Now().UTC().Format(time.RFC3339),
-			VerifiedBy: "agent-tester",
+			SchemaVersion:  adapterkit.SchemaVersionV2,
+			EvidenceID:     "evi-auth-test-verified",
+			UnitID:         "pkg/auth",
+			CommitSHA:      validSHA,
+			Profile:        adapterkit.ProfileFull,
+			ProfileVersion: adapterkit.FullProfileVersionV201,
+			ProfileChecks:  gate.FullProfileChecks(),
+			VerifiedAt:     time.Now().UTC().Format(time.RFC3339),
+			VerifiedBy:     "agent-tester",
 			Checks: []adapterkit.GateCheck{
 				{Name: gate.CheckBuild, Status: adapterkit.StatusPass},
 				{Name: gate.CheckFormat, Status: adapterkit.StatusPass},
 				{Name: gate.CheckVet, Status: adapterkit.StatusPass},
+				{Name: gate.CheckStaticcheck, Status: adapterkit.StatusPass},
 				{Name: gate.CheckRace, Status: adapterkit.StatusPass},
 				{Name: gate.CheckGovulncheck, Status: adapterkit.StatusPass},
 				{Name: gate.CheckReplay, Status: adapterkit.StatusPass},
@@ -604,4 +606,130 @@ func TestMCP_NewV2Tools_EndToEnd(t *testing.T) {
 		assert.False(t, res.IsError)
 		assert.Contains(t, res.Content[0].Text, "shadow_active")
 	})
+}
+
+func TestMCP_MarkVerified_RejectsStaleEvidenceProfile(t *testing.T) {
+	tests := []struct {
+		name          string
+		schemaVersion string
+		profileVer    string
+		profileChecks []string
+		checks        []adapterkit.GateCheck
+		wantSubstr    string
+	}{
+		{
+			name:          "rejects v1 evidence schema",
+			schemaVersion: adapterkit.SchemaVersionV1,
+			profileVer:    adapterkit.FullProfileVersionV201,
+			profileChecks: gate.FullProfileChecks(),
+			wantSubstr:    "stale evidence schema_version",
+		},
+		{
+			name:          "rejects v1alpha1 evidence schema",
+			schemaVersion: adapterkit.SchemaVersionV1Alpha1,
+			profileVer:    adapterkit.FullProfileVersionV201,
+			profileChecks: gate.FullProfileChecks(),
+			wantSubstr:    "stale evidence schema_version",
+		},
+		{
+			name:          "rejects missing profile_version",
+			schemaVersion: adapterkit.SchemaVersionV2,
+			profileVer:    "",
+			profileChecks: gate.FullProfileChecks(),
+			wantSubstr:    "stale or missing profile_version",
+		},
+		{
+			name:          "rejects older profile_version",
+			schemaVersion: adapterkit.SchemaVersionV2,
+			profileVer:    "2.0.0",
+			profileChecks: gate.FullProfileChecks(),
+			wantSubstr:    "stale or missing profile_version",
+		},
+		{
+			name:          "rejects profile_checks missing staticcheck",
+			schemaVersion: adapterkit.SchemaVersionV2,
+			profileVer:    adapterkit.FullProfileVersionV201,
+			profileChecks: []string{"build", "format", "vet", "race", "govulncheck", "replay", "error_paths", "api_compat"},
+			wantSubstr:    "missing required check \"staticcheck\"",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tempDir, store := setupTestMCPWorkspace(t)
+			server := mcp.NewServer()
+			commitSHA := "1234567890abcdef1234567890abcdef12345678"
+
+			unit, err := store.GetUnit("pkg/auth")
+			require.NoError(t, err)
+			unit.EvidenceProfile = adapterkit.ProfileFull
+			require.NoError(t, store.SaveUnit(unit))
+
+			// Advance unit to InProgress
+			_, err = store.Transition("pkg/auth", adapterkit.StateRecorded, state.TransitionOptions{})
+			require.NoError(t, err)
+			_, err = store.Transition("pkg/auth", adapterkit.StateReady, state.TransitionOptions{})
+			require.NoError(t, err)
+			_, err = store.Transition("pkg/auth", adapterkit.StateInProgress, state.TransitionOptions{
+				Actor:    "agent-alice",
+				LeaseTTL: time.Hour,
+			})
+			require.NoError(t, err)
+
+			checks := tc.checks
+			if checks == nil {
+				checks = []adapterkit.GateCheck{
+					{Name: gate.CheckBuild, Status: adapterkit.StatusPass},
+					{Name: gate.CheckFormat, Status: adapterkit.StatusPass},
+					{Name: gate.CheckVet, Status: adapterkit.StatusPass},
+					{Name: gate.CheckStaticcheck, Status: adapterkit.StatusPass},
+					{Name: gate.CheckRace, Status: adapterkit.StatusPass},
+					{Name: gate.CheckGovulncheck, Status: adapterkit.StatusPass},
+					{Name: gate.CheckReplay, Status: adapterkit.StatusPass},
+					{Name: gate.CheckErrorPaths, Status: adapterkit.StatusPass},
+					{Name: gate.CheckAPICompat, Status: adapterkit.StatusPass},
+				}
+			}
+
+			staleEv := &adapterkit.Evidence{
+				SchemaVersion:   tc.schemaVersion,
+				EvidenceID:      "evi-stale-test",
+				UnitID:          "pkg/auth",
+				CommitSHA:       commitSHA,
+				Profile:         adapterkit.ProfileFull,
+				ProfileVersion:  tc.profileVer,
+				ProfileChecks:   tc.profileChecks,
+				VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
+				VerifiedBy:      "agent-alice",
+				Checks:          checks,
+				MismatchesCount: 0,
+			}
+			require.NoError(t, store.SaveEvidence(staleEv))
+
+			args, _ := json.Marshal(map[string]any{
+				"unit_id":    "pkg/auth",
+				"commit_sha": commitSHA,
+				"actor":      "agent-alice",
+				"dir":        tempDir,
+			})
+			params, _ := json.Marshal(mcp.ToolCallParams{
+				Name:      "mark_verified",
+				Arguments: args,
+			})
+			resp := sendMCPRequest(t, server, &mcp.JSONRPCRequest{
+				JSONRPC: "2.0",
+				ID:      101,
+				Method:  "tools/call",
+				Params:  params,
+			})
+
+			resBytes, _ := json.Marshal(resp.Result)
+			var toolRes mcp.ToolCallResult
+			require.NoError(t, json.Unmarshal(resBytes, &toolRes))
+
+			assert.True(t, toolRes.IsError)
+			assert.Contains(t, toolRes.Content[0].Text, "TRANSITION REJECTED")
+			assert.Contains(t, toolRes.Content[0].Text, tc.wantSubstr)
+		})
+	}
 }

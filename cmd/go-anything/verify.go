@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/replay"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/replay"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 var validCommitSHARegex = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)

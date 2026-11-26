@@ -98,11 +98,11 @@ Extensive benchmarking and analysis documented in `adapters/source/python/cshare
 
 ### Context
 `.goreleaser.yaml` currently builds standalone `.tar.gz` and `.zip` archives signed with Cosign. It does not publish to package managers commonly expected by Go developers and devops engineers:
-- macOS: Homebrew (`brew install mohammedrefat/tap/go-anything`)
+- macOS: Homebrew (`brew install mohammedrefaat/tap/go-anything`)
 - Windows: Scoop (`scoop install go-anything`)
 - Linux: AUR / Debian / RPM packages
 
 ### Recommended Resolution
-1. In Milestone M5, establish `mohammedrefat/homebrew-tap` and configure GoReleaser `brews` block.
+1. In Milestone M5, establish `mohammedrefaat/homebrew-tap` and configure GoReleaser `brews` block.
 2. Configure GoReleaser `scoops` block to generate Windows manifests.
-3. Maintain binary self-update (`go-anything update` or Go install `go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest`).
+3. Maintain binary self-update (`go-anything update` or Go install `go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest`).

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/app/shadow"
+	"github.com/mohammedrefaat/go-anything/internal/app/shadow"
 )
 
 func runShadow(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

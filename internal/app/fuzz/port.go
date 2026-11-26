@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	cliadapter "github.com/mohammedrefat/go-anything/adapters/application/cli"
-	httpadapter "github.com/mohammedrefat/go-anything/adapters/application/http"
-	"github.com/mohammedrefat/go-anything/internal/comparator"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	cliadapter "github.com/mohammedrefaat/go-anything/adapters/application/cli"
+	httpadapter "github.com/mohammedrefaat/go-anything/adapters/application/http"
+	"github.com/mohammedrefaat/go-anything/internal/comparator"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // FuzzExecutionRequest defines the parameters passed to the fuzz engine.

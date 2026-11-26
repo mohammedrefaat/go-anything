@@ -9,7 +9,7 @@
   <p>
     <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go" alt="Go 1.27+" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D8%AA%D8%B1%D8%AE%D9%8A%D8%B5-Apache--2.0-6C7CFF.svg" alt="Apache 2.0" /></a>
-    <a href="https://github.com/mohammedrefat/go-anything/releases"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1-v2.0.0-34D399.svg" alt="الإصدار v2.0.0" /></a>
+    <a href="https://github.com/mohammedrefaat/go-anything/releases"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1-v2.0.0-34D399.svg" alt="الإصدار v2.0.0" /></a>
   </p>
 
   <p>
@@ -105,24 +105,24 @@ flowchart LR
 
 #### Homebrew (macOS و Linux)
 ```bash
-brew tap mohammedrefat/tap
+brew tap mohammedrefaat/tap
 brew install go-anything
 ```
 
 #### Scoop (Windows)
 ```powershell
-scoop bucket add go-anything https://github.com/mohammedrefat/scoop-bucket.git
+scoop bucket add go-anything https://github.com/mohammedrefaat/scoop-bucket.git
 scoop install go-anything
 ```
 
 #### npm (Node.js)
 ```bash
-npm install -g @mohammedrefat/go-anything
+npm install -g @mohammedrefaat/go-anything
 ```
 
 ### الملفات التنفيذية المترجمة مسبقاً (Prebuilt Binaries)
 
-قم بتنزيل الحزمة المتوافقة مع نظام تشغيلك ومعمارية جهازك من [إصدارات GitHub الرسمية](https://github.com/mohammedrefat/go-anything/releases):
+قم بتنزيل الحزمة المتوافقة مع نظام تشغيلك ومعمارية جهازك من [إصدارات GitHub الرسمية](https://github.com/mohammedrefaat/go-anything/releases):
 
 | نظام التشغيل | المعمارية | اسم الحزمة |
 | :--- | :--- | :--- |
@@ -136,7 +136,7 @@ npm install -g @mohammedrefat/go-anything
 VERSION="2.0.0"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
-RELEASE_URL="https://github.com/mohammedrefat/go-anything/releases/download/v${VERSION}"
+RELEASE_URL="https://github.com/mohammedrefaat/go-anything/releases/download/v${VERSION}"
 ARTIFACT="go-anything_${VERSION}_${OS}_${ARCH}.tar.gz"
 
 # تنزيل الملف والأرقام التأكيدية والتوقيع الرقمي
@@ -147,7 +147,7 @@ curl -fsSL -O "${RELEASE_URL}/checksums.txt.sigstore.json"
 # التحقق التشفيري من التوقيع عبر Cosign (Keyless Sigstore)
 cosign verify-blob \
   --bundle checksums.txt.sigstore.json \
-  --certificate-identity-regexp "^https://github\\.com/mohammedrefat/go-anything/\\.github/workflows/release\\.yml@refs/tags/v.*$" \
+  --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
 
@@ -167,7 +167,7 @@ sudo install -m 0755 go-anything /usr/local/bin/go-anything
 
 ```powershell
 $Version = "2.0.0"
-$ReleaseUrl = "https://github.com/mohammedrefat/go-anything/releases/download/v$Version"
+$ReleaseUrl = "https://github.com/mohammedrefaat/go-anything/releases/download/v$Version"
 $Artifact = "go-anything_${Version}_windows_amd64.zip"
 
 Invoke-WebRequest -Uri "$ReleaseUrl/$Artifact" -OutFile $Artifact
@@ -178,7 +178,7 @@ Invoke-WebRequest -Uri "$ReleaseUrl/checksums.txt.sigstore.json" -OutFile "check
 if (Get-Command cosign -ErrorAction SilentlyContinue) {
     cosign verify-blob `
       --bundle checksums.txt.sigstore.json `
-      --certificate-identity-regexp "^https://github\.com/mohammedrefat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" `
+      --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" `
       --certificate-oidc-issuer "https://token.actions.githubusercontent.com" `
       checksums.txt
 }
@@ -200,7 +200,7 @@ Move-Item .\go-anything-bin\go-anything.exe "$targetDir\go-anything.exe" -Force
 في حال تثبيت بيئة Go 1.27+:
 
 ```bash
-go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
+go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest
 ```
 
 ### التحقق وفحص الجاهزية
@@ -231,7 +231,7 @@ go-anything doctor
 قم بتثبيت الأداة عبر مديري الحزم، أو التجميع المسبق، أو عبر أدوات Go:
 
 ```bash
-go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
+go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest
 
 # التأكد من التثبيت
 go-anything version

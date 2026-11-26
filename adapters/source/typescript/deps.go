@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/planner"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/planner"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // PackageJSON models the standard Node.js package.json file.

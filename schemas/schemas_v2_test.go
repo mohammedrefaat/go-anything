@@ -3,7 +3,7 @@ package schemas_test
 import (
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/schemas"
+	"github.com/mohammedrefaat/go-anything/schemas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1500,4 +1500,90 @@ func TestValidateV2_UnknownSchema(t *testing.T) {
 	err := schemas.ValidateV2("does_not_exist.schema.json", []byte(`{}`))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found in version v2")
+}
+
+func TestValidateV2_Evidence(t *testing.T) {
+	tests := []struct {
+		name        string
+		payload     string
+		expectError bool
+	}{
+		{
+			name: "valid v2 evidence",
+			payload: `{
+				"schema_version": "v2",
+				"evidence_id": "evi-auth-001",
+				"unit_id": "pkg/auth",
+				"commit_sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+				"profile": "full",
+				"profile_version": "2.0.1",
+				"profile_checks": ["build", "format", "vet", "staticcheck", "race", "govulncheck", "replay", "error_paths", "api_compat"],
+				"verified_at": "2026-11-25T10:00:00Z",
+				"verified_by": "mcp-agent",
+				"checks": [{"name": "build", "status": "pass"}],
+				"mismatches_count": 0
+			}`,
+			expectError: false,
+		},
+		{
+			name: "rejects v1 schema_version",
+			payload: `{
+				"schema_version": "v1",
+				"evidence_id": "evi-auth-001",
+				"unit_id": "pkg/auth",
+				"commit_sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+				"profile": "full",
+				"profile_version": "2.0.1",
+				"profile_checks": ["build"],
+				"verified_at": "2026-11-25T10:00:00Z",
+				"verified_by": "mcp-agent",
+				"checks": [{"name": "build", "status": "pass"}],
+				"mismatches_count": 0
+			}`,
+			expectError: true,
+		},
+		{
+			name: "rejects missing profile_version",
+			payload: `{
+				"schema_version": "v2",
+				"evidence_id": "evi-auth-001",
+				"unit_id": "pkg/auth",
+				"commit_sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+				"profile": "full",
+				"profile_checks": ["build"],
+				"verified_at": "2026-11-25T10:00:00Z",
+				"verified_by": "mcp-agent",
+				"checks": [{"name": "build", "status": "pass"}],
+				"mismatches_count": 0
+			}`,
+			expectError: true,
+		},
+		{
+			name: "rejects missing profile_checks",
+			payload: `{
+				"schema_version": "v2",
+				"evidence_id": "evi-auth-001",
+				"unit_id": "pkg/auth",
+				"commit_sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+				"profile": "full",
+				"profile_version": "2.0.1",
+				"verified_at": "2026-11-25T10:00:00Z",
+				"verified_by": "mcp-agent",
+				"checks": [{"name": "build", "status": "pass"}],
+				"mismatches_count": 0
+			}`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := schemas.ValidateV2("evidence.schema.json", []byte(tt.payload))
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }

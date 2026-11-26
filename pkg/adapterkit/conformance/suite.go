@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // Suite manages and executes the full suite of conformance checks against a LanguageAdapter.

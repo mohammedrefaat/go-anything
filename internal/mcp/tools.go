@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,17 +19,21 @@ import (
 	"strings"
 	"time"
 
-	cliadapter "github.com/mohammedrefat/go-anything/adapters/application/cli"
-	httpadapter "github.com/mohammedrefat/go-anything/adapters/application/http"
-	"github.com/mohammedrefat/go-anything/internal/app/bench"
-	"github.com/mohammedrefat/go-anything/internal/app/fuzz"
-	"github.com/mohammedrefat/go-anything/internal/app/hotpath"
-	"github.com/mohammedrefat/go-anything/internal/app/profile"
-	"github.com/mohammedrefat/go-anything/internal/bridge"
-	"github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/internal/recorder"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	cliadapter "github.com/mohammedrefaat/go-anything/adapters/application/cli"
+	httpadapter "github.com/mohammedrefaat/go-anything/adapters/application/http"
+	golangadapter "github.com/mohammedrefaat/go-anything/adapters/source/golang"
+	jsadapter "github.com/mohammedrefaat/go-anything/adapters/source/javascript"
+	pythonadapter "github.com/mohammedrefaat/go-anything/adapters/source/python"
+	tsadapter "github.com/mohammedrefaat/go-anything/adapters/source/typescript"
+	"github.com/mohammedrefaat/go-anything/internal/app/bench"
+	"github.com/mohammedrefaat/go-anything/internal/app/fuzz"
+	"github.com/mohammedrefaat/go-anything/internal/app/hotpath"
+	"github.com/mohammedrefaat/go-anything/internal/app/profile"
+	"github.com/mohammedrefaat/go-anything/internal/bridge"
+	"github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/internal/recorder"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // StandardToolNames lists the 14 allowed MCP tools.
@@ -49,7 +54,23 @@ var StandardToolNames = []string{
 	"shadow_status",
 }
 
-// GetToolDefinitions returns the schema for all 8 standard MCP tools.
+// HumanOnlyControl describes a CLI-only privileged command never exposed via MCP (Execution Rule 4).
+type HumanOnlyControl struct {
+	Name        string
+	Description string
+}
+
+// HumanOnlyControls lists the privileged commands forbidden over MCP per Execution Rule 4.
+var HumanOnlyControls = []HumanOnlyControl{
+	{Name: "approve", Description: "Human sign-off and state advance to Approved"},
+	{Name: "promote", Description: "Front-door routing table cutover"},
+	{Name: "lift", Description: "Retirement of original codebase and fallback bridges"},
+	{Name: "routing", Description: "Manual routing overrides"},
+	{Name: "toggle_shadow", Description: "Live traffic shadow activation"},
+	{Name: "kill_switch", Description: "Kill-switch override and emergency fallback engagement"},
+}
+
+// GetToolDefinitions returns the schema for all 14 standard MCP tools.
 func GetToolDefinitions() []Tool {
 	return []Tool{
 		{
@@ -465,17 +486,21 @@ func (s *Server) handleInspectUnit(ctx context.Context, args json.RawMessage) (*
 	sb.WriteString(fmt.Sprintf("Name: %s\nState: %s\nWave: %d\nDependencies: %v\n\n",
 		unit.Name, unit.State, unit.Wave, unit.Dependencies))
 
-	// Load source files if available
+	// Load source files if available across all registered adapter manifests.
 	legacyDir := filepath.Join(dir, "legacy", filepath.FromSlash(unit.ID))
-	if _, err := os.Stat(legacyDir); err == nil {
+	if info, err := os.Stat(legacyDir); err == nil && info.IsDir() {
+		files, total, langs := listUnitSourceFiles(dir, legacyDir)
 		sb.WriteString("Original Source Files (legacy/):\n")
-		_ = filepath.Walk(legacyDir, func(path string, info os.FileInfo, err error) error {
-			if err == nil && !info.IsDir() && strings.HasSuffix(info.Name(), ".go") {
-				rel, _ := filepath.Rel(dir, path)
-				sb.WriteString(fmt.Sprintf("- %s (%d bytes)\n", rel, info.Size()))
-			}
-			return nil
-		})
+		if len(langs) > 0 {
+			sb.WriteString(fmt.Sprintf("Languages: %s\n", strings.Join(langs, ", ")))
+		}
+		for _, f := range files {
+			sb.WriteString(fmt.Sprintf("- %s (%d bytes)\n", f.relPath, f.size))
+		}
+		if total > len(files) {
+			sb.WriteString(fmt.Sprintf("... and %d more source files (showing first %d of %d)\n",
+				total-len(files), len(files), total))
+		}
 		sb.WriteString("\n")
 	}
 
@@ -500,6 +525,101 @@ func (s *Server) handleInspectUnit(ctx context.Context, args json.RawMessage) (*
 	return &ToolCallResult{
 		Content: []ContentItem{{Type: "text", Text: text}},
 	}, nil
+}
+
+const maxInspectSourceFiles = 50
+
+type inspectedSourceFile struct {
+	relPath  string
+	size     int64
+	language string
+}
+
+var inspectIgnoredDirs = map[string]bool{
+	".git":         true,
+	"node_modules": true,
+	"__pycache__":  true,
+	".venv":        true,
+}
+
+func registeredAdapterExtensions() map[string]string {
+	providers := []adapterkit.ManifestProvider{
+		golangadapter.NewAdapter(),
+		pythonadapter.NewAdapter(),
+		tsadapter.NewAdapter(),
+		jsadapter.NewAdapter(),
+	}
+	extLang := make(map[string]string)
+	for _, p := range providers {
+		m := p.AdapterManifest()
+		for _, ext := range m.Extensions {
+			norm := strings.ToLower(strings.TrimSpace(ext))
+			if norm == "" {
+				continue
+			}
+			if !strings.HasPrefix(norm, ".") {
+				norm = "." + norm
+			}
+			if _, exists := extLang[norm]; !exists {
+				extLang[norm] = m.SourceLanguage
+			}
+		}
+	}
+	return extLang
+}
+
+func listUnitSourceFiles(workspaceDir, legacyDir string) ([]inspectedSourceFile, int, []string) {
+	extLang := registeredAdapterExtensions()
+	var collected []inspectedSourceFile
+	langSet := make(map[string]bool)
+
+	_ = filepath.WalkDir(legacyDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			if inspectIgnoredDirs[d.Name()] {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		ext := strings.ToLower(filepath.Ext(d.Name()))
+		lang, ok := extLang[ext]
+		if !ok {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		rel, err := filepath.Rel(workspaceDir, path)
+		if err != nil {
+			rel = path
+		}
+		collected = append(collected, inspectedSourceFile{
+			relPath:  filepath.ToSlash(rel),
+			size:     info.Size(),
+			language: lang,
+		})
+		langSet[lang] = true
+		return nil
+	})
+
+	sort.Slice(collected, func(i, j int) bool {
+		return collected[i].relPath < collected[j].relPath
+	})
+
+	langs := make([]string, 0, len(langSet))
+	for lang := range langSet {
+		langs = append(langs, lang)
+	}
+	sort.Strings(langs)
+
+	total := len(collected)
+	if total > maxInspectSourceFiles {
+		collected = collected[:maxInspectSourceFiles]
+	}
+	return collected, total, langs
 }
 
 // 4. record_cases
@@ -785,12 +905,18 @@ func (s *Server) handleRunGate(ctx context.Context, args json.RawMessage) (*Tool
 		if !requiredChecksPassed(report, profile) {
 			return &ToolCallResult{IsError: true, Content: []ContentItem{{Type: "text", Text: "Required checks were skipped; no passing evidence saved"}}}, nil
 		}
+		profileChecks := []string{gate.CheckReplay}
+		if profile == adapterkit.ProfileFull {
+			profileChecks = gate.FullProfileChecks()
+		}
 		ev := &adapterkit.Evidence{
-			SchemaVersion:   adapterkit.DefaultSchemaVersion,
+			SchemaVersion:   adapterkit.SchemaVersionV2,
 			EvidenceID:      fmt.Sprintf("evi-%s-%s-%d", sanitizeUnitID(unit.ID), commitSHA[:8], time.Now().UnixNano()),
 			UnitID:          unit.ID,
 			CommitSHA:       commitSHA,
 			Profile:         profile,
+			ProfileVersion:  adapterkit.FullProfileVersionV201,
+			ProfileChecks:   profileChecks,
 			VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
 			VerifiedBy:      "mcp-agent",
 			Checks:          report.ToGateChecks(),

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/require"
 )
 

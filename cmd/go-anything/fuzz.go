@@ -10,7 +10,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/mohammedrefat/go-anything/internal/app/fuzz"
+	"github.com/mohammedrefaat/go-anything/internal/app/fuzz"
 )
 
 func runFuzz(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

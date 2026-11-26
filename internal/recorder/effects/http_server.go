@@ -9,8 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/mohammedrefat/go-anything/internal/redactor"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/redactor"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // HTTPServer intercepts and records outbound HTTP requests as side effects.

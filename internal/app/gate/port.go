@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	cliadapter "github.com/mohammedrefat/go-anything/adapters/application/cli"
-	httpadapter "github.com/mohammedrefat/go-anything/adapters/application/http"
-	"github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/internal/gate/scorecard"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	cliadapter "github.com/mohammedrefaat/go-anything/adapters/application/cli"
+	httpadapter "github.com/mohammedrefaat/go-anything/adapters/application/http"
+	"github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/internal/gate/scorecard"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // GatePort abstracts running quality gate checks, generating scorecards, and storing evidence.

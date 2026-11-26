@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/comparator"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/comparator"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

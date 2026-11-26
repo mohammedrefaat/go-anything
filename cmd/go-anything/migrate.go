@@ -6,7 +6,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/mohammedrefat/go-anything/internal/migrate"
+	"github.com/mohammedrefaat/go-anything/internal/migrate"
 )
 
 func runMigrate(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

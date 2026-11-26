@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/frontdoor"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/frontdoor"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 func runPromote(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {
@@ -54,6 +54,15 @@ func runPromote(global *GlobalFlags, args []string, stdout, stderr io.Writer) er
 	// Guard: Precondition requires unit to be in Approved state
 	if unit.State != adapterkit.StateApproved {
 		return fmt.Errorf("cannot promote unit %q: must be in 'Approved' state (currently %q)", unitID, unit.State)
+	}
+
+	// Guard: Validate current-profile evidence before changing routing (ADR-008).
+	ev, err := store.GetLatestEvidenceForUnit(unitID)
+	if err != nil {
+		return fmt.Errorf("cannot promote unit %q: no valid evidence found (%w); re-run gate", unitID, err)
+	}
+	if err := state.ValidateEvidenceForUnit(unit, ev); err != nil {
+		return fmt.Errorf("cannot promote unit %q: evidence does not satisfy current profile: %w", unitID, err)
 	}
 
 	// 1. Mandatory Kill Switch Test

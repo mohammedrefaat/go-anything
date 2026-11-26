@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/bench"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/bench"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // CaseBreakdown aggregates case counts by category.

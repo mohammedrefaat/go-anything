@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/adapters/source/golang"
-	"github.com/mohammedrefat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/adapters/source/golang"
+	"github.com/mohammedrefaat/go-anything/internal/state"
 )
 
 func runInit(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

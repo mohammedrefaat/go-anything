@@ -261,7 +261,7 @@ All binaries, checksum archives, and container images are signed using Cosign ke
 # Verify release bundle authenticity
 cosign verify-blob \
   --bundle dist/go-anything_0.2.0_linux_amd64.tar.gz.sigstore.json \
-  --certificate-identity-regexp "https://github.com/mohammedrefat/go-anything/.github/workflows/release.yml" \
+  --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   dist/go-anything_0.2.0_linux_amd64.tar.gz
 ```
@@ -269,7 +269,7 @@ cosign verify-blob \
 **Verification Output:**
 ```text
 Verified OK
-Certificate subject: https://github.com/mohammedrefat/go-anything/.github/workflows/release.yml@refs/tags/v0.2.0
+Certificate subject: https://github.com/mohammedrefaat/go-anything/.github/workflows/release.yml@refs/tags/v0.2.0
 Transparency log entry: 14892019 confirmed in Rekor
 ```
 

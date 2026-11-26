@@ -10,7 +10,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/mohammedrefat/go-anything/internal/app/diff"
+	"github.com/mohammedrefaat/go-anything/internal/app/diff"
 )
 
 func runDiff(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

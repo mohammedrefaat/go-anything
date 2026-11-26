@@ -3,7 +3,7 @@ package capture
 import (
 	"context"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // ObservabilitySource handles decoded traffic supplied by read-only observability tools

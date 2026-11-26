@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mohammedrefat/go-anything/internal/shadow"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/shadow"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // ShadowOption configures a Shadow instance.

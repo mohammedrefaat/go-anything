@@ -82,11 +82,11 @@ release:
 brews:
   - name: go-anything
     repository:
-      owner: mohammedrefat
+      owner: mohammedrefaat
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
-    homepage: "https://github.com/mohammedrefat/go-anything"
+    homepage: "https://github.com/mohammedrefaat/go-anything"
     description: "Strangler-fig migration engine to Go with behavioral evidence verification"
     license: "Apache-2.0"
     test: |
@@ -95,9 +95,9 @@ brews:
 scoops:
   - name: go-anything
     repository:
-      owner: mohammedrefat
+      owner: mohammedrefaat
       name: scoop-bucket
       token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
-    homepage: "https://github.com/mohammedrefat/go-anything"
+    homepage: "https://github.com/mohammedrefaat/go-anything"
     description: "Strangler-fig migration engine to Go with behavioral evidence verification"
     license: "Apache-2.0"

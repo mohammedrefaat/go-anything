@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/analyzer"
+	"github.com/mohammedrefaat/go-anything/internal/analyzer"
 )
 
 // APIPairing represents matching and divergent public APIs between legacy and modern packages.
@@ -131,8 +131,8 @@ func (g *Generator) GenerateTestDriver(legacyPkg, modernPkg *analyzer.PackageInf
 	buf.WriteString("\t\"testing\"\n")
 	buf.WriteString("\t\"path/filepath\"\n")
 	buf.WriteString("\t\"github.com/google/go-cmp/cmp\"\n")
-	buf.WriteString("\t\"github.com/mohammedrefat/go-anything/adapters/source/golang/parity\"\n")
-	buf.WriteString("\t\"github.com/mohammedrefat/go-anything/pkg/adapterkit\"\n")
+	buf.WriteString("\t\"github.com/mohammedrefaat/go-anything/adapters/source/golang/parity\"\n")
+	buf.WriteString("\t\"github.com/mohammedrefaat/go-anything/pkg/adapterkit\"\n")
 	if legacyImp != "" {
 		buf.WriteString(fmt.Sprintf("\tlegacy \"%s\"\n", legacyImp))
 	}

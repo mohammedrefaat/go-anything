@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/app/gate"
-	internalgate "github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
-	"github.com/mohammedrefat/go-anything/schemas"
+	"github.com/mohammedrefaat/go-anything/internal/app/gate"
+	internalgate "github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/schemas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,14 +27,19 @@ func (f *fakeGatePort) RunGate(ctx context.Context, cfg internalgate.Config) (*i
 	if f.runGateFunc != nil {
 		return f.runGateFunc(ctx, cfg)
 	}
+	checks := make([]internalgate.CheckReport, 0, len(cfg.Checks))
+	for _, name := range cfg.Checks {
+		checks = append(checks, internalgate.CheckReport{
+			Name:     name,
+			Status:   internalgate.StatusPass,
+			Duration: 10 * time.Millisecond,
+		})
+	}
 	return &internalgate.GateReport{
 		Passed:      true,
-		PassedCount: 2,
+		PassedCount: len(checks),
 		FailedCount: 0,
-		Checks: []internalgate.CheckReport{
-			{Name: "build", Status: internalgate.StatusPass, Duration: 50 * time.Millisecond},
-			{Name: "vet", Status: internalgate.StatusPass, Duration: 30 * time.Millisecond},
-		},
+		Checks:      checks,
 	}, nil
 }
 
@@ -78,15 +83,51 @@ func TestGate_Success_FullProfile(t *testing.T) {
 	assert.True(t, out.EvidenceSaved)
 	assert.NotEmpty(t, out.ScorecardPath)
 	assert.Equal(t, "0123456789abcdef0123456789abcdef01234567", out.CommitSHA)
-	assert.Len(t, out.Checks, 2)
-	assert.Equal(t, "build", out.Checks[0].Name)
-	assert.Equal(t, "vet", out.Checks[1].Name)
+	assert.Len(t, out.Checks, len(internalgate.FullProfileChecks()))
+	assert.Equal(t, "api_compat", out.Checks[0].Name)
+	assert.Equal(t, "build", out.Checks[1].Name)
 
 	// Validate JSON schema
 	data, err := json.Marshal(out)
 	require.NoError(t, err)
 	err = schemas.ValidateV2("gate.output.schema.json", data)
 	require.NoError(t, err, "gate output JSON must satisfy v2 schema: %s", string(data))
+}
+
+func TestGate_SkippedCheck_NoEvidenceSaved(t *testing.T) {
+	port := &fakeGatePort{
+		runGateFunc: func(ctx context.Context, cfg internalgate.Config) (*internalgate.GateReport, error) {
+			checks := make([]internalgate.CheckReport, 0, len(cfg.Checks))
+			passedCount := 0
+			skippedCount := 0
+			for _, name := range cfg.Checks {
+				status := internalgate.StatusPass
+				if name == internalgate.CheckStaticcheck {
+					status = internalgate.StatusSkipped
+					skippedCount++
+				} else {
+					passedCount++
+				}
+				checks = append(checks, internalgate.CheckReport{Name: name, Status: status})
+			}
+			return &internalgate.GateReport{
+				Passed:       true,
+				PassedCount:  passedCount,
+				SkippedCount: skippedCount,
+				Checks:       checks,
+			}, nil
+		},
+	}
+	uc := gate.New(port)
+
+	out, err := uc.Run(context.Background(), gate.Input{
+		UnitID:  "unit-core",
+		Profile: "full",
+	})
+	require.NoError(t, err)
+	assert.False(t, out.Passed)
+	assert.False(t, out.EvidenceSaved)
+	assert.Nil(t, port.savedEvidence)
 }
 
 func TestGate_FailedCheck_NoEvidenceSaved(t *testing.T) {

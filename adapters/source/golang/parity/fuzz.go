@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // FuzzConfig specifies settings for the differential fuzzer.

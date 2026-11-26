@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 var shaRegex = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)
@@ -155,6 +155,12 @@ func (s *Store) checkDependenciesMet(unit *adapterkit.Unit) error {
 }
 
 func validateEvidenceForUnit(unit *adapterkit.Unit, ev *adapterkit.Evidence) error {
+	return ValidateEvidenceForUnit(unit, ev)
+}
+
+// ValidateEvidenceForUnit validates that ev satisfies the unit's declared evidence profile
+// and current schema/profile version requirements.
+func ValidateEvidenceForUnit(unit *adapterkit.Unit, ev *adapterkit.Evidence) error {
 	if ev == nil {
 		return ErrEvidenceMissing
 	}
@@ -188,8 +194,34 @@ func validateEvidenceForUnit(unit *adapterkit.Unit, ev *adapterkit.Evidence) err
 		}
 
 	case adapterkit.ProfileFull:
-		// Full profile requires all quality gate checks: toolchain checks, replay, error_paths, api_compat
-		requiredChecks := []string{"build", "format", "vet", "race", "replay", "error_paths", "api_compat"}
+		// Fail-closed: reject evidence produced under older schema or profile definitions.
+		if ev.SchemaVersion != adapterkit.SchemaVersionV2 {
+			return fmt.Errorf("%w: stale evidence schema_version %q (expected %q); re-run gate", ErrEvidenceProfileUnsatisfied, ev.SchemaVersion, adapterkit.SchemaVersionV2)
+		}
+		if ev.ProfileVersion != adapterkit.FullProfileVersionV201 {
+			return fmt.Errorf("%w: stale or missing profile_version %q (expected %q); re-run gate", ErrEvidenceProfileUnsatisfied, ev.ProfileVersion, adapterkit.FullProfileVersionV201)
+		}
+
+		// Full profile requires all quality gate checks: toolchain checks (including staticcheck), replay, error_paths, api_compat
+		requiredChecks := []string{"build", "format", "vet", "staticcheck", "race", "replay", "error_paths", "api_compat"}
+
+		// If profile_checks is recorded, verify it contains every currently required check.
+		if len(ev.ProfileChecks) == 0 {
+			return fmt.Errorf("%w: missing profile_checks in v2 evidence; re-run gate", ErrEvidenceProfileUnsatisfied)
+		}
+		declaredChecks := make(map[string]bool, len(ev.ProfileChecks))
+		for _, name := range ev.ProfileChecks {
+			declaredChecks[strings.ToLower(name)] = true
+		}
+		for _, req := range requiredChecks {
+			if !declaredChecks[req] {
+				return fmt.Errorf("%w: evidence profile_checks %v is missing required check %q; re-run gate", ErrEvidenceProfileUnsatisfied, ev.ProfileChecks, req)
+			}
+		}
+		if !declaredChecks["govulncheck"] && !declaredChecks["vulncheck"] {
+			return fmt.Errorf("%w: evidence profile_checks %v is missing required vulnerability check ('govulncheck' or 'vulncheck'); re-run gate", ErrEvidenceProfileUnsatisfied, ev.ProfileChecks)
+		}
+
 		for _, req := range requiredChecks {
 			status, ok := checksMap[req]
 			if !ok {

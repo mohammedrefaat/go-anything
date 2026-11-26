@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/bridge"
-	"github.com/mohammedrefat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/internal/bridge"
+	"github.com/mohammedrefaat/go-anything/internal/state"
 )
 
 func runBridge(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

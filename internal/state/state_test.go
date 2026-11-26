@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -403,14 +403,18 @@ func TestFullEvidenceProfileRequirements(t *testing.T) {
 
 	t.Run("all checks pass in full profile accepted", func(t *testing.T) {
 		completeEvidence := &adapterkit.Evidence{
-			EvidenceID: "evi-complete",
-			UnitID:     "core",
-			CommitSHA:  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-			Profile:    adapterkit.ProfileFull,
+			SchemaVersion:  adapterkit.SchemaVersionV2,
+			EvidenceID:     "evi-complete",
+			UnitID:         "core",
+			CommitSHA:      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			Profile:        adapterkit.ProfileFull,
+			ProfileVersion: adapterkit.FullProfileVersionV201,
+			ProfileChecks:  []string{"build", "format", "vet", "staticcheck", "race", "replay", "error_paths", "api_compat", "vulncheck"},
 			Checks: []adapterkit.GateCheck{
 				{Name: "build", Status: adapterkit.StatusPass},
 				{Name: "format", Status: adapterkit.StatusPass},
 				{Name: "vet", Status: adapterkit.StatusPass},
+				{Name: "staticcheck", Status: adapterkit.StatusPass},
 				{Name: "race", Status: adapterkit.StatusPass},
 				{Name: "replay", Status: adapterkit.StatusPass},
 				{Name: "error_paths", Status: adapterkit.StatusPass},

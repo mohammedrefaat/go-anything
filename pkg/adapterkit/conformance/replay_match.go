@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // CompareReplayOutputs compares replay outputs across transports for a given case.

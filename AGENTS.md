@@ -12,10 +12,10 @@
 - **`go-anything` organizes and verifies:** it orders work by dependency waves, records behavioral evidence, replays cases, enforces quality gates, and persists migration state outside any chat session.
 - **Parity is claimed only for recorded and fuzzed inputs**, never for unobserved behavior.
 
-**Module:** `github.com/mohammedrefat/go-anything`
+**Module:** `github.com/mohammedrefaat/go-anything`
 **License:** Apache-2.0
 **Go:** 1.27+ (see `go.mod`)
-**Status:** Early development — foundational packages and schemas exist; end-to-end migration commands are not yet wired into the CLI.
+**Status:** Active (v2.0) — all 32 CLI commands are wired with E2E coverage; 14 MCP tools over stdio (see [STATUS.md](STATUS.md)).
 
 ---
 
@@ -26,10 +26,13 @@ cmd/go-anything/        CLI entry point
 pkg/adapterkit/         Public adapter contract (NEVER imports internal/)
 internal/               Core engine:
   ├── analyzer/         Source code analysis (go/packages, go/types, call graph)
+  ├── app/              Hot-path, fuzz, bench, profile use cases
   ├── bench/            Latency and allocation benchmarks
+  ├── bridge/           Strangler sidecar bridge scaffolding
   ├── comparator/       Multi-mode case comparison (exact, structural_json, numeric_tolerance, etc.)
-  ├── gate/             Quality gate runner (build, vet, staticcheck, tests, govulncheck, replay)
+  ├── gate/             Quality gate runner (build, format, vet, staticcheck, golangci-lint, race, govulncheck, replay)
   ├── mcp/              MCP server (stdio only) and payload sanitizer
+  ├── migrate/          Workspace schema migration engine
   ├── planner/          Dependency wave planner from import graph
   ├── recorder/         Dual-run case recording with volatility detection
   ├── redactor/         Fail-closed in-memory secret redaction and format-preserving substitution
@@ -37,11 +40,14 @@ internal/               Core engine:
   ├── sandbox/          Restricted execution (Linux namespaces / best-effort on macOS+Windows)
   ├── shadow/           Shadow mode engine (bounded pool, idempotent-only default)
   └── state/            Ten-state unit lifecycle, atomic I/O, file locks, local leases
-adapters/               Language and application adapter interfaces
-schemas/                JSON Schemas (v1alpha1): manifest, units, rules, cases, reports, evidence
-  └── v1alpha1/         Schema files
+adapters/               Language and application adapters (Go, Python, TS/JS, CLI, HTTP)
+schemas/                JSON Schemas:
+  ├── v1/               Frozen v1 schemas
+  ├── v2/               v2 command output schemas
+  └── v1alpha1/         Legacy schemas (upgraded via `go-anything migrate`)
 skills/                 Agent workflow skill definitions
 templates/              Agent instruction template loader
+tools/genstatus/        Generates STATUS.md and MCP tool tables in docs/templates
 Docs/                   Architecture and task plans
   ├── decisions/        ADR-001 (sandbox backend), ADR-002 (cross-machine claims)
   ├── go-anything Architecture & Implementation Plan (v3) (1).md
@@ -133,23 +139,35 @@ The state machine is enforced server-side. A transition without evidence is reje
 
 ## MCP Server Interface
 
-`go-anything mcp` runs over `stdio` only (no network listener, no telemetry).
+<!-- BEGIN GENERATED: mcp-tools -->
+The MCP server (`go-anything mcp`, `stdio` only) exposes **14 tools** (agent-accessible):
 
-### Available Tools (8 total)
+| Tool | Access | Purpose |
+| :--- | :--- | :--- |
+| `status` | Agent | Show migration progress, next unit in dependency wave order, active leases, and blockers. |
+| `claim_unit` | Agent | Take a Ready migration unit with a time-bounded local lease in .go-anything/local/. |
+| `inspect_unit` | Agent | View original source code, sanitized sample cases, detected traps, and constraints for a unit. |
+| `record_cases` | Agent | Run the original application, apply fail-closed redaction, and save sanitized cases into .go-anything/cases/. |
+| `verify_diff` | Agent | Replay recorded behavioral cases against the ported Go implementation and return PASS or top sanitized mismatches. |
+| `run_gate` | Agent | Run the full quality gate pipeline (toolchain checks, error-paths, and API compatibility) and generate commit-tied evidence. |
+| `mark_verified` | Agent | Advance unit to Verified state. Strictly rejected unless valid commit-tied evidence exists for the target commit SHA. |
+| `handoff` | Agent | Write HANDOFF.md with workspace state, progress, and next steps for the next session or reviewer. |
+| `analyze` | Agent | Analyze codebase dependencies and view topological migration wave ordering (read-only). |
+| `profile` | Agent | Profile legacy execution and rank candidate hot functions for migration (read-only). |
+| `bridge` | Agent | Scaffold strangler sidecar bridge, manifest, and client wrappers (only writes generated scaffold files). |
+| `hotpath` | Agent | Execute guided hot-path porting pipeline up to the human boundary; strictly stops before approval (Rule R-1). |
+| `fuzz_bench` | Agent | Run differential fuzz testing or latency/throughput benchmarking against recorded cases and target. |
+| `shadow_status` | Agent | Inspect front door shadow mode execution metrics, request counts, and mismatch logs (read-only). |
 
-| Tool | What It Does |
-| :--- | :--- |
-| `status` | Show progress, next unit in dependency order, active leases, blockers |
-| `claim_unit` | Take a unit with a time-bounded local lease |
-| `inspect_unit` | View original source, sanitized sample cases, detected traps, constraints |
-| `record_cases` | Run the original in the restricted sandbox, apply fail-closed redaction, save JSONL |
-| `verify_diff` | Build the port, replay all cases, return PASS or top sanitized mismatches |
-| `run_gate` | Run the full quality gate, write scorecard, store commit-tied evidence |
-| `mark_verified` | Advance to Verified (rejected unless evidence exists for HEAD) |
-| `handoff` | Write HANDOFF.md with state, progress, and next steps for the next session |
+**Not exposed via MCP (CLI-only, Execution Rule 4):**
 
-### Not Available via MCP
-`approve`, `promote`, `lift`, routing changes, shadow toggle, kill-switch override — all require a human at the CLI.
+- `approve`: Human sign-off and state advance to Approved
+- `promote`: Front-door routing table cutover
+- `lift`: Retirement of original codebase and fallback bridges
+- `routing`: Manual routing overrides
+- `toggle_shadow`: Live traffic shadow activation
+- `kill_switch`: Kill-switch override and emergency fallback engagement
+<!-- END GENERATED: mcp-tools -->
 
 ---
 
@@ -164,6 +182,12 @@ The state machine is enforced server-side. A transition without evidence is reje
 6. run_gate          →  Full quality checks + scorecard
 7. mark_verified     →  Advance state (requires commit-tied evidence)
 8. handoff           →  Write HANDOFF.md for the next session/reviewer
+```
+
+### Hot-Path & Sidecar Workflow
+
+```
+profile → bridge → go (hotpath) → verify_diff → run_gate → shadow → human approve/promote/lift
 ```
 
 If you encounter a question not settled by the architecture plan or task plan, **write an ADR and stop**. Do not guess.

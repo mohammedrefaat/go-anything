@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 func TestLuhnValidationAndSubstitution(t *testing.T) {
@@ -109,6 +109,24 @@ func TestRedactString_Detectors(t *testing.T) {
 			input:        "Paid with 4000 0012 3456 7899 on terminal",
 			wantNotMatch: "4000 0012 3456 7899",
 			wantContains: "4242 4242",
+		},
+		{
+			name:         "Unquoted AWS secret assignment",
+			input:        "aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+			wantNotMatch: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+			wantContains: "aws_secret_access_key=",
+		},
+		{
+			name:         "Enclosing password with embedded email",
+			input:        `password="prefix_user@company.internal_suffix"`,
+			wantNotMatch: "prefix_user@company.internal_suffix",
+			wantContains: `password="`,
+		},
+		{
+			name:         "Real secret containing xxx or example substring",
+			input:        `api_key="prod_xxx_example_9a8b7c6d5e"`,
+			wantNotMatch: "prod_xxx_example_9a8b7c6d5e",
+			wantContains: `api_key="`,
 		},
 	}
 
@@ -440,8 +458,11 @@ func TestRedactValueEmbeddedJSON(t *testing.T) {
 		}
 
 		got, err := New(Options{UnsafeAllowUnredacted: true}).RedactCase(&adapterkit.Case{Metadata: meta})
-		if err != nil || got.Metadata["config"] != invalid {
-			t.Fatalf("expected unsafe opt-out to preserve malformed text, got %v, %v", got, err)
+		if err != nil {
+			t.Fatalf("expected unsafe opt-out to succeed on malformed text, got %v", err)
+		}
+		if strings.Contains(got.Metadata["config"].(string), "opaque-password") {
+			t.Fatalf("expected unsafe opt-out to still redact secrets in malformed text, got %v", got.Metadata["config"])
 		}
 	}
 

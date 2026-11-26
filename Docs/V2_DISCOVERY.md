@@ -2,7 +2,7 @@
 
 **Date:** November 22, 2026  
 **Agent:** discovery  
-**Repository:** `github.com/mohammedrefat/go-anything`  
+**Repository:** `github.com/mohammedrefaat/go-anything`  
 **License:** Apache-2.0  
 **Target Environment:** Windows (powershell, Go 1.26+)
 

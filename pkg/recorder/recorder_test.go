@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/pkg/recorder"
+	"github.com/mohammedrefaat/go-anything/pkg/recorder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

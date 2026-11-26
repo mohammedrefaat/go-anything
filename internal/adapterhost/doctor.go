@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/redactor"
+	"github.com/mohammedrefaat/go-anything/internal/redactor"
 )
 
 // DoctorCheckStatus defines the severity status of a doctor check.

@@ -1,6 +1,6 @@
 # go-anything: AI Agent Task Plan (v3.1)
 
-Nov 19, 2026 · @mohammed refat
+Nov 19, 2026 · @mohammed refaat
 
 ## Purpose and use
 

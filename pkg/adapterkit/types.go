@@ -210,10 +210,20 @@ type Evidence struct {
 	UnitID             string          `json:"unit_id"`
 	CommitSHA          string          `json:"commit_sha"`
 	Profile            EvidenceProfile `json:"profile"`
+	ProfileVersion     string          `json:"profile_version,omitempty"`
+	ProfileChecks      []string        `json:"profile_checks,omitempty"`
 	VerifiedAt         string          `json:"verified_at"`
 	VerifiedBy         string          `json:"verified_by"`
 	Checks             []GateCheck     `json:"checks"`
 	MismatchesCount    int             `json:"mismatches_count"`
 	UnreplayableFields []string        `json:"unreplayable_fields,omitempty"`
 	Metadata           map[string]any  `json:"metadata,omitempty"`
+}
+
+// AdapterManifest describes static metadata declared by a language adapter,
+// including the source language and file extensions it handles.
+type AdapterManifest struct {
+	Name           string   `json:"name"`
+	SourceLanguage string   `json:"source_language"`
+	Extensions     []string `json:"extensions"`
 }

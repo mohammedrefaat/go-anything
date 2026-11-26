@@ -124,6 +124,20 @@ func (r *execRunner) runBubblewrap(ctx context.Context, bwrapPath string, cfg Co
 	}
 
 	env := r.buildEnv(cfg, false)
+	if cfg.Command == "go" {
+		// Bubblewrap mounts a writable tmpfs at /tmp while $HOME may be read-only.
+		hasGOCACHE := false
+		for i, kv := range env {
+			if strings.HasPrefix(kv, "GOCACHE=") {
+				env[i] = "GOCACHE=/tmp/go-build-cache"
+				hasGOCACHE = true
+				break
+			}
+		}
+		if !hasGOCACHE {
+			env = append(env, "GOCACHE=/tmp/go-build-cache")
+		}
+	}
 
 	bwrapArgs := []string{
 		"--ro-bind", "/", "/",

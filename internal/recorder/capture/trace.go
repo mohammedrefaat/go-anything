@@ -3,7 +3,7 @@ package capture
 import (
 	"context"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // TraceSource ingests distributed trace spans (e.g. OpenTelemetry, Jaeger, Zipkin, W3C).

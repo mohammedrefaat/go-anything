@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/frontdoor"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/frontdoor"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // Engine orchestrates the lift process by safely executing all checks on an isolated copy
@@ -378,7 +378,30 @@ func isEvidenceValidForProfile(ev *adapterkit.Evidence, profile adapterkit.Evide
 			return false, "profile 'replay' requires check 'replay' with pass status"
 		}
 	case adapterkit.ProfileFull:
-		requiredChecks := []string{"build", "format", "vet", "race", "replay", "error_paths", "api_compat"}
+		if ev.SchemaVersion != adapterkit.SchemaVersionV2 {
+			return false, fmt.Sprintf("stale evidence schema_version %q (expected %q); re-run gate", ev.SchemaVersion, adapterkit.SchemaVersionV2)
+		}
+		if ev.ProfileVersion != adapterkit.FullProfileVersionV201 {
+			return false, fmt.Sprintf("stale or missing profile_version %q (expected %q); re-run gate", ev.ProfileVersion, adapterkit.FullProfileVersionV201)
+		}
+		if len(ev.ProfileChecks) == 0 {
+			return false, "missing profile_checks in v2 evidence; re-run gate"
+		}
+
+		requiredChecks := []string{"build", "format", "vet", "staticcheck", "race", "replay", "error_paths", "api_compat"}
+		declaredChecks := make(map[string]bool, len(ev.ProfileChecks))
+		for _, name := range ev.ProfileChecks {
+			declaredChecks[strings.ToLower(name)] = true
+		}
+		for _, req := range requiredChecks {
+			if !declaredChecks[req] {
+				return false, fmt.Sprintf("evidence profile_checks %v is missing required check %q; re-run gate", ev.ProfileChecks, req)
+			}
+		}
+		if !declaredChecks["govulncheck"] && !declaredChecks["vulncheck"] {
+			return false, fmt.Sprintf("evidence profile_checks %v is missing required vulnerability check ('govulncheck' or 'vulncheck'); re-run gate", ev.ProfileChecks)
+		}
+
 		for _, req := range requiredChecks {
 			status, ok := checksMap[req]
 			if !ok {

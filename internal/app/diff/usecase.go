@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // UseCase coordinates loading recorded cases and comparing them against the target implementation.

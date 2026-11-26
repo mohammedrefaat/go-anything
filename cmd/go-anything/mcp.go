@@ -5,7 +5,7 @@ import (
 	"flag"
 	"io"
 
-	"github.com/mohammedrefat/go-anything/internal/mcp"
+	"github.com/mohammedrefaat/go-anything/internal/mcp"
 )
 
 func runMCP(global *GlobalFlags, args []string, stdin io.Reader, stdout, stderr io.Writer) error {

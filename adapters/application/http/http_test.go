@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	httpadapter "github.com/mohammedrefat/go-anything/adapters/application/http"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	httpadapter "github.com/mohammedrefaat/go-anything/adapters/application/http"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

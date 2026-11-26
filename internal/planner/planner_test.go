@@ -3,7 +3,7 @@ package planner_test
 import (
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/planner"
+	"github.com/mohammedrefaat/go-anything/internal/planner"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

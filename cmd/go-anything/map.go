@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/app/companion"
+	"github.com/mohammedrefaat/go-anything/internal/app/companion"
 )
 
 func runMap(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

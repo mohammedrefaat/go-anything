@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/sandbox"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/sandbox"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // Option configures the CLI Adapter.

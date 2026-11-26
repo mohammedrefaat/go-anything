@@ -7,7 +7,7 @@ import (
 	"net/smtp"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/internal/recorder/effects"
+	"github.com/mohammedrefaat/go-anything/internal/recorder/effects"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

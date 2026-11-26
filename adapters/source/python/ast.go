@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mohammedrefat/go-anything/internal/planner"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/planner"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // StandardLibraryModules lists known Python standard library modules (Python 3.8-3.13)

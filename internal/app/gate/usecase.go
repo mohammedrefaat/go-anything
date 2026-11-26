@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/gate"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/gate"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 // UseCase coordinates quality gate check execution, scorecard generation, and evidence storage.
@@ -115,17 +115,21 @@ func (uc *UseCase) Run(ctx context.Context, in Input) (*Output, error) {
 		commitSHA = "0000000000000000000000000000000000000000"
 	}
 
+	passed := report.Passed && allRequiredChecksPassed(report, checks)
+
 	evidenceSaved := false
-	if report.Passed {
+	if passed {
 		ev := &adapterkit.Evidence{
-			SchemaVersion: adapterkit.SchemaVersionV1Alpha1,
-			EvidenceID:    fmt.Sprintf("ev-%s-%d", in.UnitID, time.Now().UnixNano()),
-			UnitID:        in.UnitID,
-			CommitSHA:     commitSHA,
-			Profile:       adapterkit.EvidenceProfile(profile),
-			VerifiedAt:    time.Now().UTC().Format(time.RFC3339),
-			VerifiedBy:    "agent",
-			Checks:        report.ToGateChecks(),
+			SchemaVersion:  adapterkit.SchemaVersionV2,
+			EvidenceID:     fmt.Sprintf("ev-%s-%d", in.UnitID, time.Now().UnixNano()),
+			UnitID:         in.UnitID,
+			CommitSHA:      commitSHA,
+			Profile:        adapterkit.EvidenceProfile(profile),
+			ProfileVersion: adapterkit.FullProfileVersionV201,
+			ProfileChecks:  checks,
+			VerifiedAt:     time.Now().UTC().Format(time.RFC3339),
+			VerifiedBy:     "agent",
+			Checks:         report.ToGateChecks(),
 		}
 		if err := uc.port.SaveEvidence(ctx, absDir, ev); err == nil {
 			evidenceSaved = true
@@ -133,15 +137,19 @@ func (uc *UseCase) Run(ctx context.Context, in Input) (*Output, error) {
 	}
 
 	summary := "PASS: all quality gate checks satisfied"
-	if !report.Passed {
-		summary = fmt.Sprintf("FAIL: %d checks failed out of %d", report.FailedCount, len(report.Checks))
+	if !passed {
+		if report.FailedCount > 0 {
+			summary = fmt.Sprintf("FAIL: %d checks failed out of %d", report.FailedCount, len(report.Checks))
+		} else {
+			summary = fmt.Sprintf("FAIL: %d required checks skipped out of %d", report.SkippedCount, len(report.Checks))
+		}
 	}
 
 	return &Output{
 		SchemaVersion: "v2",
 		UnitID:        in.UnitID,
 		Profile:       profile,
-		Passed:        report.Passed,
+		Passed:        passed,
 		CommitSHA:     commitSHA,
 		DurationMS:    durationMS,
 		Checks:        checkResults,
@@ -149,6 +157,22 @@ func (uc *UseCase) Run(ctx context.Context, in Input) (*Output, error) {
 		EvidenceSaved: evidenceSaved,
 		Summary:       summary,
 	}, nil
+}
+
+func allRequiredChecksPassed(report *gate.GateReport, required []string) bool {
+	if report == nil {
+		return false
+	}
+	statusByName := make(map[string]gate.CheckStatus, len(report.Checks))
+	for _, c := range report.Checks {
+		statusByName[c.Name] = c.Status
+	}
+	for _, req := range required {
+		if statusByName[req] != gate.StatusPass {
+			return false
+		}
+	}
+	return true
 }
 
 // Run is a convenience function.

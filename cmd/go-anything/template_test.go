@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mohammedrefat/go-anything/templates"
+	"github.com/mohammedrefaat/go-anything/templates"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,9 +35,9 @@ func TestTemplateCommand_StdoutRendersEveryAgentFile(t *testing.T) {
 	for _, fileName := range []string{"CLAUDE.md", ".cursorrules", "AGENTS.md", "GEMINI.md"} {
 		assert.Contains(t, out, "=== "+fileName+" ===")
 	}
-	// Every agent file must carry the enforced agent loop and "done" definition.
+	// Every agent file must carry the enforced agent loop, generated MCP tools table, and "done" definition.
 	registry := templates.DefaultRegistry()
-	assert.Equal(t, 2*len(registry.Names()), bytes.Count([]byte(out), []byte("mark_verified")))
+	assert.Equal(t, 3*len(registry.Names()), bytes.Count([]byte(out), []byte("mark_verified")))
 	assert.Contains(t, out, "payments")
 }
 

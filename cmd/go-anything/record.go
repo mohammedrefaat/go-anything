@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/internal/recorder"
-	"github.com/mohammedrefat/go-anything/internal/recorder/effects"
-	"github.com/mohammedrefat/go-anything/internal/recorder/fromtests"
-	"github.com/mohammedrefat/go-anything/internal/sandbox"
-	"github.com/mohammedrefat/go-anything/internal/state"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/internal/recorder"
+	"github.com/mohammedrefaat/go-anything/internal/recorder/effects"
+	"github.com/mohammedrefaat/go-anything/internal/recorder/fromtests"
+	"github.com/mohammedrefaat/go-anything/internal/sandbox"
+	"github.com/mohammedrefaat/go-anything/internal/state"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 )
 
 func runRecord(global *GlobalFlags, args []string, stdout, stderr io.Writer) error {

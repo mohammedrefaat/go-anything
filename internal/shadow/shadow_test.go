@@ -18,9 +18,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mohammedrefat/go-anything/adapters/source/golang/facade"
-	"github.com/mohammedrefat/go-anything/internal/shadow"
-	"github.com/mohammedrefat/go-anything/pkg/adapterkit"
+	"github.com/mohammedrefaat/go-anything/adapters/source/golang/facade"
+	"github.com/mohammedrefaat/go-anything/internal/shadow"
+	"github.com/mohammedrefaat/go-anything/pkg/adapterkit"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

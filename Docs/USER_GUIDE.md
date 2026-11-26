@@ -126,7 +126,7 @@ Clone the repository and install the binary:
 
 ```bash
 # Clone the repository
-git clone https://github.com/mohammedrefat/go-anything.git
+git clone https://github.com/mohammedrefaat/go-anything.git
 cd go-anything
 
 # Install into your $GOPATH/bin (ensure $GOPATH/bin is in your PATH)
@@ -210,14 +210,24 @@ Units within the same wave can be ported simultaneously in parallel lanes.
 ### Evidence Profiles (`replay` vs. `full`)
 
 `go-anything` supports two verification profiles:
-- **`replay` Profile:** Requires 100% pass rate on all recorded and fuzzed behavioral fixtures.
-- **`full` Profile (Default):** Enforces behavioral replay **plus** the complete quality gate:
-  1. `go build` (clean compilation without warnings)
-  2. `go vet` (static code analysis)
-  3. `go test -race` (unit tests under the Go race detector)
-  4. `govulncheck` (known CVE vulnerability scanning)
-  5. `error_paths` (malformed input and non-zero exit code parity)
-  6. `api_compat` (exported symbol, type, and contract compliance)
+- **`replay` Profile:** Requires 100% pass rate on all recorded and fuzzed behavioral fixtures (`replay`).
+- **`full` Profile (Default, v2.0.1):** Enforces behavioral replay **plus** the complete quality gate, recorded under evidence schema `v2` (`profile_version: "2.0.1"`). Units already `Verified` under an older `full` profile definition must re-run `go-anything gate` before `promote`.
+
+| Check | `AllChecks()` (Default Gate) | `replay` Profile | `full` Profile (`FullProfileChecks()`) |
+| :--- | :---: | :---: | :---: |
+| `build` (`go build`) | Yes | — | Required |
+| `format` (`gofmt -l`) | Yes | — | Required |
+| `vet` (`go vet`) | Yes | — | Required |
+| `staticcheck` | Yes | — | Required (added v2.0.1) |
+| `golangci-lint` | Yes | — | — |
+| `race` (`go test -race`) | Yes | — | Required |
+| `govulncheck` | Yes | — | Required |
+| `replay` | — | Required | Required |
+| `error_paths` | — | — | Required |
+| `api_compat` | — | — | Required |
+
+> [!NOTE]
+> Staged security rollout (ADR-008): `security` will be added as **advisory** in v2.1.0 and promoted to **required** in `full` in v2.2.0 (with an accompanying evidence schema bump).
 
 ### The Human-Only Control Boundary
 

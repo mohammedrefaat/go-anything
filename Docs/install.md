@@ -6,7 +6,7 @@ This guide describes how to download, cryptographically verify, and install preb
 
 ## Supported Platforms
 
-Official prebuilt binaries are published for every tagged release on [GitHub Releases](https://github.com/mohammedrefat/go-anything/releases):
+Official prebuilt binaries are published for every tagged release on [GitHub Releases](https://github.com/mohammedrefaat/go-anything/releases):
 
 | Operating System | Architecture | Artifact Name | Format |
 | :--- | :--- | :--- | :--- |
@@ -36,7 +36,7 @@ case "$ARCH" in
   *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-RELEASE_URL="https://github.com/mohammedrefat/go-anything/releases/download/v${VERSION}"
+RELEASE_URL="https://github.com/mohammedrefaat/go-anything/releases/download/v${VERSION}"
 ARTIFACT="go-anything_${VERSION}_${OS}_${ARCH}.tar.gz"
 
 # 1. Download binary archive, checksums, and signature bundle
@@ -47,7 +47,7 @@ curl -fsSL -O "${RELEASE_URL}/checksums.txt.sigstore.json"
 # 2. Cryptographically verify signature with Cosign (Keyless Sigstore)
 cosign verify-blob \
   --bundle checksums.txt.sigstore.json \
-  --certificate-identity-regexp "^https://github\\.com/mohammedrefat/go-anything/\\.github/workflows/release\\.yml@refs/tags/v.*$" \
+  --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
 
@@ -76,7 +76,7 @@ In an elevated or user PowerShell terminal:
 ```powershell
 $Version = "1.0.0"
 $Arch = "amd64"
-$ReleaseUrl = "https://github.com/mohammedrefat/go-anything/releases/download/v$Version"
+$ReleaseUrl = "https://github.com/mohammedrefaat/go-anything/releases/download/v$Version"
 $Artifact = "go-anything_${Version}_windows_${Arch}.zip"
 
 # 1. Download release archive, checksums, and signature bundle
@@ -88,7 +88,7 @@ Invoke-WebRequest -Uri "$ReleaseUrl/checksums.txt.sigstore.json" -OutFile "check
 if (Get-Command cosign -ErrorAction SilentlyContinue) {
     cosign verify-blob `
       --bundle checksums.txt.sigstore.json `
-      --certificate-identity-regexp "^https://github\.com/mohammedrefat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" `
+      --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" `
       --certificate-oidc-issuer "https://token.actions.githubusercontent.com" `
       checksums.txt
 }
@@ -122,7 +122,7 @@ If you have Go 1.27+ installed:
 
 ```bash
 # Install latest release binary into $GOPATH/bin
-go install github.com/mohammedrefat/go-anything/cmd/go-anything@latest
+go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest
 
 # Verify installation
 go-anything version
@@ -137,7 +137,7 @@ Ensure `$GOPATH/bin` (or `~/go/bin`) is included in your system `PATH`.
 To compile the latest release or developmental branch locally:
 
 ```bash
-git clone https://github.com/mohammedrefat/go-anything.git
+git clone https://github.com/mohammedrefaat/go-anything.git
 cd go-anything
 
 # Build stripped, reproducible binary with CGO disabled
