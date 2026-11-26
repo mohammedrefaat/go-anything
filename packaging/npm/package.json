@@ -1,6 +1,6 @@
 {
   "name": "go-anything",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Cross-platform npm installer for go-anything migration engine",
   "bin": {
     "go-anything": "bin/go-anything"

@@ -4,7 +4,7 @@ const https = require('https');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
 
-const VERSION = "2.0.0";
+const VERSION = "2.0.1";
 const REPO = "mohammedrefaat/go-anything";
 const BIN_DIR = path.join(__dirname, "..", "bin");
 
