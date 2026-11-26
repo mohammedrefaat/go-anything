@@ -29,7 +29,7 @@ Review the dependencies. Confirm that Wave 0 units have zero internal dependenci
 
 ### Phase 2: Leaf Unit Migration (Wave 0)
 Start at the foundation:
-1. Claim a Wave 0 unit: `go-anything claim --unit-id pkg/token`
+1. Claim a Wave 0 unit via MCP `claim_unit` (`unit_id: "pkg/token"`) or work directly in your branch
 2. Record baseline cases: `go-anything record --from-tests`
 3. Port the Go package: Write `pkg/token/token.go`
 4. Verify diff: `go-anything diff --unit-id pkg/token`

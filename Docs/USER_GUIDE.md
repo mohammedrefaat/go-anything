@@ -46,7 +46,7 @@ Welcome to the definitive user and operator guide for **go-anything**. This docu
    - [Tutorial C: TypeScript / Node.js CLI Migration](#tutorial-c-typescript--nodejs-cli-migration)
 6. [Working with Autonomous AI Agents & MCP](#6-working-with-autonomous-ai-agents--mcp)
    - [Configuring the MCP Server](#configuring-the-mcp-server)
-   - [The 8 Standard MCP Tools](#the-8-standard-mcp-tools)
+   - [The 14 MCP Tools](#the-14-mcp-tools)
    - [Agent Operating Loop](#agent-operating-loop)
    - [Prompt Injection Defenses & Fail-Safe Controls](#prompt-injection-defenses--fail-safe-controls)
 7. [Safety, Redaction & Sandboxing](#7-safety-redaction--sandboxing)
@@ -111,7 +111,7 @@ Automated source-to-source compilers (transpilers) produce unmaintainable, unidi
 
 ### System Prerequisites
 
-- **Go:** Version 1.26 or later installed (`go version`).
+- **Go:** Version 1.27 or later installed (`go version`).
 - **Git:** Version 2.30+ installed.
 - **Operating System:**
   - **Linux (x86_64 / arm64):** Full Tier 1 sandboxing (unprivileged user namespaces, network isolation, bind mounts).
@@ -134,7 +134,7 @@ go install ./cmd/go-anything
 
 # Verify the CLI installation
 go-anything version
-# Output: go-anything v1.0.0 (profile: full, jobs: 8)
+# Output: go-anything v2.0.1 (profile: full, jobs: 8)
 ```
 
 Alternatively, build a standalone binary locally:
@@ -232,11 +232,13 @@ Units within the same wave can be ported simultaneously in parallel lanes.
 ### The Human-Only Control Boundary
 
 To ensure safe operation when collaborating with autonomous AI agents:
-- **AI Agents can execute:** `claim_unit`, `inspect_unit`, `record_cases`, `verify_diff`, `run_gate`, `mark_verified`, `handoff`.
-- **Only Humans can execute:**
+- **AI Agents can execute (14 MCP tools):** `status`, `claim_unit`, `inspect_unit`, `record_cases`, `verify_diff`, `run_gate`, `mark_verified`, `handoff`, `analyze`, `profile`, `bridge`, `hotpath`, `fuzz_bench`, `shadow_status`.
+- **Only Humans can execute (CLI-only):**
   - `go-anything approve`
   - `go-anything promote`
   - `go-anything lift`
+  - `go-anything cutover`
+  - `go-anything shadow`
   - Routing mutations and kill-switch overrides
 
 This boundary is hard-coded into the MCP server architecture.
@@ -648,7 +650,7 @@ go-anything mcp
 
 ### Tutorial A: Go-to-Go Modernization
 
-Modernizing an older Go codebase (e.g., upgrading from legacy Go 1.14 package layouts or global-variable monoliths to modular Go 1.26+ packages).
+Modernizing an older Go codebase (e.g., upgrading from legacy Go 1.14 package layouts or global-variable monoliths to modular Go 1.27+ packages).
 
 #### Step 1: Initialize Modernization
 ```bash
@@ -800,7 +802,7 @@ go-anything verify unit-transform --target ./bin/csv-tool --profile full
 
 ### Configuring the MCP Server
 
-`go-anything` exposes a standard [Model Context Protocol](https://modelcontextprotocol.io/) server over `stdio`. It can be added to any MCP-compliant client.
+`go-anything` exposes a standard [Model Context Protocol](https://modelcontextprotocol.io/) server over `stdio`. Run `go-anything setup --tool all --yes` to register it automatically for Claude Code, Codex, Cursor, Gemini, and OpenCode (use `--dry-run` to preview), or configure your MCP client manually:
 
 **Example: `claude_desktop_config.json` / Cursor MCP Settings:**
 ```json
@@ -817,20 +819,26 @@ go-anything verify unit-transform --target ./bin/csv-tool --profile full
 }
 ```
 
-### The 8 Standard MCP Tools
+### The 14 MCP Tools
 
-The `go-anything mcp` server provides 8 tightly scoped tools:
+The `go-anything mcp` server provides 14 tightly scoped tools (see also [STATUS.md](../STATUS.md)):
 
 | MCP Tool | Description | Inputs |
 | :--- | :--- | :--- |
 | `status` | Query migration state, dependency waves, and blockers. | `dir` (optional) |
 | `claim_unit` | Acquire a time-bounded lease on a `Ready` unit. | `unit_id`, `actor`, `ttl_seconds` |
-| `inspect_unit` | Read original code, sample cases, and semantic traps. | `unit_id` |
+| `inspect_unit` | View original code files (Go, Python, TS, JS), sample cases, and semantic traps. | `unit_id` |
 | `record_cases` | Run original code in the sandbox to generate cases. To choose a different classification, use `go-anything record --kind` in the CLI. | `unit_id`, `command`, `url` |
 | `verify_diff` | Build Go target, replay cases, return diffs on mismatch. | `unit_id`, `target`, `mode` |
-| `run_gate` | Run the 6-stage Quality Gate and create evidence scorecard. | `unit_id`, `target`, `profile` |
-| `mark_verified` | Transition unit to `Verified` (tied to current Git commit). | `unit_id`, `commit_sha` |
+| `run_gate` | Run the full Quality Gate pipeline (`build`, `format`, `vet`, `staticcheck`, `race`, `govulncheck`, `replay`, `error_paths`, `api_compat`) and create v2 evidence. | `unit_id`, `target`, `profile` |
+| `mark_verified` | Transition unit to `Verified` (fail-closed; requires valid v2 evidence for current Git commit). | `unit_id`, `commit_sha` |
 | `handoff` | Write `HANDOFF.md` documenting session accomplishments. | `unit_id`, `summary`, `next_steps` |
+| `analyze` | Analyze codebase dependencies and view topological migration wave ordering (read-only). | `source`, `dir` |
+| `profile` | Profile legacy execution and rank candidate hot functions for migration (read-only). | `unit_id`, `cmd`, `dir` |
+| `bridge` | Scaffold strangler sidecar bridge, manifest, and client wrappers. | `unit_id`, `source`, `dir` |
+| `hotpath` | Execute guided hot-path porting pipeline up to the human approval boundary (Rule R-1). | `unit_id`, `dir` |
+| `fuzz_bench` | Run differential fuzz testing or latency/throughput benchmarking against recorded cases. | `unit_id`, `mode`, `target` |
+| `shadow_status` | Inspect front-door shadow mode execution metrics, request counts, and mismatch logs (read-only). | `unit_id`, `dir` |
 
 ### Agent Operating Loop
 

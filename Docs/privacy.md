@@ -14,9 +14,10 @@
 ### 2. Core-Owned In-Memory Redaction (Rule R-4)
 - Sensitive secrets are intercepted and redacted in memory **before** any disk write to `.go-anything/cases/`.
 - Standard patterns masked:
-  - Authorization headers (Bearer tokens, Basic auth, API keys).
-  - Passwords and secret parameters (`password`, `secret`, `token`, `api_key`).
-  - Private keys (RSA, SSH, PEM blocks).
+  - Authorization headers (`Bearer` tokens, `Basic` auth, JWTs, API keys).
+  - Provider and package tokens (Google `AIza...`, GitHub, Slack, Stripe, SendGrid, npm, Twilio, AWS access key IDs & windowed AWS secret access keys).
+  - Embedded URL credentials (`scheme://user:pass@host`) and generic secret assignments (`password`, `secret`, `token`, `api_key`, `private_key`, `client_secret`).
+  - Private keys (RSA, SSH, PEM blocks), session cookies, emails, and cardholder numbers.
 - Format-preserving substitution ensures token lengths and structure are maintained for deterministic replay without exposing plain-text values.
 - Core redaction is mandatory and cannot be disabled or bypassed by third-party language adapters.
 

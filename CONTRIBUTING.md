@@ -6,9 +6,9 @@ Thank you for your interest in contributing to `go-anything`! We welcome contrib
 
 ## Development Prerequisites
 
-- **Go 1.22+**
+- **Go 1.27+**
 - Git
-- Standard Go toolchain tools (`gofmt`, `go vet`, `govulncheck`)
+- Standard Go toolchain tools (`gofmt`, `go vet`, `staticcheck`, `govulncheck`)
 
 ---
 
@@ -69,6 +69,7 @@ gofmt -s -w .
 
 # 2. Run static analysis
 go vet ./...
+staticcheck ./...
 
 # 3. Run unit tests with race detection
 go test -race ./...
@@ -77,7 +78,7 @@ go test -race ./...
 govulncheck ./...
 ```
 
-All four checks must pass with zero errors or warnings.
+All checks must pass with zero errors or warnings.
 
 ---
 

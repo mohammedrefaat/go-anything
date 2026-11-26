@@ -9,16 +9,17 @@
   <p>
     <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go" alt="Go 1.27+" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-6C7CFF.svg" alt="Apache 2.0" /></a>
-    <a href="https://github.com/mohammedrefaat/go-anything/releases"><img src="https://img.shields.io/badge/release-v2.0.0-34D399.svg" alt="Release v2.0.0" /></a>
+    <a href="https://github.com/mohammedrefaat/go-anything/releases"><img src="https://img.shields.io/badge/release-v2.0.1-34D399.svg" alt="Release v2.0.1" /></a>
   </p>
 
   <p>
     <a href="#installation--verification">Installation</a> ·
     <a href="#5-minute-vertical-slice-quickstart">Quickstart</a> ·
     <a href="Docs/USER_GUIDE.md">User Guide</a> ·
-    <a href="#how-it-works">How it works</a> ·
-    <a href="#milestone-roadmap-m0m7">Milestone Roadmap</a> ·
-    <a href="GOVERNANCE.md">Governance</a> ·
+    <a href="STATUS.md">Command Matrix (32/32)</a> ·
+    <a href="#hot-path-sidecars--differential-testing">Hot-Path &amp; Fuzz/Bench</a> ·
+    <a href="#milestone-roadmap-m0m7--v20">Roadmap</a> ·
+    <a href="CHANGELOG.md">Changelog</a> ·
     <a href="SECURITY.md">Security</a> ·
     <a href="Docs/go-anything%20Architecture%20%26%20Implementation%20Plan%20(v3)%20(1).md">Architecture</a>
   </p>
@@ -40,7 +41,8 @@
 - [Explicit Parity Disclaimer](#explicit-parity-disclaimer)
 - [Installation & Verification](#installation--verification)
 - [5-Minute Vertical-Slice Quickstart](#5-minute-vertical-slice-quickstart)
-- [Milestone Roadmap (M0–M7)](#milestone-roadmap-m0m7)
+- [Hot-Path Sidecars & Differential Testing](#hot-path-sidecars--differential-testing)
+- [Milestone Roadmap (M0–M7 & v2.0)](#milestone-roadmap-m0m7--v20)
 - [Known Limitations](#known-limitations)
 - [Autonomous Agent & MCP Workflow](#autonomous-agent--mcp-workflow)
 - [Architecture & Design Principles](#architecture--design-principles)
@@ -52,11 +54,11 @@
 
 ## How it works
 
-`go-anything` migrates applications to Go **one unit at a time** and proves each unit matches the original's recorded behavior before it ships.
+`go-anything` migrates applications from **Go, Python, TypeScript, or JavaScript** to modern Go **one unit or hot path at a time** and proves each unit matches the original's recorded behavior before it ships.
 
-- **Not an AST code translator:** You or your AI coding agent write idiomatic Go. `go-anything` provides the orchestrator, sandbox, behavioral capture, differential replay, and quality gates.
-- **The Strangler Pattern:** The original application remains live and functional. Bounded units are replaced incrementally, running behind a reversible reverse proxy or sidecar router.
-- **Fail-Closed Verification:** Parity is verified by replaying recorded and fuzzed traffic through both implementations and comparing outputs under deterministic rules.
+- **Not an AST code translator:** You or your AI coding agent write idiomatic Go. `go-anything` provides the orchestrator, sandbox, behavioral capture, differential replay/fuzzing, sidecar bridges, and quality gates.
+- **The Strangler Pattern:** The original application remains live and functional. Bounded units (or individual hot functions via stdio JSON-RPC sidecars) are replaced incrementally behind a reversible router or bridge.
+- **Fail-Closed Verification:** Parity is verified by replaying recorded and fuzzed traffic through both implementations and comparing outputs and side-effects under deterministic rules.
 
 ```mermaid
 flowchart LR
@@ -75,11 +77,11 @@ flowchart LR
 
 | Risky Big-Bang Rewrite | Verified Incremental Migration (`go-anything`) |
 | :--- | :--- |
-| Replace the entire codebase all at once | Move one isolated dependency wave at a time |
-| Discover edge cases and regressions in production | Compare against recorded fixtures before traffic moves |
+| Replace the entire codebase all at once | Move one isolated dependency wave or hot function at a time |
+| Discover edge cases and regressions in production | Compare against recorded fixtures and fuzz inputs before traffic moves |
 | Progress trapped inside ephemeral chat sessions | Durable state persisted in reviewable JSON/JSONL files |
-| Blanket assumptions of parity ("tests passed") | Explicit parity boundaries tied to recorded test vectors |
-| Autonomous agents given unconstrained deployment access | Human-only controls for `approve`, `promote`, and `lift` |
+| Blanket assumptions of parity ("tests passed") | Explicit parity boundaries tied to recorded test vectors & commit SHAs |
+| Autonomous agents given unconstrained deployment access | Human-only controls for `approve`, `promote`, `lift`, and routing |
 
 ---
 
@@ -132,7 +134,7 @@ Download prebuilt binaries for your platform from [GitHub Releases](https://gith
 #### Linux & macOS (Bash / Zsh)
 
 ```bash
-VERSION="2.0.0"
+VERSION="2.0.1"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 RELEASE_URL="https://github.com/mohammedrefaat/go-anything/releases/download/v${VERSION}"
@@ -165,7 +167,7 @@ sudo install -m 0755 go-anything /usr/local/bin/go-anything
 #### Windows (PowerShell)
 
 ```powershell
-$Version = "2.0.0"
+$Version = "2.0.1"
 $ReleaseUrl = "https://github.com/mohammedrefaat/go-anything/releases/download/v$Version"
 $Artifact = "go-anything_${Version}_windows_amd64.zip"
 
@@ -208,7 +210,7 @@ Verify the CLI binary and check system readiness:
 
 ```bash
 go-anything version
-# Output: go-anything v2.0.0 (profile: full, jobs: 8)
+# Output: go-anything v2.0.1 (profile: full, jobs: 8)
 
 go-anything doctor
 # Output: [PASS] workspace clean, tools available, no stale leases
@@ -240,7 +242,7 @@ go install ./cmd/go-anything
 
 # Verify installation
 go-anything version
-# Output: go-anything v1.0.0 (profile: full, jobs: 8)
+# Output: go-anything v2.0.1 (profile: full, jobs: 8)
 ```
 
 *(Alternatively, run commands directly via `go run ./cmd/go-anything <subcommand>`.)*
@@ -249,7 +251,7 @@ go-anything version
 
 ### Step 2: Initialize or Modernize a Workspace
 
-Create a dedicated migration workspace or modernize an existing project. For a legacy Go microservice, `modernize` creates the `legacy/` reference copy and `modern/` target scaffold:
+Create a dedicated migration workspace (`--source` supports `go`, `python`, `typescript`, `javascript`) or modernize an existing Go project. For a legacy Go microservice, `modernize` (alias for `init --source=go`) creates the `legacy/` reference copy and `modern/` target scaffold:
 
 ```bash
 # Initialize a workspace for an existing service
@@ -299,11 +301,14 @@ go-anything record \
   --unit unit-healthcheck \
   --cmd "./legacy-service --health" \
   --dir .
+
+# Or intercept cases from existing Go/Python/Jest tests and capture side-effects:
+# go-anything record --unit unit-healthcheck --from-tests --effects --dir .
 ```
 
 `go-anything` automatically:
 - Executes the original binary twice to detect volatile outputs (timestamps, monotonic counters).
-- Applies format-preserving substitution to secrets (passwords, tokens, cookies).
+- Applies format-preserving substitution to secrets (API keys, AWS secrets, URL credentials, tokens, cookies).
 - Stores sanitized fixtures in `.go-anything/cases/unit-healthcheck.jsonl`.
 - Transitions unit state from `Planned` to `Recorded`.
 
@@ -364,7 +369,7 @@ Replay complete: 10/10 passed (0 mismatches, 0 errors).
 
 ### Step 7: Verification & Quality Gate
 
-Verify the unit against the full quality gate (`build`, `format`, `vet`, `race`, `govulncheck`, `replay`, `error_paths`, `api_compat`):
+Verify the unit against the `full` quality gate (`build`, `format`, `vet`, `staticcheck`, `race`, `govulncheck`, `replay`, `error_paths`, `api_compat`) or `--profile replay` for behavioral-only checks:
 
 ```bash
 # Verify behavioral equivalence against recorded cases
@@ -374,7 +379,7 @@ go-anything verify unit-healthcheck \
   --dir .
 ```
 
-When running in an automated pipeline or agent session via MCP (`run_gate`), commit-tied evidence is recorded under `.go-anything/evidence/`, advancing the unit state to `Verified`.
+When running the `full` profile (`go-anything gate` or MCP `run_gate`), v2 commit-tied evidence (`schemas/v2/evidence.schema.json`, `profile_version: "2.0.1"`) is recorded under `.go-anything/evidence/`, advancing the unit state to `Verified`.
 
 ---
 
@@ -395,9 +400,31 @@ go-anything lift unit-healthcheck
 
 ---
 
-## Milestone Roadmap (M0–M7)
+## Hot-Path Sidecars & Differential Testing
 
-All core milestones from initial architecture through v1.0.0 have been fully implemented, proven by automated test suites, and verified:
+Starting in `v2.0`, `go-anything` supports **hot-path strangler sidecars** alongside whole-unit migrations, allowing Python and TypeScript/Node applications to offload CPU- or latency-critical functions to a Go stdio JSON-RPC sidecar with automatic crash recovery and fallback ([ADR-005](Docs/decisions/adr-005-hotpath-sidecar-protocol.md), [Docs/hotpath.md](Docs/hotpath.md)).
+
+```text
+profile → bridge → go (hotpath) → fuzz / bench → gate → shadow → human approve / enable / lift
+```
+
+Key commands (all 32 CLI commands are wired with 100% E2E coverage in [STATUS.md](STATUS.md)):
+
+- **Discovery & Differential Testing:** `profile` (rank candidate hot functions), `fuzz` (differential fuzzing across recorded vectors), `bench` (comparative latency & allocation benchmarks), `diff` (structural case diffs).
+- **Sidecar Lifecycle:** `bridge` (generate Go sidecar + Python/TS wrappers), `go` (guided hot-path porting up to human approval), `enable` / `disable` (toggle bridge routing), `map` (function porting status), `refresh` (re-record & re-diff), `clean` (remove generated bridge artifacts), `report` (Markdown/JSON scorecard).
+
+**Real-World Benchmarks** (reproducible via `make demo-node` and `make demo-python`; see [Docs/real-world.md](Docs/real-world.md)):
+
+| Application | Workload | Replay Parity | p50 Speedup | Throughput Gain |
+| :--- | :--- | :---: | :---: | :---: |
+| **Node.js REST API** (`demo/real-world/node-rest-api`) | CRUD REST API (`typicode/json-server`) | 100% (9/9 cases) | **1.38x faster** | **+41.7%** |
+| **Python Task Worker** (`demo/real-world/python-worker`) | Stats, crypto hashing & filtering | 100% (8/8 cases) | **5.69x faster** | **+472%** |
+
+---
+
+## Milestone Roadmap (M0–M7 & v2.0)
+
+All core milestones (M0–M7) and v2.0 releases have been implemented, proven by automated test suites, and verified:
 
 | Milestone | Release | Proving CLI Command(s) | Proving Test File(s) | Scope & Deliverables | Exit Gate Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -409,6 +436,14 @@ All core milestones from initial architecture through v1.0.0 have been fully imp
 | **M5: Shadow & Capture** | `v0.1.0` | [`shadow`](cmd/go-anything/shadow.go) | [`cmd/go-anything/m5_acceptance_test.go`](cmd/go-anything/m5_acceptance_test.go) | Real-time traffic shadowing, bounded pool with overflow counters, idempotent-only GET/HEAD default, capture ingestion. | ✅ **Passed:** Clean shadow log on live traffic + dogfood case study. |
 | **M6: Python Adapter** | `v0.2.0` | [`init --source=python`](cmd/go-anything/init.go) | [`cmd/go-anything/m6_acceptance_test.go`](cmd/go-anything/m6_acceptance_test.go) | Python source adapter (AST import analysis, pytest discovery, Subprocess, HTTP, C-Shared transports, foreign library wrappers). | ✅ **Passed:** Python CLI and FastAPI HTTP service ported + conformance suite pass. |
 | **M7: TypeScript & Freeze** | `v1.0.0` | [`migrate`](cmd/go-anything/migrate.go), [`init --source=typescript`](cmd/go-anything/init.go) | [`cmd/go-anything/m7_acceptance_test.go`](cmd/go-anything/m7_acceptance_test.go), [`cmd/go-anything/migrate_test.go`](cmd/go-anything/migrate_test.go) | TypeScript/Node adapter (ESM/CommonJS, Jest/Vitest), `schemas/v1/` freeze, `go-anything migrate`, `GOVERNANCE.md`. | ✅ **Passed:** Multi-unit open-source project fully lifted with zero fallback traffic. |
+| **v2.0: Hot-Path & JS** | `v2.0.0` | [`fuzz`](cmd/go-anything/fuzz.go), [`bench`](cmd/go-anything/bench.go), [`profile`](cmd/go-anything/profile.go), [`bridge`](cmd/go-anything/bridge.go), [`go`](cmd/go-anything/go.go), [`setup`](cmd/go-anything/setup.go) | [`cmd/go-anything/go_test.go`](cmd/go-anything/go_test.go), [`cmd/go-anything/companion_test.go`](cmd/go-anything/companion_test.go), [`cmd/go-anything/setup_test.go`](cmd/go-anything/setup_test.go) | Stdio JSON-RPC sidecars (ADR-005), differential fuzz/bench/profile, `record --from-tests`/`--effects`, 14 MCP tools, multi-tool `setup`, JS adapter, `schemas/v2/`. | ✅ **Passed:** 32/32 commands wired with E2E coverage + real-world Node/Python ports. |
+| **v2.0.1: Gate & Security Hardening** | `v2.0.1` | [`gate`](cmd/go-anything/gate.go), [`mcp`](cmd/go-anything/mcp.go) | [`cmd/go-anything/owner_test.go`](cmd/go-anything/owner_test.go), [`cmd/go-anything/mcp_test.go`](cmd/go-anything/mcp_test.go), [`cmd/go-anything/stubs_guard_test.go`](cmd/go-anything/stubs_guard_test.go) | Canonical owner identity (ADR-007), code-derived docs (`tools/genstatus`), `staticcheck` in `full` gate + v2 evidence (ADR-008), expanded redactor, sandboxed sidecar builds, multi-language `inspect_unit`. | ✅ **Passed:** Full CI (`staticcheck`, `govulncheck`, `-race`, dogfood gate) & drift guards pass. |
+
+> [!NOTE]
+> **Upcoming Security & Fix Plan ([Docs/GO_ANYTHING_FIX_AND_SECURITY_PLAN.md](Docs/GO_ANYTHING_FIX_AND_SECURITY_PLAN.md)):**
+> - **`v2.0.1` (Shipped — Part A):** Code-derived docs, canonical identity, expanded redactor (`redactor.Detect`), `staticcheck` in `full` gate with v2 evidence, multi-language `inspect_unit`, sandboxed sidecar builds, and CI supply-chain hardening.
+> - **`v2.1.0` (Planned — Security Advisory & Audit):** Shared `internal/audit/` engine with type-checked `go/packages` driver, first 8 Go security rules (`GA-SQLI`, `GA-CMDI`, `GA-WEAKRAND`, `GA-BODYLIMIT`, `GA-TLS`, `GA-SERVER`, `GA-SECRET`, `GA-WEAKHASH`), `security` gate check (advisory in `full`, opt-in `--security=enforce`), `go-anything audit` CLI (`console`/`json`/`sarif`), read-only MCP `audit_code`, and legacy-tree secret warnings (`go-anything audit secrets`).
+> - **`v2.2.0` (Planned — Security Parity & Enforcement):** Differential security parity (`security_parity` negative-case replay for authn/authz/validation/limits/method/traversal), `security` promoted to **required** in `full` with an evidence schema bump, redacted legacy tree view (`go-anything view build`), heuristic `audit agent-config` lint, and release SBOM/`audit --deps`.
 
 ---
 
@@ -423,30 +458,37 @@ All core milestones from initial architecture through v1.0.0 have been fully imp
 4. **Python C-Shared Extension Status:**
    CPython C-Shared library in-process invocation (`adapters/source/python/cshared`) is experimental due to CPython Global Interpreter Lock (GIL) constraints, signal trapping, and thread-safety pitfalls across Go runtimes. For production Python migrations, the Subprocess and HTTP sidecar transports (`adapters/application/cli` and `adapters/application/http`) are the recommended, supported approaches.
 5. **Strict Human-Only Control Boundaries (Execution Rule 4):**
-   Altering live production routing tables, approving migration units, and permanently retiring legacy original code via `lift` are strictly human-only CLI operations (`approve`, `promote`, `lift`, `cutover`, `shadow`). These commands are intentionally excluded from the MCP agent server interface and cannot be invoked or forged by autonomous agents.
+   Altering live production routing tables, approving migration units, and permanently retiring legacy original code via `lift` are strictly human-only CLI operations (`approve`, `promote`, `lift`, `cutover`, `shadow`, and routing/kill-switch controls). These commands are intentionally excluded from the MCP agent server interface and cannot be invoked or forged by autonomous agents.
+6. **Offline Sandboxed Sidecar Builds:**
+   Hot-path sidecar `go build` and `go vet` commands execute inside `internal/sandbox` with networking disabled (`GOPROXY=off`, `GOTOOLCHAIN=local`, `GOFLAGS=-mod=readonly`). Workspaces using external Go dependencies must vendor them (`go mod vendor`) or warm the local `GOMODCACHE` beforehand (see [Docs/hotpath.md](Docs/hotpath.md)).
 
 ---
 
 ## Autonomous Agent & MCP Workflow
 
-`go-anything` includes a built-in Model Context Protocol (MCP) server that runs over `stdio` without external network listeners:
+`go-anything` includes a built-in Model Context Protocol (MCP) server that runs over `stdio` without external network listeners, plus a `setup` command to register it non-destructively across AI coding tools (Claude Code, Codex, Cursor, Gemini, and OpenCode):
 
 ```bash
+# Preview and install MCP registration & agent instructions (creates .bak backups)
+go-anything setup --tool all --dry-run
+go-anything setup --tool all --yes
+
+# Or start the MCP server directly over stdio
 go-anything mcp
 ```
 
 ### The Standard & Companion MCP Tools
 
-The MCP server enforces the 10-state unit lifecycle server-side. Agents cannot forge gate results or skip steps:
+The MCP server enforces the 10-state unit lifecycle server-side. Agents cannot forge gate results or skip steps (see [STATUS.md](STATUS.md) for the full 32-command traceability matrix and CLI exit codes):
 
 #### Core Lifecycle Tools (8 of 14 total)
 1. `status` — Show progress, next unit in dependency wave order, active leases, and blockers.
 2. `claim_unit` — Take a Ready unit with a time-bounded local lease in `.go-anything/local/`.
-3. `inspect_unit` — View original source code, sanitized sample cases, detected traps, and constraints.
+3. `inspect_unit` — View original source code (Go, Python, TypeScript, JavaScript), sanitized sample cases, detected traps, and constraints.
 4. `record_cases` — Run the original application in the sandbox, apply fail-closed redaction, and save JSONL.
 5. `verify_diff` — Build the port, replay all cases, and return PASS or top sanitized mismatches.
-6. `run_gate` — Run the full quality gate pipeline and write commit-tied evidence.
-7. `mark_verified` — Advance unit to Verified (rejected unless evidence exists for HEAD).
+6. `run_gate` — Run the full quality gate pipeline (`build`, `format`, `vet`, `staticcheck`, `race`, `govulncheck`, `replay`, `error_paths`, `api_compat`) and write v2 commit-tied evidence.
+7. `mark_verified` — Advance unit to Verified (fail-closed: rejected unless valid v2 evidence exists for HEAD).
 8. `handoff` — Write `HANDOFF.md` with progress and next steps for subsequent sessions.
 
 #### Companion & Hot-Path Tools (v2.0)
@@ -457,15 +499,15 @@ The MCP server enforces the 10-state unit lifecycle server-side. Agents cannot f
 - `fuzz_bench` — Run differential fuzz testing or performance benchmarks.
 - `shadow_status` — Inspect front-door shadow mode execution metrics and mismatch logs.
 
-> **Human-Only Boundary:** The MCP server **never** exposes `approve`, `promote`, `lift`, or live routing changes. These remain human-only CLI operations (Execution Rule 4).
+> **Human-Only Boundary:** The MCP server **never** exposes `approve`, `promote`, `lift`, `routing`, `toggle_shadow`, or `kill_switch`. Any attempt to invoke them via MCP is rejected fail-closed with `FORBIDDEN` (Execution Rule 4).
 
 ---
 
 ## Architecture & Design Principles
 
 1. **Small, Reversible Steps:** Replace software incrementally using the strangler pattern. The original remains immediately available as fallback until final lift.
-2. **Fail-Closed In-Memory Redaction:** Sensitive credentials (tokens, private keys, session cookies, cards) are replaced before any data hits disk. Unparseable sensitive payloads abort recording unless explicitly overridden.
-3. **Restricted Sandboxing:** Application execution occurs within sandbox boundaries: Linux namespaces (Tier 1) and best-effort process isolation on macOS/Windows (Tier 2). Network access is disabled by default.
+2. **Fail-Closed In-Memory Redaction:** Sensitive credentials (API keys, AWS secrets, URL credentials, tokens, private keys, session cookies, cards) are replaced before any data hits disk. Unparseable sensitive payloads abort recording unless explicitly overridden.
+3. **Restricted Sandboxing:** Application execution and sidecar builds occur within sandbox boundaries: Linux namespaces (Tier 1) and best-effort process isolation on macOS/Windows (Tier 2). Network access is disabled by default.
 4. **Deterministic Evidence:** Test cases, diffs, and scorecards are deterministically sorted by `case_id`, never execution time.
 5. **Local-First, Zero Telemetry:** All state, leases, and evidence remain inside `.go-anything/`. No telemetry is transmitted over the network.
 6. **Decoupled Adapter Architecture:** Language adapters interact via the frozen `pkg/adapterkit` contract and must achieve 100% compliance on `pkg/adapterkit/conformance`.
@@ -475,37 +517,55 @@ The MCP server enforces the 10-state unit lifecycle server-side. Agents cannot f
 ## Repository Map
 
 ```text
-cmd/go-anything/        CLI entry point and MCP stdio server
+cmd/go-anything/        CLI entry point (32 wired commands) and MCP stdio server
 pkg/adapterkit/         Public, frozen adapter contracts (v1)
   └── conformance/      Official adapter certification test suite
 internal/               Core migration engine:
+  ├── adapterhost/      Adapter discovery, manifest loading & runtime host
   ├── analyzer/         Source code AST, type analysis & call graphs
+  ├── app/              Application use cases (hot-path, fuzz, bench, profile, gate)
   ├── bench/            Latency and allocation benchmarks
-  ├── comparator/       Multi-mode diffing (exact, json, numeric, regex)
-  ├── gate/             Quality gate runner (build, vet, staticcheck, race, vuln)
-  ├── mcp/              Stdio MCP server with payload sanitization
+  ├── bridge/           Hot-path strangler sidecar bridge scaffolding & wrappers
+  ├── comparator/       Multi-mode diffing (exact, json, numeric, regex, effects)
+  ├── frontdoor/        Reverse proxy front door & kill-switch routing
+  ├── gate/             Quality gate runner (build, format, vet, staticcheck, race, vuln)
+  ├── lift/             Legacy fallback retirement engine
+  ├── mcp/              Stdio MCP server (14 tools) with payload sanitization
   ├── migrate/          Workspace schema migration engine
   ├── planner/          Topological dependency wave planner
   ├── recorder/         Sandboxed dual-run case recording & volatility detection
-  ├── redactor/         Fail-closed in-memory credential redaction
+  ├── redactor/         Fail-closed in-memory credential detection & redaction
   ├── replay/           Concurrent deterministic replay engine
   ├── sandbox/          Linux namespaces & OS process isolation
+  ├── setup/            Non-destructive multi-tool MCP & template setup
   ├── shadow/           Live shadow mode engine with bounded worker pools
-  └── state/            10-state unit lifecycle, atomic I/O & file locks
+  └── state/            10-state unit lifecycle, atomic I/O, file locks & v2 evidence
 adapters/               Language and runtime adapters:
   ├── source/           Source adapters (Go, Python, TypeScript, JavaScript)
   └── application/      Runtime adapters (CLI, HTTP, Foreign Library, Worker)
+skills/                 Agent workflow skill definitions
+templates/              Agent instruction templates (CLAUDE.md, AGENTS.md, etc.)
+tools/genstatus/        Code-derived STATUS.md and MCP tool table generator
 packaging/              Package manager wrappers (npm, Homebrew, Scoop)
 demo/                   Real-world migration benchmarks (Node REST API, Python Worker)
 schemas/                Versioned JSON Schemas:
   ├── v1/               Stable frozen schemas (manifest, units, rules, cases, etc.)
-  ├── v2/               Command output schemas (analyze, diff, gate, shadow, cutover)
+  ├── v2/               v2 command & evidence schemas (evidence, fuzz, bench, profile, etc.)
   └── v1alpha1/         Legacy schemas (supported via go-anything migrate)
 Docs/                   Architecture, guides, and documentation:
-  ├── decisions/        Architecture Decision Records (ADR-001, ADR-002, ADR-005)
+  ├── decisions/        Architecture Decision Records (ADR-001, 002, 005, 007, 008)
   ├── case-studies/     Public dogfooding case studies (M3, M4, M5, M6, M7)
   ├── USER_GUIDE.md     Comprehensive user guide and CLI reference
+  ├── hotpath.md        Sandboxed sidecar build & offline prerequisites
+  ├── how-it-works.md   Deep dive into strangler recording & verification
+  ├── real-world.md     External Node.js & Python migration benchmarks
+  ├── pitfalls.md       Semantic traps & migration pitfalls
+  ├── faq.md            Frequently asked questions
+  ├── privacy.md        Local-first privacy & zero-telemetry guarantees
+  ├── whole-apps.md     Full-application migration guide
   └── install.md        Platform matrix, checksums, and Cosign verification
+STATUS.md               Code-derived 32-command & 14-MCP-tool traceability matrix
+CHANGELOG.md            Release history and upgrade notes
 GOVERNANCE.md           Maintainer roles, consensus, RFCs, and adapter certification
 SECURITY.md             Threat model, sandboxing, and vulnerability disclosure policy
 CONTRIBUTING.md         Development prerequisites, coding standards, and verification

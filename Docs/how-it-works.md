@@ -43,11 +43,8 @@ Behavioral cases are recorded either from existing unit/integration test suites 
 - **In-memory redaction (Rule R-4):** All passwords, authorization headers, tokens, and secrets are substituted in memory *before* being written to disk (`.go-anything/cases/<unit>.jsonl`).
 
 ### 3. Agent Implementation & Leases
-An agent or developer claims a Ready unit:
-```bash
-go-anything claim --unit-id pkg/crypto --actor agent-1
-```
-This acquires a time-bounded local file lease under OS locks. The agent writes idiomatic Go inside the unit's declared scope. Scaffolds return `ErrNotPorted` to ensure no incomplete code is silently used.
+An agent claims a Ready unit via the MCP `claim_unit` tool (`unit_id: "pkg/crypto"`, `actor: "agent-1"`):
+This acquires a time-bounded local file lease under OS locks in `.go-anything/local/`. The agent writes idiomatic Go inside the unit's declared scope. Scaffolds return `ErrNotPorted` to ensure no incomplete code is silently used.
 
 ### 4. Deterministic Replay & Comparator
 The replay engine feeds recorded inputs into the Go implementation and compares outputs:
@@ -56,10 +53,11 @@ The replay engine feeds recorded inputs into the Go implementation and compares 
 - **Divergence:** Any unexpected output or panic blocks transition.
 
 ### 5. Quality Gate Pipeline
-The gate runner verifies the port against 8 mandatory checks:
+The gate runner verifies the port against the 9 required checks in the `full` profile (`FullProfileChecks()`):
 - `build`: Clean Go compilation.
 - `format`: Code formatted with `gofmt -s`.
 - `vet`: Clean `go vet` run.
+- `staticcheck`: Extended static analysis via `staticcheck` (required in `full` as of v2.0.1).
 - `race`: Zero race conditions via `go test -race`.
 - `govulncheck`: Zero known CVE vulnerabilities.
 - `replay`: 100% match on recorded cases (0 mismatches).

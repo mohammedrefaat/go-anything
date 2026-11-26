@@ -27,7 +27,7 @@ All release artifacts are built using pure Go (`CGO_ENABLED=0`) with `-trimpath`
 Run the following commands to download, verify, and install the latest `go-anything` binary:
 
 ```bash
-VERSION="1.0.0"
+VERSION="2.0.1"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 case "$ARCH" in
@@ -74,7 +74,7 @@ go-anything version
 In an elevated or user PowerShell terminal:
 
 ```powershell
-$Version = "1.0.0"
+$Version = "2.0.1"
 $Arch = "amd64"
 $ReleaseUrl = "https://github.com/mohammedrefaat/go-anything/releases/download/v$Version"
 $Artifact = "go-anything_${Version}_windows_${Arch}.zip"

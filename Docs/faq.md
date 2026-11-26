@@ -5,7 +5,7 @@
 
 ### What languages can go-anything migrate?
 As of v2.0, `go-anything` supports:
-- **Go modernization:** Upgrading legacy Go (e.g. Go 1.12) to modern Go 1.26+ with standard tooling.
+- **Go modernization:** Upgrading legacy Go (e.g. Go 1.12) to modern Go 1.27+ with standard tooling.
 - **Node.js / TypeScript:** Full support for CommonJS, ESM, Express/Fastify, and microservices.
 - **JavaScript:** Pure Node.js and JavaScript applications.
 - **Python:** CLI utilities, background workers, and FastAPI/Flask services.
@@ -18,7 +18,7 @@ Per **Rule R-6**, parity is claimed **strictly and only for recorded and fuzzed 
 **Never.** Per **Rule R-1 (Human-Only Controls)**, the commands `approve`, `promote`, `lift`, and any production routing changes are CLI-only. They require human judgment and are strictly excluded from MCP tools and automated execution.
 
 ### How does secret redaction work?
-Secret redaction is **core-owned and fail-closed** (Rule R-4). Passwords, Bearer tokens, private keys, and sensitive environment variables are masked in-memory before writing to `.go-anything/cases/`. Redaction cannot be disabled by third-party language adapters.
+Secret redaction is **core-owned and fail-closed** (Rule R-4). Passwords, Bearer/Basic tokens, JWTs, API keys (Google `AIza...`, Stripe, SendGrid, npm, Twilio), AWS access/secret keys, URL credentials, private keys, and sensitive assignments are masked in-memory before writing to `.go-anything/cases/`. Redaction cannot be disabled by third-party language adapters.
 
 ### What are the 10 states in a unit's lifecycle?
 1. **Planned:** Identified in dependency wave order.

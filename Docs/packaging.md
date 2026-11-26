@@ -7,10 +7,10 @@
 ## Release Pipeline
 
 Every official release of `go-anything` is built and published automatically via GitHub Actions using **GoReleaser**:
-- Cross-compiled for Linux (amd64, arm64), macOS (amd64, arm64), and Windows (amd64, arm64).
+- Cross-compiled for Linux (`amd64`, `arm64`), macOS (`amd64`, `arm64`), and Windows (`amd64`).
 - Cryptographically signed with **Cosign** (keyless OIDC via GitHub).
 - Generates reproducible `checksums.txt` SHA-256 digests.
-- Software Bill of Materials (SBOM) produced via `syft` in SPDX/CycloneDX format.
+- Automated SBOM generation is planned for `v2.2.0` (see [GO_ANYTHING_FIX_AND_SECURITY_PLAN.md](GO_ANYTHING_FIX_AND_SECURITY_PLAN.md)).
 
 ---
 
@@ -36,15 +36,15 @@ sha256sum -c checksums.txt
 
 # Verify signature with cosign
 cosign verify-blob \
+  --bundle checksums.txt.sigstore.json \
   --certificate-identity-regexp "^https://github\.com/mohammedrefaat/go-anything/\.github/workflows/release\.yml@refs/tags/v.*$" \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --signature go-anything_2.0.0_linux_amd64.tar.gz.sig \
-  go-anything_2.0.0_linux_amd64.tar.gz
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  checksums.txt
 ```
 
 ### 4. Direct Go Install
 ```bash
-go install github.com/mohammedrefaat/go-anything/cmd/go-anything@v1.0.1
+go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest
 ```
 *(Matches the `github.com/mohammedrefaat/go-anything` module path in `go.mod`; v2+ Go module installs require a `/v2` module path suffix.)*
 

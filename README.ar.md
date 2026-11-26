@@ -9,17 +9,17 @@
   <p>
     <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go" alt="Go 1.27+" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D8%AA%D8%B1%D8%AE%D9%8A%D8%B5-Apache--2.0-6C7CFF.svg" alt="Apache 2.0" /></a>
-    <a href="https://github.com/mohammedrefaat/go-anything/releases"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1-v2.0.0-34D399.svg" alt="الإصدار v2.0.0" /></a>
+    <a href="https://github.com/mohammedrefaat/go-anything/releases"><img src="https://img.shields.io/badge/%D8%A7%D9%84%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1-v2.0.1-34D399.svg" alt="الإصدار v2.0.1" /></a>
   </p>
 
   <p>
     <a href="#التثبيت-والتحقق">التثبيت</a> ·
     <a href="#دليل-البدء-السريع-في-5-دقائق">البدء السريع</a> ·
-    <a href="Docs/USER_GUIDE.md">دليل المستخدم الكامل</a> ·
-    <a href="#كيف-يعمل">كيف يعمل</a> ·
-    <a href="#خارطة-طريق-المراحل-الرئيسية-m0m7">خارطة الطريق</a> ·
-    <a href="#القيود-المعروفة">القيود المعروفة</a> ·
-    <a href="GOVERNANCE.md">الحوكمة</a> ·
+    <a href="Docs/USER_GUIDE.md">دليل المستخدم</a> ·
+    <a href="STATUS.md">مصفوفة الأوامر (32/32)</a> ·
+    <a href="#الجسور-الجانبية-للمسارات-الساخنة-والاختبار-التفاضلي">المسارات الساخنة وFuzz/Bench</a> ·
+    <a href="#خارطة-طريق-المراحل-الرئيسية-m0m7-و-v20">خارطة الطريق</a> ·
+    <a href="CHANGELOG.md">سجل التغييرات</a> ·
     <a href="SECURITY.md">الأمان</a> ·
     <a href="Docs/go-anything%20Architecture%20%26%20Implementation%20Plan%20(v3)%20(1).md">المعمارية</a>
   </p>
@@ -41,7 +41,8 @@
 - [إخلاء مسؤولية صريح حول التطابق السلوكي (Parity Disclaimer)](#إخلاء-مسؤولية-صريح-حول-التطابق-السلوكي-parity-disclaimer)
 - [التثبيت والتحقق](#التثبيت-والتحقق)
 - [دليل البدء السريع في 5 دقائق](#دليل-البدء-السريع-في-5-دقائق)
-- [خارطة طريق المراحل الرئيسية (M0–M7)](#خارطة-طريق-المراحل-الرئيسية-m0m7)
+- [الجسور الجانبية للمسارات الساخنة والاختبار التفاضلي](#الجسور-الجانبية-للمسارات-الساخنة-والاختبار-التفاضلي)
+- [خارطة طريق المراحل الرئيسية (M0–M7 و v2.0)](#خارطة-طريق-المراحل-الرئيسية-m0m7-و-v20)
 - [القيود المعروفة](#القيود-المعروفة)
 - [سير عمل وكلاء الذكاء الاصطناعي وMCP](#سير-عمل-وكلاء-الذكاء-الاصطناعي-وmcp)
 - [معمارية النظام ومبادئ التصميم](#معمارية-النظام-ومبادئ-التصميم)
@@ -53,11 +54,11 @@
 
 ## كيف يعمل
 
-يقوم `go-anything` بترحيل التطبيقات والخدمات إلى لغة Go **وحدة برمجية واحدة تلو الأخرى**، مع إثبات تطابق سلوك كل وحدة تم ترحيلها مع السلوك المسجل للنظام الأصلي بدقة قبل اعتمادها للإنتاج.
+يقوم `go-anything` بترحيل التطبيقات والخدمات من **Go أو Python أو TypeScript أو JavaScript** إلى لغة Go الحديثة **وحدة برمجية أو مساراً ساخناً واحداً تلو الآخر**، مع إثبات تطابق سلوك كل وحدة تم ترحيلها مع السلوك المسجل للنظام الأصلي بدقة قبل اعتمادها للإنتاج.
 
-- **ليس مترجم أكواد آلي (AST Transpiler):** يقوم المطور أو وكيل البرمجة الذكي بكتابة كود Go عصري ومثالي. بينما يتولى `go-anything` التنسيق، بيئات العزل (Sandbox)، التقاط السلوك الحقيقي، إعادة التشغيل التفاضلي، وبوابات الجودة الصارمة.
-- **نمط شجرة الخناق (Strangler Fig):** يظل التطبيق الأصلي قيد التشغيل في الإنتاج. يتم استبدال الوحدات المحددة تدريجياً عبر خادم وكيل عكسي (Reverse Proxy) أو موجه جانبي (Sidecar Router) قابل للإرجاع الفوري عند الحاجة.
-- **التحقق الصارم الآمن عند الإخفاق (Fail-Closed):** يتم التحقق من التطابق من خلال تشغيل المدخلات المسجلة وحالات الاختبار العشوائي (Fuzzing) عبر كلا النظامين ومقارنة المخرجات وفق قواعد حتمية.
+- **ليس مترجم أكواد آلي (AST Transpiler):** يقوم المطور أو وكيل البرمجة الذكي بكتابة كود Go عصري ومثالي. بينما يتولى `go-anything` التنسيق، وبيئات العزل (Sandbox)، والتقاط السلوك الحقيقي، وإعادة التشغيل والاختبار التفاضلي، وجسور الربط الجانبية، وبوابات الجودة الصارمة.
+- **نمط شجرة الخناق (Strangler Fig):** يظل التطبيق الأصلي قيد التشغيل في الإنتاج. يتم استبدال الوحدات المحددة (أو الدوال الساخنة الفردية عبر جسور stdio JSON-RPC الجانبية) تدريجياً عبر موجه أو جسر قابل للإرجاع الفوري عند الحاجة.
+- **التحقق الصارم الآمن عند الإخفاق (Fail-Closed):** يتم التحقق من التطابق من خلال تشغيل المدخلات المسجلة وحالات الاختبار العشوائي (Fuzzing) عبر كلا النظامين ومقارنة المخرجات والآثار الجانبية وفق قواعد حتمية.
 
 ```mermaid
 flowchart LR
@@ -76,11 +77,11 @@ flowchart LR
 
 | إعادة الكتابة الشاملة عالية المخاطر | الترحيل التدريجي المتحقق منه (`go-anything`) |
 | :--- | :--- |
-| استبدال كامل المشروع مرة واحدة في خطوة محفوفة بالمخاطر | الترحيل تدريجياً حسب موجات الاعتماديات المنعزلة |
-| اكتشاف الثغرات وحالات الفشل بعد الإطلاق في الإنتاج | المقارنة مع حالات حقيقية مسجلة قبل تحويل أي بيانات |
-| ضياع سياق العمل والتقدم داخل محادثات شات مؤقتة | حفظ الحالة في ملفات JSON/JSONL موثقة ومحفوظة في Git |
-| افتراض التطابق بناءً على اختبارات تقليدية فقط | أدلة تطابق صريحة مربوطة بمتجهات وبيانات اختبار موثقة |
-| منح وكلاء الذكاء الاصطناعي صلاحيات نشر كاملة وغير منضبطة | قرارات الاعتماد والترقية `approve` و`promote` و`lift` بيد الإنسان فقط |
+| استبدال كامل المشروع مرة واحدة في خطوة محفوفة بالمخاطر | الترحيل تدريجياً حسب موجات الاعتماديات المنعزلة أو الدوال الساخنة |
+| اكتشاف الثغرات وحالات الفشل بعد الإطلاق في الإنتاج | المقارنة مع حالات حقيقية مسجلة ومدخلات Fuzzing قبل تحويل أي بيانات |
+| ضياع سياق العمل والتقدم داخل محادثات شات مؤقتة | حفظ الحالة في ملفات JSON/JSONL موثقة وقابلة للمراجعة |
+| افتراض التطابق بناءً على اختبارات تقليدية فقط | أدلة تطابق صريحة مربوطة بمتجهات اختبار وأرقام Commit موثقة |
+| منح وكلاء الذكاء الاصطناعي صلاحيات نشر كاملة وغير منضبطة | قرارات الاعتماد والترقية `approve` و`promote` و`lift` وتعديل المسارات بيد الإنسان فقط |
 
 ---
 
@@ -133,7 +134,7 @@ npm install -g @mohammedrefaat/go-anything
 #### أنظمة Linux و macOS (عبر Bash / Zsh)
 
 ```bash
-VERSION="2.0.0"
+VERSION="2.0.1"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 RELEASE_URL="https://github.com/mohammedrefaat/go-anything/releases/download/v${VERSION}"
@@ -166,7 +167,7 @@ sudo install -m 0755 go-anything /usr/local/bin/go-anything
 #### نظام Windows (عبر PowerShell)
 
 ```powershell
-$Version = "2.0.0"
+$Version = "2.0.1"
 $ReleaseUrl = "https://github.com/mohammedrefaat/go-anything/releases/download/v$Version"
 $Artifact = "go-anything_${Version}_windows_amd64.zip"
 
@@ -209,7 +210,7 @@ go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest
 
 ```bash
 go-anything version
-# المخرجات المتوقعة: go-anything v2.0.0 (profile: full, jobs: 8)
+# المخرجات المتوقعة: go-anything v2.0.1 (profile: full, jobs: 8)
 
 go-anything doctor
 # المخرجات المتوقعة: [PASS] workspace clean, tools available, no stale leases
@@ -219,7 +220,7 @@ go-anything doctor
 
 ## دليل البدء السريع في 5 دقائق
 
-اتبع هذا الدليل العملي بدءاً من بيئة نظيفة لتهيئة مشروع، تسجيل السلوك، كتابة وحدة بلغة Go، واجتياز بوابات الجودة وإعادة التشغيل بدون مساعدة خارجية:
+اتبع هذا الدليل العملي بدءاً من بيئة نظيفة لتهيئة مشروع، وتسجيل السلوك، وكتابة وحدة بلغة Go، واجتياز بوابات الجودة وإعادة التشغيل **بدون مساعدة بشرية وسيطة**:
 
 ### المتطلبات الأساسية
 
@@ -228,21 +229,29 @@ go-anything doctor
 
 ### الخطوة 1: تثبيت `go-anything`
 
-قم بتثبيت الأداة عبر مديري الحزم، أو التجميع المسبق، أو عبر أدوات Go:
+قم بتثبيت الأداة عبر الملفات المترجمة مسبقاً، أو `go install`، أو من الكود المصدري (راجع [التثبيت والتحقق](#التثبيت-والتحقق) أو [Docs/install.md](Docs/install.md) للتفاصيل الكاملة والتحقق التشفيري):
 
 ```bash
+# الخيار أ: سلسلة أدوات Go
 go install github.com/mohammedrefaat/go-anything/cmd/go-anything@latest
+
+# الخيار ب: الاستنساخ والتثبيت محلياً
+git clone https://github.com/mohammedrefaat/go-anything.git
+cd go-anything
+go install ./cmd/go-anything
 
 # التأكد من التثبيت
 go-anything version
-# المخرجات المتوقعة: go-anything v2.0.0 (profile: full, jobs: 8)
+# المخرجات المتوقعة: go-anything v2.0.1 (profile: full, jobs: 8)
 ```
+
+*(بدلاً من ذلك، يمكنك تشغيل الأوامر مباشرة عبر `go run ./cmd/go-anything <subcommand>`.)*
 
 ---
 
 ### الخطوة 2: تهيئة أو تحديث مساحة العمل
 
-أنشئ مساحة عمل للترحيل أو قم بتحديث خدمة Go قائمة. لأي مشروع Go قديم، ينشئ أمر `modernize` النسخة المرجعية `legacy/` ومجلد الكود الحديث `modern/`:
+أنشئ مساحة عمل مخصصة للترحيل (يدعم الخيار `--source` لغات `go` و`python` و`typescript` و`javascript`) أو قم بتحديث خدمة Go قائمة. لأي مشروع Go قديم، ينشئ أمر `modernize` (اسم بديل لـ `init --source=go`) النسخة المرجعية `legacy/` ومجلد الكود الحديث `modern/`:
 
 ```bash
 # تهيئة مساحة عمل للخدمة المستهدفة
@@ -287,15 +296,19 @@ Dependency Waves:
 التقط حالات الاختبار السلوكية من التطبيق الأصلي. يشغل `go-anything record` الأوامر داخل بيئة عزل صارمة، ويستبدل البيانات الحساسة في الذاكرة بصيغ وهمية آمنة ويحفظ الحالات في ملفات JSONL:
 
 ```bash
+# تسجيل حالات السلوك من أداة سطر الأوامر أو الخدمة الأصلية
 go-anything record \
   --unit unit-healthcheck \
   --cmd "./legacy-service --health" \
   --dir .
+
+# أو التقاط الحالات من اختبارات Go/Python/Jest الحالية مع تسجيل الآثار الجانبية:
+# go-anything record --unit unit-healthcheck --from-tests --effects --dir .
 ```
 
 يقوم `go-anything` تلقائياً بما يلي:
 - تشغيل التطبيق مرتين لرصد المخرجات المتغيرة دورياً (الوقت، العدادات).
-- استبدال كلمات المرور والرموز السرية وCookies ببدائل وهمية تحافظ على التنسيق.
+- استبدال مفاتيح API وأسرار AWS وبيانات الاعتماد في الروابط والرموز السرية وCookies ببدائل تحافظ على التنسيق.
 - تخزين الحالات المطهرة في `.go-anything/cases/unit-healthcheck.jsonl`.
 - ترقية حالة الوحدة من `Planned` إلى `Recorded`.
 
@@ -356,25 +369,26 @@ Replay complete: 10/10 passed (0 mismatches, 0 errors).
 
 ### الخطوة 7: التحقق وفحص بوابات الجودة
 
-تحقق من مطابقة الوحدة للمتطلبات واجتياز فحوص الجودة الكاملة (`build`, `vet`, `test -race`, `govulncheck`, `error_paths`, `api_compat`):
+تحقق من مطابقة الوحدة لبوابة الجودة `full` (`build`, `format`, `vet`, `staticcheck`, `race`, `govulncheck`, `replay`, `error_paths`, `api_compat`) أو استخدم `--profile replay` لفحوص التطابق السلوكي فقط:
 
 ```bash
+# التحقق من التكافؤ السلوكي أمام الحالات المسجلة
 go-anything verify unit-healthcheck \
   --target ./bin/modern-health \
   --profile replay \
   --dir .
 ```
 
-في خطوط الأتمتة أو جلسات الوكلاء عبر MCP (`run_gate`)، يتم حفظ الأدلة وتوثيقها وربطها برقم الـ Commit في `.go-anything/evidence/` وترقية الوحدة إلى `Verified`.
+عند تشغيل ملف `full` (`go-anything gate` أو أداة MCP `run_gate`)، يتم حفظ أدلة الإصدار الثاني المرتبطة برقم الـ Commit (`schemas/v2/evidence.schema.json`، `profile_version: "2.0.1"`) في `.go-anything/evidence/` وترقية حالة الوحدة إلى `Verified`.
 
 ---
 
 ### الخطوة 8: الموافقة البشرية والترقية وإزالة الكود القديم (Lift)
 
-بمجرد التحقق، يمنح المهندس البشري الموافقة، ويفعل توجيه البيانات، ثم يزيل التطبيق القديم بأمان:
+في هذا المثال، يتخطى الأمر `go-anything approve unit-healthcheck --skip-shadow` مرحلة الوضع الخفي وينقل الوحدة مباشرة من `Verified` إلى `Approved`. بعد ذلك يمكن للمشغل تفعيل المسار ثم إزالة التطبيق القديم عندما تصل حركة التراجع إلى الصفر:
 
 ```bash
-# 1. موافقة بشرية (حصرياً عبر سطر الأوامر، لا يمكن للوكلاء تنفيذها)
+# 1. موافقة بشرية (حصرياً عبر سطر الأوامر، لا يمكن لأدوات MCP تنفيذها)
 go-anything approve unit-healthcheck --skip-shadow
 
 # 2. تحويل مسار البيانات الرئيسي إلى كود Go الحديث
@@ -386,59 +400,96 @@ go-anything lift unit-healthcheck
 
 ---
 
-## خارطة طريق المراحل الرئيسية (M0–M7)
+## الجسور الجانبية للمسارات الساخنة والاختبار التفاضلي
 
-تم تنفيذ واختبار كافة المراحل الرئيسية للمشروع من التأسيس وصولاً إلى الإصدار المستقر الكامل، وتم إثباتها بالاختبارات المؤتمتة:
+بدءاً من الإصدار `v2.0`، يدعم `go-anything` **الجسور الجانبية للمسارات الساخنة (Hot-Path Strangler Sidecars)** جنباً إلى جنب مع ترحيل الوحدات الكاملة، مما يتيح لتطبيقات Python وTypeScript/Node تفويض الدوال الحساسة للمعالج أو زمن الاستجابة إلى جسر Go يعمل عبر stdio JSON-RPC مع التعافي التلقائي من الأعطال والتراجع الآمن ([ADR-005](Docs/decisions/adr-005-hotpath-sidecar-protocol.md)، [Docs/hotpath.md](Docs/hotpath.md)).
+
+```text
+profile → bridge → go (hotpath) → fuzz / bench → gate → shadow → human approve / enable / lift
+```
+
+الأوامر الرئيسية (جميع أوامر CLI الـ 32 موصولة ومغطاة باختبارات E2E بنسبة 100% في [STATUS.md](STATUS.md)):
+
+- **الاستكشاف والاختبار التفاضلي:** `profile` (ترتيب الدوال الساخنة المرشحة)، `fuzz` (اختبار Fuzzing تفاضلي عبر الحالات المسجلة)، `bench` (مقارنة زمن الاستجابة واستهلاك الذاكرة)، `diff` (عرض الفروقات البنيوية للحالات).
+- **دورة حياة الجسر الجانبي:** `bridge` (توليد جسر Go وأغلفة Python/TS)، `go` (تدفق الترحيل الموجه للمسارات الساخنة حتى حد الموافقة البشرية)، `enable` / `disable` (تفعيل أو تعطيل توجيه الجسر)، `map` (عرض حالة ترحيل الدوال وتوجيهها)، `refresh` (إعادة تسجيل الحالات وإعادة المقارنة)، `clean` (إزالة ملفات الجسر المولدة)، `report` (تقرير بطاقة النتائج بصيغة Markdown/JSON).
+
+**نتائج قياس الأداء الواقعية** (قابلة لإعادة الإنتاج عبر `make demo-node` و`make demo-python`؛ راجع [Docs/real-world.md](Docs/real-world.md)):
+
+| التطبيق | عبء العمل | تطابق إعادة التشغيل | تسريع p50 | زيادة الإنتاجية |
+| :--- | :--- | :---: | :---: | :---: |
+| **خدمة Node.js REST API** (`demo/real-world/node-rest-api`) | عمليات CRUD (`typicode/json-server`) | 100% (9/9 حالات) | **أسرع بـ 1.38x** | **+41.7%** |
+| **معالج مهام Python Worker** (`demo/real-world/python-worker`) | إحصائيات وتجزئة تشفيرية وتصفية | 100% (8/8 حالات) | **أسرع بـ 5.69x** | **+472%** |
+
+---
+
+## خارطة طريق المراحل الرئيسية (M0–M7 و v2.0)
+
+تم تنفيذ واختبار كافة المراحل الرئيسية للمشروع (M0–M7) وإصدارات v2.0، وتم إثباتها بالاختبارات المؤتمتة:
 
 | المرحلة | الإصدار | أوامر CLI المحققة | ملفات الاختبار المحققة | النطاق والمخرجات الرئيسية | حالة بوابة الإنجاز |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **M0: الأساس المعماري** | `v0.0.x` | [`init`](cmd/go-anything/init.go), [`doctor`](cmd/go-anything/doctor.go), [`status`](cmd/go-anything/status.go), [`template`](cmd/go-anything/template.go) | [`cmd/go-anything/cli_test.go`](cmd/go-anything/cli_test.go) | آلة الـ 10 حالات، القراءة والكتابة الذرية، أقفال الملفات، عازل التنفيذ، هيكل CLI، ADR-001/002. | ✅ **تم الاجتياز:** اجتياز فحص `init` و`doctor` بنجاح تام. |
-| **M1: إعادة التشغيل بالعازل** | `v0.0.x` | [`record`](cmd/go-anything/record.go), [`replay`](cmd/go-anything/replay.go), [`diff`](cmd/go-anything/diff.go) | [`cmd/go-anything/e2e_m1_test.go`](cmd/go-anything/e2e_m1_test.go) | رصد الحقول المتغيرة بالتشغيل المزدوج، مقارن متعدد الأنماط، محرك إعادة التشغيل التزامني. | ✅ **تم الاجتياز:** تطابق تام 100% عبر 3 جولات متطابقة متتالية. |
-| **M2: الواجهة والإزالة** | `v0.0.x` | [`verify`](cmd/go-anything/verify.go), [`approve`](cmd/go-anything/approve.go), [`promote`](cmd/go-anything/promote.go), [`cutover`](cmd/go-anything/cutover.go), [`lift`](cmd/go-anything/lift.go) | [`cmd/go-anything/e2e_m2_test.go`](cmd/go-anything/e2e_m2_test.go), [`cmd/go-anything/verify_approve_promote_test.go`](cmd/go-anything/verify_approve_promote_test.go) | البروكسي العكسي، مفتاح الإيقاف الطارئ (`KILL_SWITCH=1`)، مراقبة التراجع، وأمر `lift`. | ✅ **تم الاجتياز:** إتمام الدورة الكاملة على تطبيقات تجريبية بنجاح. |
-| **M3: محول لغة Go** | `v0.1.0` | [`modernize`](cmd/go-anything/init.go), [`analyze`](cmd/go-anything/analyze.go) | [`cmd/go-anything/modernize_test.go`](cmd/go-anything/modernize_test.go), [`cmd/go-anything/dogfood_test.go`](cmd/go-anything/dogfood_test.go) | محلل شجرة Go AST، تحديد الأنواع، تخطيط الموجات عبر شجرة الاستدعاء، تدفق `modernize`. | ✅ **تم الاجتياز:** تحديث خدمة Go حقيقية بدون أي فروقات. |
-| **M4: بوابات الجودة وMCP** | `v0.1.0` | [`gate`](cmd/go-anything/gate.go), [`mcp`](cmd/go-anything/mcp.go) | [`cmd/go-anything/m4_acceptance_test.go`](cmd/go-anything/m4_acceptance_test.go), [`cmd/go-anything/mcp_test.go`](cmd/go-anything/mcp_test.go) | مصفوفة الفحص السداسية، بطاقات النتائج، خادم MCP stdio (8 أدوات) مع تطهير المدخلات. | ✅ **تم الاجتياز:** نجاح وكيل ذكاء اصطناعي بنقل وحدة برمجية كاملة بشكل مستقل. |
-| **M5: الوضع الخفي والالتقاط** | `v0.1.0` | [`shadow`](cmd/go-anything/shadow.go) | [`cmd/go-anything/m5_acceptance_test.go`](cmd/go-anything/m5_acceptance_test.go) | نسخ البيانات الحية في الوقت الحقيقي، أحواض معالجة منضبطة، واقتصار تلقائي على طلبات GET/HEAD. | ✅ **تم الاجتياز:** سجل نظيف للوضع الخفي ودراسة حالة حية. |
-| **M6: محول Python** | `v0.2.0` | [`init --source=python`](cmd/go-anything/init.go) | [`cmd/go-anything/m6_acceptance_test.go`](cmd/go-anything/m6_acceptance_test.go) | محول لغة Python (تحليل استيرادات AST، دعم pytest، قنوات Subprocess وHTTP وC-Shared). | ✅ **تم الاجتياز:** ترحيل أداة CLI وخدمة FastAPI بنجاح تام. |
-| **M7: محول TypeScript والتجميد** | `v1.0.0` | [`migrate`](cmd/go-anything/migrate.go), [`init --source=typescript`](cmd/go-anything/init.go) | [`cmd/go-anything/m7_acceptance_test.go`](cmd/go-anything/m7_acceptance_test.go), [`cmd/go-anything/migrate_test.go`](cmd/go-anything/migrate_test.go) | محول TypeScript/Node (ESM/CommonJS، Jest/Vitest)، تجميد مخططات `schemas/v1/`، أمر `migrate`، `GOVERNANCE.md`. | ✅ **تم الاجتياز:** ترحيل مشروع مفتوح المصدر متعدد الوحدات بالكامل مع صفر تراجع. |
+| **M0: الأساس المعماري** | `v0.0.x` | [`init`](cmd/go-anything/init.go), [`doctor`](cmd/go-anything/doctor.go), [`status`](cmd/go-anything/status.go), [`template`](cmd/go-anything/template.go) | [`cmd/go-anything/cli_test.go`](cmd/go-anything/cli_test.go) | آلة الـ 10 حالات، القراءة والكتابة الذرية، أقفال الملفات، أداة الحجب fail-closed، عازل التنفيذ، هيكل CLI، ADR-001/002. | ✅ **تم الاجتياز:** اجتياز فحص `init` و`doctor` بنجاح تام. |
+| **M1: إعادة التشغيل بالعازل** | `v0.0.x` | [`record`](cmd/go-anything/record.go), [`replay`](cmd/go-anything/replay.go), [`diff`](cmd/go-anything/diff.go) | [`cmd/go-anything/e2e_m1_test.go`](cmd/go-anything/e2e_m1_test.go) | رصد الحقول المتغيرة بالتشغيل المزدوج، مقارن متعدد الأنماط (exact, json, numeric, regex)، محرك إعادة التشغيل التزامني. | ✅ **تم الاجتياز:** تطابق تام 100% عبر 3 جولات متطابقة متتالية. |
+| **M2: الواجهة والإزالة** | `v0.0.x` | [`verify`](cmd/go-anything/verify.go), [`approve`](cmd/go-anything/approve.go), [`promote`](cmd/go-anything/promote.go), [`cutover`](cmd/go-anything/cutover.go), [`lift`](cmd/go-anything/lift.go) | [`cmd/go-anything/e2e_m2_test.go`](cmd/go-anything/e2e_m2_test.go), [`cmd/go-anything/verify_approve_promote_test.go`](cmd/go-anything/verify_approve_promote_test.go) | البروكسي العكسي، مفتاح الإيقاف الطارئ (`KILL_SWITCH=1`)، مراقبة التراجع، وأمر `lift`. | ✅ **تم الاجتياز:** إتمام الدورة الكاملة على تطبيقات CLI وHTTP التجريبية بنجاح. |
+| **M3: محول لغة Go** | `v0.1.0` | [`modernize`](cmd/go-anything/init.go), [`analyze`](cmd/go-anything/analyze.go) | [`cmd/go-anything/modernize_test.go`](cmd/go-anything/modernize_test.go), [`cmd/go-anything/dogfood_test.go`](cmd/go-anything/dogfood_test.go) | محلل شجرة Go AST، تحديد الأنواع، تخطيط الموجات عبر شجرة الاستدعاء، تدفق `go-anything modernize`. | ✅ **تم الاجتياز:** تحديث خدمة Go حقيقية بدون أي فروقات. |
+| **M4: بوابات الجودة وMCP** | `v0.1.0` | [`gate`](cmd/go-anything/gate.go), [`mcp`](cmd/go-anything/mcp.go) | [`cmd/go-anything/m4_acceptance_test.go`](cmd/go-anything/m4_acceptance_test.go), [`cmd/go-anything/mcp_test.go`](cmd/go-anything/mcp_test.go) | محرك بوابات الجودة متعدد الفحوص (`AllChecks` / `FullProfileChecks`)، بطاقات النتائج، خادم stdio MCP (شحن بـ 8 أدوات والآن 14؛ راجع [STATUS.md](STATUS.md)) مع تنقية المدخلات. | ✅ **تم الاجتياز:** نجاح وكيل ذكاء اصطناعي بنقل وحدة برمجية كاملة بشكل مستقل. |
+| **M5: الوضع الخفي والالتقاط** | `v0.1.0` | [`shadow`](cmd/go-anything/shadow.go) | [`cmd/go-anything/m5_acceptance_test.go`](cmd/go-anything/m5_acceptance_test.go) | نسخ البيانات الحية في الوقت الحقيقي، أحواض معالجة منضبطة، واقتصار تلقائي على طلبات GET/HEAD، واستيعاب العينات. | ✅ **تم الاجتياز:** سجل نظيف للوضع الخفي ودراسة حالة حية. |
+| **M6: محول Python** | `v0.2.0` | [`init --source=python`](cmd/go-anything/init.go) | [`cmd/go-anything/m6_acceptance_test.go`](cmd/go-anything/m6_acceptance_test.go) | محول لغة Python (تحليل استيرادات AST، اكتشاف pytest، قنوات Subprocess وHTTP وC-Shared، وأغلفة المكتبات الخارجية). | ✅ **تم الاجتياز:** ترحيل أداة CLI وخدمة FastAPI مع اجتياز اختبارات التوافق. |
+| **M7: محول TypeScript والتجميد** | `v1.0.0` | [`migrate`](cmd/go-anything/migrate.go), [`init --source=typescript`](cmd/go-anything/init.go) | [`cmd/go-anything/m7_acceptance_test.go`](cmd/go-anything/m7_acceptance_test.go), [`cmd/go-anything/migrate_test.go`](cmd/go-anything/migrate_test.go) | محول TypeScript/Node (ESM/CommonJS، Jest/Vitest)، تجميد مخططات `schemas/v1/`، أمر `go-anything migrate`، `GOVERNANCE.md`. | ✅ **تم الاجتياز:** ترحيل مشروع مفتوح المصدر متعدد الوحدات بالكامل مع صفر تراجع. |
+| **v2.0: المسارات الساخنة وJS** | `v2.0.0` | [`fuzz`](cmd/go-anything/fuzz.go), [`bench`](cmd/go-anything/bench.go), [`profile`](cmd/go-anything/profile.go), [`bridge`](cmd/go-anything/bridge.go), [`go`](cmd/go-anything/go.go), [`setup`](cmd/go-anything/setup.go) | [`cmd/go-anything/go_test.go`](cmd/go-anything/go_test.go), [`cmd/go-anything/companion_test.go`](cmd/go-anything/companion_test.go), [`cmd/go-anything/setup_test.go`](cmd/go-anything/setup_test.go) | جسور stdio JSON-RPC الجانبية (ADR-005)، أوامر `fuzz`/`bench`/`profile`، تسجيل `--from-tests`/`--effects`، 14 أداة MCP، أمر `setup` متعدد الأدوات، محول JS، ومخططات `schemas/v2/`. | ✅ **تم الاجتياز:** 32/32 أمر موصول بتغطية E2E + ترحيل مشاريع Node/Python واقعية. |
+| **v2.0.1: تحصين البوابة والأمان** | `v2.0.1` | [`gate`](cmd/go-anything/gate.go), [`mcp`](cmd/go-anything/mcp.go) | [`cmd/go-anything/owner_test.go`](cmd/go-anything/owner_test.go), [`cmd/go-anything/mcp_test.go`](cmd/go-anything/mcp_test.go), [`cmd/go-anything/stubs_guard_test.go`](cmd/go-anything/stubs_guard_test.go) | توحيد هوية المالك (ADR-007)، توليد التوثيق من الكود (`tools/genstatus`)، تضمين `staticcheck` في ملف `full` + أدلة v2 (ADR-008)، توسيع كاشف الأسرار، عزل بناء الجسور الجانبية، دعم متعدد اللغات في `inspect_unit`. | ✅ **تم الاجتياز:** اجتياز CI الكامل (`staticcheck`, `govulncheck`, `-race`, dogfood gate) وحراس التطابق. |
+
+> [!NOTE]
+> **خطة الإصلاح والأمان القادمة ([Docs/GO_ANYTHING_FIX_AND_SECURITY_PLAN.md](Docs/GO_ANYTHING_FIX_AND_SECURITY_PLAN.md)):**
+> - **`v2.0.1` (منجز — الجزء A):** توثيق مشتق من الكود، توحيد الهوية، توسيع كاشف الأسرار (`redactor.Detect`)، تضمين `staticcheck` في بوابة `full` مع أدلة v2، دعم متعدد اللغات في `inspect_unit`، عزل بناء الجسور الجانبية، وتحصين سلسلة التوريد في CI.
+> - **`v2.1.0` (مخطط — التدقيق الأمني الاستشاري):** محرك `internal/audit/` مع محلل `go/packages` المعتمد على الأنواع، وأول 8 قواعد أمان (`GA-SQLI`، `GA-CMDI`، `GA-WEAKRAND`، `GA-BODYLIMIT`، `GA-TLS`، `GA-SERVER`، `GA-SECRET`، `GA-WEAKHASH`)، وفحص `security` في البوابة (استشاري في `full` مع خيار `--security=enforce`)، وأمر `go-anything audit` (`console`/`json`/`sarif`)، وأداة MCP للقراءة فقط `audit_code`، وتحذيرات الأسرار في الكود القديم (`go-anything audit secrets`).
+> - **`v2.2.0` (مخطط — التكافؤ الأمني والإلزام):** التكافؤ الأمني التفاضلي (`security_parity` لتشغيل حالات سلبية للمصادقة والصلاحيات والتحقق والحدود واجتياز المسارات)، وترقية `security` إلى **إلزامي** في `full` مع تحديث مخطط الأدلة، وبناء نسخة محجوبة من الشجرة القديمة (`go-anything view build`)، وفحص `audit agent-config` الإرشادي، وتوليد SBOM وفحص `audit --deps`.
 
 ---
 
 ## القيود المعروفة
 
 1. **متطلبات فاحص تسابق البيانات (Race Detector) وCGO:**
-   يتطلب فحص الجودة الكامل تشغيل `go test -race`، والذي يستلزم تفعيل CGO ووجود مترجم لغة C في البيئة المضيفة (GCC أو Clang على أنظمة Linux/macOS، و MinGW-w64 على Windows). في البيئات الخالية من CGO (`CGO_ENABLED=0`)، يتم تجاوز فحص التسابق بحالة (`StatusSkipped`). يُنصح في هذه البيئات بتحديد ملف الأدلة المخفف `--profile=replay` أو توفير بيئة CGO مناسبة.
+   يتطلب ملف التحقق `full` تشغيل `go test -race`، والذي يستلزم تفعيل CGO ووجود مترجم لغة C في البيئة المضيفة (GCC أو Clang على أنظمة Linux/macOS، وMinGW-w64 على Windows). في البيئات الخالية من CGO (`CGO_ENABLED=0`)، يتم تجاوز فحص التسابق بحالة (`StatusSkipped`). يُنصح في هذه البيئات بتحديد ملف الأدلة `--profile=replay` أو توفير سلسلة أدوات C مناسبة.
 2. **حدود ادعاء التطابق السلوكي (القاعدة R-6):**
    يدعي `go-anything` التكافؤ السلوكي **حصراً وصرامةً على المدخلات المرصودة والمسجلة والمختبرة عبر Fuzzing** (المسارات الإيجابية، الحالات الحافة، الفخاخ الدلالية، وعينات الإنتاج الحية). ولا يمثل ذلك برهاناً رياضياً شاملاً للتكافؤ السلوكي عبر المسارات البرمجية غير المختبرة.
 3. **مستويات عزل بيئات التشغيل (Sandbox - ADR-001):**
-   يتوفر العزل الشامل على مستوى نواة النظام (عزل الشبكات والملفات والعمليات عبر فضاءات أسماء Linux و cgroups) كـ **مستوى أول (Tier 1)** على أنظمة Linux. بينما يطبق **المستوى الثاني (Tier 2)** على أنظمة macOS و Windows وفق أقصى جهد ممكن: حظر المتغيرات البيئية غير المصرح بها، عزل مسارات العمل المؤقتة، وتطبيق مهلات زمنية صارمة.
+   يتوفر العزل الشامل على مستوى نواة النظام (عزل الشبكات والملفات والعمليات عبر فضاءات أسماء Linux وcgroups) كـ **مستوى أول (Tier 1)** على أنظمة Linux. بينما يُطبق **المستوى الثاني (Tier 2)** على أنظمة macOS وWindows وفق أقصى جهد ممكن: حظر المتغيرات البيئية غير المصرح بها، عزل مسارات العمل المؤقتة، وتطبيق مهلات زمنية صارمة. استخدم بيئات Linux أو حاويات معزولة في CI عند الحاجة لعزل صارم للشبكة.
 4. **حالة محول مكتبات Python المشتركة (C-Shared):**
-   يعد استدعاء مكتبات CPython C-Shared المباشر (`adapters/source/python/cshared`) تجريبياً نظراً لقيود قفل المفسر العام (GIL) وتعارض الإشارات بين بيئتي CPython و Go Runtime. يُوصى بالاعتماد على قنوات العمليات الفرعية (Subprocess) أو خوادم HTTP الجانبية للإنتاج.
+   يُعد استدعاء مكتبات CPython C-Shared المباشر (`adapters/source/python/cshared`) تجريبياً نظراً لقيود قفل المفسر العام (GIL) وتعارض الإشارات بين بيئتي CPython وGo Runtime. يُوصى بالاعتماد على قنوات العمليات الفرعية (Subprocess) أو خوادم HTTP الجانبية (`adapters/application/cli` و`adapters/application/http`) للإنتاج.
 5. **الحدود البشرية الصارمة للتحكم (قاعدة التنفيذ 4):**
-   عمليات تعديل مسار حركة البيانات الحية في الإنتاج، واعتماد الوحدات البرمجية نهائياً، وإزالة كود المصدر الأصلي عبر `lift` هي عمليات حصرية للأوامر اليدوية البشرية عبر CLI (`approve`, `promote`, `lift`, `cutover`, `shadow`). هذه الأوامر محجوبة عمداً عن خادم وكلاء الذكاء الاصطناعي (MCP) ولا يمكن للوكلاء تزويرها أو استدعاؤها.
+   عمليات تعديل مسار حركة البيانات الحية في الإنتاج، واعتماد الوحدات البرمجية نهائياً، وإزالة كود المصدر الأصلي عبر `lift` هي عمليات حصرية للأوامر اليدوية البشرية عبر CLI (`approve`, `promote`, `lift`, `cutover`, `shadow` وعناصر التحكم بالتوجيه ومفتاح الإيقاف). هذه الأوامر محجوبة عمداً عن خادم وكلاء الذكاء الاصطناعي (MCP) ولا يمكن للوكلاء تزويرها أو استدعاؤها.
+6. **بناء الجسور الجانبية المعزول بدون شبكة:**
+   تنفذ أوامر `go build` و`go vet` للجسور الجانبية في المسارات الساخنة داخل `internal/sandbox` مع تعطيل الشبكة (`GOPROXY=off`، `GOTOOLCHAIN=local`، `GOFLAGS=-mod=readonly`). يجب على مساحات العمل التي تعتمد على حزم Go خارجية تضمينها محلياً عبر `go mod vendor` أو تجهيز ذاكرة التخزين المؤقت المحلية `GOMODCACHE` مسبقاً (راجع [Docs/hotpath.md](Docs/hotpath.md)).
 
 ---
 
 ## سير عمل وكلاء الذكاء الاصطناعي وMCP
 
-يتضمن `go-anything` خادماً مدمجاً لبروتوكول سياق النماذج (Model Context Protocol, MCP) يعمل عبر مدخلات ومخرجات النظام القياسية `stdio` بدون فتح منافذ شبكة:
+يتضمن `go-anything` خادماً مدمجاً لبروتوكول سياق النماذج (Model Context Protocol, MCP) يعمل عبر مدخلات ومخرجات النظام القياسية `stdio` بدون فتح منافذ شبكة، بالإضافة إلى أمر `setup` لتسجيله بأمان عبر أدوات البرمجة الذكية (Claude Code وCodex وCursor وGemini وOpenCode):
 
 ```bash
+# معاينة وتثبيت إعدادات MCP وتعليمات الوكلاء (ينشئ نسخاً احتياطية .bak)
+go-anything setup --tool all --dry-run
+go-anything setup --tool all --yes
+
+# أو تشغيل خادم MCP مباشرة عبر stdio
 go-anything mcp
 ```
 
 ### أدوات MCP القياسية والمرافقة
 
-يفرض خادم MCP دورة حياة الـ 10 حالات من جهة الخادم؛ ولا يمكن للوكيل تجاوز أي مرحلة أو تزوير نتائج الجودة:
+يفرض خادم MCP دورة حياة الـ 10 حالات من جهة الخادم؛ ولا يمكن للوكيل تجاوز أي مرحلة أو تزوير نتائج الجودة (راجع [STATUS.md](STATUS.md) للاطلاع على مصفوفة الأوامر الـ 32 الكاملة ورموز الخروج القياسية):
 
-#### أدوات دورة الحياة الأساسية (8 أدوات قياسية)
+#### أدوات دورة الحياة الأساسية (8 أدوات من أصل 14)
 1. `status` — استعلام عن حالة التقدم، والوحدة القادمة، وعقود الاستئجار النشطة، والموانع.
 2. `claim_unit` — حجز وحدة بحالة `Ready` بعقد استئجار مؤقت في `.go-anything/local/`.
-3. `inspect_unit` — الاطلاع على الكود الأصلي، والحالات المطهرة، والفخاخ الدلالية والقيود.
+3. `inspect_unit` — الاطلاع على الكود الأصلي (Go وPython وTypeScript وJavaScript)، والحالات المطهرة، والفخاخ الدلالية والقيود.
 4. `record_cases` — تشغيل الكود الأصلي في بيئة العزل، وحجب البيانات السرية، وحفظ JSONL.
-5. `verify_diff` — بناء كود Go المستهدف، وإعادة تشغيل الحالات، وإظهار الفروقات المنقحة.
-6. `run_gate` — تشغيل بوابات الجودة الست وحفظ وثائق الإثبات المربوطة بالـ Commit.
-7. `mark_verified` — ترقية الوحدة إلى حالة `Verified` (مشروط بوجود إثبات لـ HEAD الحالي).
-8. `handoff` — إنشاء ملف `HANDOFF.md` يلخص النتائج والخطوات التالية للجلسة القادمة.
+5. `verify_diff` — بناء كود Go المستهدف، وإعادة تشغيل الحالات، وإرجاع PASS أو أهم الفروقات المنقحة.
+6. `run_gate` — تشغيل بوابة الجودة الكاملة (`build`, `format`, `vet`, `staticcheck`, `race`, `govulncheck`, `replay`, `error_paths`, `api_compat`) وحفظ وثائق إثبات v2 المربوطة بالـ Commit.
+7. `mark_verified` — ترقية الوحدة إلى حالة `Verified` (آمن عند الإخفاق: يُرفض ما لم تتوفر أدلة v2 صالحة لـ HEAD).
+8. `handoff` — إنشاء ملف `HANDOFF.md` يلخص التقدم والخطوات التالية للجلسة القادمة.
 
 #### أدوات التحليل والمرافقة (v2.0)
 - `analyze` — تحليل كود المشروع القديم واستخراج مخطط موجات الاعتماديات.
@@ -448,16 +499,16 @@ go-anything mcp
 - `fuzz_bench` — تشغيل اختبارات Fuzzing التفاضلية أو قياسات الأداء ومعدلات التأخير.
 - `shadow_status` — استعراض مقاييس الوضع الخفي وتقارير الفروقات وسجلات الطلبات.
 
-> **الحد البشري الصارم:** لا يوفر خادم MCP **أبداً** أوامر `approve` أو `promote` أو `lift` أو تعديل المسارات الحية، فهذه الصلاحيات للمهندس البشري فقط (قاعدة التنفيذ 4).
+> **الحد البشري الصارم:** لا يوفر خادم MCP **أبداً** أوامر `approve` أو `promote` أو `lift` أو `routing` أو `toggle_shadow` أو `kill_switch`. أي محاولة لاستدعائها عبر MCP تُرفض فوراً برمز `FORBIDDEN` (قاعدة التنفيذ 4).
 
 ---
 
 ## معمارية النظام ومبادئ التصميم
 
 1. **خطوات تدريجية قابلة للعكس:** الاستبدال التدريجي بنمط شجرة الخناق. يظل الكود الأصلي متاحاً كخيار تراجع فوري حتى إتمام أمر `lift` النهائي.
-2. **حجب الأسرار الحتمي في الذاكرة (Fail-Closed):** استبدال الرموز السرية ومفاتيح التوثيق قبل كتابتها على القرص. وأي بيانات لا يمكن تطهيرها تؤدي لإلغاء التسجيل فوراً.
-3. **عزل صارم في بيئة تشغيل (Sandbox):** استخدام فضاءات أسماء Linux (المستوى 1) أو العزل على مستوى العمليات في macOS/Windows (المستوى 2) مع حظر الشبكة تلقائياً.
-4. **أدلة حتمية قابلة للإعادة:** ترتيب حالات الاختبار والفروقات بدقة وفق معرف الحالة `case_id` وليس وفق سرعة الإنجاز الزمني.
+2. **حجب الأسرار الحتمي في الذاكرة (Fail-Closed):** استبدال مفاتيح API وأسرار AWS وبيانات الاعتماد في الروابط والرموز السرية وCookies قبل كتابتها على القرص. وأي بيانات حساسة لا يمكن تطهيرها تؤدي لإلغاء التسجيل فوراً.
+3. **عزل صارم في بيئة تشغيل (Sandbox):** يتم تنفيذ التطبيقات وبناء الجسور الجانبية ضمن حدود العزل: فضاءات أسماء Linux (المستوى 1) أو العزل على مستوى العمليات في macOS/Windows (المستوى 2) مع حظر الشبكة تلقائياً.
+4. **أدلة حتمية قابلة للإعادة:** ترتيب حالات الاختبار والفروقات وبطاقات النتائج بدقة وفق معرف الحالة `case_id` وليس وفق سرعة الإنجاز الزمني.
 5. **محلية تامة وبدون أي قياسات عن بُعد:** يتم الاحتفاظ بكافة الحالات والأدلة محلياً في `.go-anything/` دون إرسال أي بيانات عبر الإنترنت.
 6. **معمارية محولات منفصلة:** تتصل محولات اللغات عبر العقد البرمجي الثابت `pkg/adapterkit` ويجب أن تجتاز 100% من اختبارات التوافق الرسمية في `pkg/adapterkit/conformance`.
 
@@ -466,37 +517,55 @@ go-anything mcp
 ## خريطة مستودع المشروع
 
 ```text
-cmd/go-anything/        نقطة الدخول لسطر الأوامر وخادم MCP stdio
+cmd/go-anything/        نقطة الدخول لسطر الأوامر (32 أمراً موصولاً) وخادم MCP stdio
 pkg/adapterkit/         عقود المحولات العامة والمجمدة (v1)
   └── conformance/      مجموعة اختبارات الاعتماد والمطابقة الرسمية
 internal/               المحرك الأساسي للترحيل والتحقق:
+  ├── adapterhost/      اكتشاف المحولات وتحميل بياناتها ومضيف التشغيل
   ├── analyzer/         تحليل شجرة كود المصدر واستنتاج الأنواع وشجرة الاستدعاء
+  ├── app/              حالات الاستخدام (المسارات الساخنة، fuzz، bench، profile، gate)
   ├── bench/            اختبارات الأداء وقياسات الذاكرة وسرعة الاستجابة
-  ├── comparator/       أداة المقارنة متعددة الأنماط (exact, json, numeric, regex)
-  ├── gate/             محرك بوابات الجودة (build, vet, staticcheck, race, vuln)
-  ├── mcp/              خادم stdio MCP مع تنقية المدخلات والمخرجات
+  ├── bridge/           توليد جسور المسارات الساخنة الجانبية والأغلفة البرمجية
+  ├── comparator/       أداة المقارنة متعددة الأنماط (exact, json, numeric, regex, effects)
+  ├── frontdoor/        خادم الواجهة العكسي وتوجيه مفتاح الإيقاف الطارئ
+  ├── gate/             محرك بوابات الجودة (build, format, vet, staticcheck, race, vuln)
+  ├── lift/             محرك إزالة الجسور القديمة وإنهاء الترحيل
+  ├── mcp/              خادم stdio MCP (14 أداة) مع تنقية المدخلات والمخرجات
   ├── migrate/          محرك ترقية مخططات مساحة العمل
   ├── planner/          مخطط موجات الاعتماديات الطوبولوجي
   ├── recorder/         التسجيل في بيئة العزل مع رصد التغيرات التلقائي
-  ├── redactor/         أداة حجب وتطهير الأسرار والبيانات الحساسة في الذاكرة
+  ├── redactor/         أداة كشف وحجب الأسرار والبيانات الحساسة في الذاكرة
   ├── replay/           محرك إعادة التشغيل التزامني الحتمي
   ├── sandbox/          فضاءات أسماء Linux وعزل العمليات في نظام التشغيل
+  ├── setup/            تهيئة أدوات الوكلاء وخادم MCP بشكل غير مدمر
   ├── shadow/           محرك الوضع الخفي لنسخ حركة البيانات الحية
-  └── state/            دورة حياة الـ 10 حالات، القراءة والكتابة الذرية وأقفال الملفات
+  └── state/            دورة حياة الـ 10 حالات، القراءة والكتابة الذرية وأدلة v2
 adapters/               محولات اللغات وبيئات التشغيل:
   ├── source/           محولات الكود المصدري (Go, Python, TypeScript, JavaScript)
   └── application/      محولات التطبيقات (CLI, HTTP, Foreign Library, Worker)
+skills/                 تعريفات مهارات سير عمل الوكلاء
+templates/              قوالب تعليمات الوكلاء (CLAUDE.md, AGENTS.md إلخ)
+tools/genstatus/        مولد STATUS.md وجداول أدوات MCP المشتقة من الكود
 packaging/              أغلفة مديري الحزم الرسمية (npm, Homebrew, Scoop)
-demo/                   أمثلة وتجارب قياس حية (Node REST API, Python Worker)
+demo/                   أمثلة وتجارب قياس واقعية (Node REST API, Python Worker)
 schemas/                مخططات JSON الموثقة:
   ├── v1/               المخططات المستقرة والمجمدة (manifest, units, rules إلخ)
-  ├── v2/               مخططات مخرجات الأوامر (analyze, diff, gate, shadow, cutover)
+  ├── v2/               مخططات مخرجات الأوامر والأدلة (evidence, fuzz, bench, profile إلخ)
   └── v1alpha1/         المخططات التجريبية السابقة (قابلة للترقية عبر migrate)
-Docs/                   المعمارية، والقرارات ودراسات الحالة:
-  ├── decisions/        سجلات القرارات المعمارية (ADR-001, ADR-002, ADR-005)
+Docs/                   المعمارية والأدلة ودراسات الحالة:
+  ├── decisions/        سجلات القرارات المعمارية (ADR-001, 002, 005, 007, 008)
   ├── case-studies/     دراسات حالة واقعية من بيئات الإنتاج (M3, M4, M5, M6, M7)
   ├── USER_GUIDE.md     دليل المستخدم الشامل ومراجع الأوامر
+  ├── hotpath.md        بناء الجسور المعزول ومتطلبات العمل دون شبكة
+  ├── how-it-works.md   شرح معمق لآلية التسجيل والتحقق التدريجي
+  ├── real-world.md     نتائج ترحيل مشاريع Node.js وPython واقعية
+  ├── pitfalls.md       الفخاخ الدلالية ومزالق الترحيل
+  ├── faq.md            الأسئلة الشائعة
+  ├── privacy.md        ضمانات الخصوصية المحلية وانعدام القياس عن بُعد
+  ├── whole-apps.md     دليل ترحيل التطبيقات الكاملة
   └── install.md        مصفوفة المنصات والأرقام التأكيدية والتثبيت
+STATUS.md               مصفوفة تتبع الأوامر الـ 32 وأدوات MCP الـ 14 المشتقة من الكود
+CHANGELOG.md            سجل الإصدارات وملاحظات الترقية
 GOVERNANCE.md           أدوار المشرفين، التوافق، إجراءات RFC وتوثيق المحولات
 SECURITY.md             نموذج التهديدات، مستويات بيئات العزل وسياسة الإبلاغ عن الثغرات
 CONTRIBUTING.md         إعداد البيئة التطويرية، معايير الكود، ومتطلبات التحقق

@@ -5,7 +5,7 @@
 ## Overview & Capabilities
 
 - **Adapter Identifier:** `javascript`
-- **Target Target Language:** `go`
+- **Target Language:** `go`
 - **Specification Version:** `v1`
 - **Supported Transports:** `subprocess`, `http`
 - **Default Statement Coverage Minimum:** 80%
